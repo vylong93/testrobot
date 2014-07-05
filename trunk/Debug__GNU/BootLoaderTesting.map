@@ -1,0 +1,1703 @@
+Archive member included because of file (symbol)
+
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o (__register_exitproc)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o (exit)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o (__libc_fini_array)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o) (_global_impure_ptr)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o (__libc_init_array)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o (memset)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o) (__call_exitprocs)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o) (atexit)
+d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+                              d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o) (_exit)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                              ./MainBoardDriver.o (ADCIntStatus)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                              ./MainBoardDriver.o (GPIODirModeSet)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                              ./libnrf24l01/src/TM4C123_nRF24L01.o (IntMasterEnable)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                              ./MainBoardDriver.o (PWMGenConfigure)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                              ./libnrf24l01/src/TM4C123_nRF24L01.o (SSIConfigSetExpClk)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                              ./libnrf24l01/src/TM4C123_nRF24L01.o (SysCtlPeripheralEnable)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                              ./MainBoardDriver.o (TimerEnable)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                              ./MainBoardDriver.o (uDMAEnable)
+D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                              D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o) (CPUcpsid)
+
+Allocating common symbols
+Common symbol       size              file
+
+g_ui16ADC0Result    0x258             ./main.o
+g_ui16ADC1Result    0x258             ./main.o
+g_ui32SysTickCount  0x4               ./main.o
+ui8LeftMotorDutyCycles
+                    0x1               ./main.o
+g_ui16BatteryVoltage
+                    0x2               ./main.o
+ui8RightMotorDutyCycles
+                    0x1               ./main.o
+RF24_RX_buffer      0x20              ./main.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+FLASH            0x00002000         0x00040000         xr
+SRAM             0x20000000         0x00008000         xw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+LOAD ./libnrf24l01/src/nRF24L01.o
+LOAD ./libnrf24l01/src/TM4C123_nRF24L01.o
+LOAD ./tm4c123gh6pm_startup_ccs_gcc.o
+LOAD ./main.o
+LOAD ./MainBoardDriver.o
+LOAD ./CustomTivaDrivers.o
+                0x00002000                PROVIDE (_intvecs_base_address, 0x2000)
+
+.intvecs        0x00002000      0x26c
+ *(.intvecs)
+ .intvecs       0x00002000      0x26c ./tm4c123gh6pm_startup_ccs_gcc.o
+                0x00002000                g_pfnVectors
+                0x20000000                PROVIDE (_vtable_base_address, 0x20000000)
+
+.vtable
+ *(.vtable)
+
+.text           0x0000226c     0x5430
+ CREATE_OBJECT_SYMBOLS
+ *(.text)
+ .text          0x0000226c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+ .text          0x0000226c       0x94 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .text          0x00002300      0x110 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+                0x00002300                _start
+                0x00002300                start
+                0x00002300                _mainCRTStartup
+ .text          0x00002410        0x0 ./libnrf24l01/src/nRF24L01.o
+ .text          0x00002410        0x0 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .text          0x00002410        0x0 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .text          0x00002410        0x0 ./main.o
+ .text          0x00002410        0x0 ./MainBoardDriver.o
+ .text          0x00002410        0x0 ./CustomTivaDrivers.o
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+ .text          0x00002410        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+ .text          0x00002410        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+ *(.text.*)
+ .text.RF24_init
+                0x00002410       0xdc ./libnrf24l01/src/nRF24L01.o
+                0x00002410                RF24_init
+ .text.RF24_enableFeatures
+                0x000024ec       0x70 ./libnrf24l01/src/nRF24L01.o
+                0x000024ec                RF24_enableFeatures
+ .text.RF24_disableFeatures
+                0x0000255c       0x60 ./libnrf24l01/src/nRF24L01.o
+                0x0000255c                RF24_disableFeatures
+ .text.RF24_getLostPackets
+                0x000025bc       0x18 ./libnrf24l01/src/nRF24L01.o
+                0x000025bc                RF24_getLostPackets
+ .text.RF24_isAlive
+                0x000025d4       0x3c ./libnrf24l01/src/nRF24L01.o
+                0x000025d4                RF24_isAlive
+ .text.RF24_setConfigureRegister
+                0x00002610       0x24 ./libnrf24l01/src/nRF24L01.o
+                0x00002610                RF24_setConfigureRegister
+ .text.RF24_getConfigureRegister
+                0x00002634       0x14 ./libnrf24l01/src/nRF24L01.o
+                0x00002634                RF24_getConfigureRegister
+ .text.RF24_setSpeedAndPower
+                0x00002648       0x28 ./libnrf24l01/src/nRF24L01.o
+                0x00002648                RF24_setSpeedAndPower
+ .text.RF24_setChannel
+                0x00002670       0x24 ./libnrf24l01/src/nRF24L01.o
+                0x00002670                RF24_setChannel
+ .text.RF24_setAddressWidth
+                0x00002694       0x28 ./libnrf24l01/src/nRF24L01.o
+                0x00002694                RF24_setAddressWidth
+ .text.RF24_getCurrentState
+                0x000026bc       0x90 ./libnrf24l01/src/nRF24L01.o
+                0x000026bc                RF24_getCurrentState
+ .text.RF24_startPowerDown
+                0x0000274c       0x20 ./libnrf24l01/src/nRF24L01.o
+                0x0000274c                RF24_startPowerDown
+ .text.RF24_startStandby
+                0x0000276c       0x6c ./libnrf24l01/src/nRF24L01.o
+                0x0000276c                RF24_startStandby
+ .text.RF24_scan
+                0x000027d8       0x7c ./libnrf24l01/src/nRF24L01.o
+                0x000027d8                RF24_scan
+ .text.RF24_getIrqFlag
+                0x00002854       0x70 ./libnrf24l01/src/nRF24L01.o
+                0x00002854                RF24_getIrqFlag
+ .text.RF24_clearIrqFlag
+                0x000028c4       0x64 ./libnrf24l01/src/nRF24L01.o
+                0x000028c4                RF24_clearIrqFlag
+ .text.RF24_readRegister
+                0x00002928       0x44 ./libnrf24l01/src/nRF24L01.o
+                0x00002928                RF24_readRegister
+ .text.RF24_writeRegister
+                0x0000296c       0x44 ./libnrf24l01/src/nRF24L01.o
+                0x0000296c                RF24_writeRegister
+ .text.RF24_TX_setAddress
+                0x000029b0       0x64 ./libnrf24l01/src/nRF24L01.o
+                0x000029b0                RF24_TX_setAddress
+ .text.RF24_TX_writePayloadAck
+                0x00002a14       0x60 ./libnrf24l01/src/nRF24L01.o
+                0x00002a14                RF24_TX_writePayloadAck
+ .text.RF24_TX_writePayloadNoAck
+                0x00002a74       0x74 ./libnrf24l01/src/nRF24L01.o
+                0x00002a74                RF24_TX_writePayloadNoAck
+ .text.RF24_TX_flush
+                0x00002ae8       0x24 ./libnrf24l01/src/nRF24L01.o
+                0x00002ae8                RF24_TX_flush
+ .text.RF24_TX_reuseLastPayload
+                0x00002b0c       0x24 ./libnrf24l01/src/nRF24L01.o
+                0x00002b0c                RF24_TX_reuseLastPayload
+ .text.RF24_TX_activate
+                0x00002b30       0x30 ./libnrf24l01/src/nRF24L01.o
+                0x00002b30                RF24_TX_activate
+ .text.RF24_TX_pulseTransmit
+                0x00002b60       0x18 ./libnrf24l01/src/nRF24L01.o
+                0x00002b60                RF24_TX_pulseTransmit
+ .text.RF24_RX_setAddress
+                0x00002b78       0x8c ./libnrf24l01/src/nRF24L01.o
+                0x00002b78                RF24_RX_setAddress
+ .text.RF24_RX_getPayloadWidth
+                0x00002c04       0x3c ./libnrf24l01/src/nRF24L01.o
+                0x00002c04                RF24_RX_getPayloadWidth
+ .text.RF24_RX_getPayloadData
+                0x00002c40       0x74 ./libnrf24l01/src/nRF24L01.o
+                0x00002c40                RF24_RX_getPayloadData
+ .text.RF24_RX_flush
+                0x00002cb4       0x24 ./libnrf24l01/src/nRF24L01.o
+                0x00002cb4                RF24_RX_flush
+ .text.RF24_RX_activate
+                0x00002cd8       0x30 ./libnrf24l01/src/nRF24L01.o
+                0x00002cd8                RF24_RX_activate
+ .text.RF24_RX_isEmpty
+                0x00002d08       0x30 ./libnrf24l01/src/nRF24L01.o
+                0x00002d08                RF24_RX_isEmpty
+ .text.RF24_RX_sendAckWithPayload
+                0x00002d38       0x84 ./libnrf24l01/src/nRF24L01.o
+                0x00002d38                RF24_RX_sendAckWithPayload
+ .text.RF24_RX_carrierDetection
+                0x00002dbc       0x2c ./libnrf24l01/src/nRF24L01.o
+                0x00002dbc                RF24_RX_carrierDetection
+ .text.RF24_PIPE_close
+                0x00002de8       0x80 ./libnrf24l01/src/nRF24L01.o
+                0x00002de8                RF24_PIPE_close
+ .text.RF24_PIPE_closeAll
+                0x00002e68       0x2c ./libnrf24l01/src/nRF24L01.o
+                0x00002e68                RF24_PIPE_closeAll
+ .text.RF24_PIPE_open
+                0x00002e94       0x90 ./libnrf24l01/src/nRF24L01.o
+                0x00002e94                RF24_PIPE_open
+ .text.RF24_PIPE_isOpen
+                0x00002f24       0x50 ./libnrf24l01/src/nRF24L01.o
+                0x00002f24                RF24_PIPE_isOpen
+ .text.RF24_PIPE_setPacketSize
+                0x00002f74       0xa8 ./libnrf24l01/src/nRF24L01.o
+                0x00002f74                RF24_PIPE_setPacketSize
+ .text.RF24_RETRANS_setDelay
+                0x0000301c       0x40 ./libnrf24l01/src/nRF24L01.o
+                0x0000301c                RF24_RETRANS_setDelay
+ .text.RF24_RETRANS_setCount
+                0x0000305c       0x40 ./libnrf24l01/src/nRF24L01.o
+                0x0000305c                RF24_RETRANS_setCount
+ .text.RF24_RETRANS_getLastRetransmits
+                0x0000309c       0x18 ./libnrf24l01/src/nRF24L01.o
+                0x0000309c                RF24_RETRANS_getLastRetransmits
+ .text.initSpiForRF
+                0x000030b4      0x124 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x000030b4                initSpiForRF
+ .text.setRfCSN
+                0x000031d8       0x18 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x000031d8                setRfCSN
+ .text.clearRfCSN
+                0x000031f0       0x18 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x000031f0                clearRfCSN
+ .text.setRfCE  0x00003208       0x24 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x00003208                setRfCE
+ .text.clearRfCE
+                0x0000322c       0x24 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x0000322c                clearRfCE
+ .text.SPI_sendAndGetData
+                0x00003250       0x38 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x00003250                SPI_sendAndGetData
+ .text.rfDelayLoop
+                0x00003288       0x18 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x00003288                rfDelayLoop
+ .text.getCEState
+                0x000032a0       0x18 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                0x000032a0                getCEState
+ .text.ResetISR
+                0x000032b8       0x84 ./tm4c123gh6pm_startup_ccs_gcc.o
+                0x000032b8                ResetISR
+ .text.NmiSR    0x0000333c        0x8 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .text.FaultISR
+                0x00003344        0x8 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .text.IntDefaultHandler
+                0x0000334c        0x8 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .text.SysTickHandler
+                0x00003354       0x24 ./main.o
+                0x00003354                SysTickHandler
+ .text.main     0x00003378       0x7c ./main.o
+                0x00003378                main
+ .text.GPIOAIntHandler
+                0x000033f4       0x1c ./main.o
+                0x000033f4                GPIOAIntHandler
+ .text.RF24_IntHandler
+                0x00003410      0x234 ./main.o
+                0x00003410                RF24_IntHandler
+ .text.initLED  0x00003644       0x2c ./MainBoardDriver.o
+                0x00003644                initLED
+ .text.turnOnLED
+                0x00003670       0x28 ./MainBoardDriver.o
+                0x00003670                turnOnLED
+ .text.turnOffLED
+                0x00003698       0x28 ./MainBoardDriver.o
+                0x00003698                turnOffLED
+ .text.signalUnhandleError
+                0x000036c0       0x68 ./MainBoardDriver.o
+                0x000036c0                signalUnhandleError
+ .text.initMotor
+                0x00003728      0x1a8 ./MainBoardDriver.o
+                0x00003728                initMotor
+ .text.enableMOTOR
+                0x000038d0       0x18 ./MainBoardDriver.o
+                0x000038d0                enableMOTOR
+ .text.disableMOTOR
+                0x000038e8       0x18 ./MainBoardDriver.o
+                0x000038e8                disableMOTOR
+ .text.setMotorDirection
+                0x00003900       0x40 ./MainBoardDriver.o
+                0x00003900                setMotorDirection
+ .text.testAllMotorModes
+                0x00003940      0x620 ./MainBoardDriver.o
+                0x00003940                testAllMotorModes
+ .text.setMotorSpeed
+                0x00003f60       0x44 ./MainBoardDriver.o
+                0x00003f60                setMotorSpeed
+ .text.initADC  0x00003fa4       0x64 ./MainBoardDriver.o
+                0x00003fa4                initADC
+ .text.groundAdjacentADCPins
+                0x00004008       0x2c ./MainBoardDriver.o
+                0x00004008                groundAdjacentADCPins
+ .text.initDistanceSensingModules
+                0x00004034      0x1a4 ./MainBoardDriver.o
+                0x00004034                initDistanceSensingModules
+ .text.startSamplingMicSignals
+                0x000041d8       0x28 ./MainBoardDriver.o
+                0x000041d8                startSamplingMicSignals
+ .text.ADC0IntHandler
+                0x00004200       0xa8 ./MainBoardDriver.o
+                0x00004200                ADC0IntHandler
+ .text.ADC1IntHandler
+                0x000042a8       0xa8 ./MainBoardDriver.o
+                0x000042a8                ADC1IntHandler
+ .text.uDMAErrorHandler
+                0x00004350       0x38 ./MainBoardDriver.o
+                0x00004350                uDMAErrorHandler
+ .text.initBatteryChannel
+                0x00004388       0xf4 ./MainBoardDriver.o
+                0x00004388                initBatteryChannel
+ .text.startSamplingBatteryVoltage
+                0x0000447c       0x18 ./MainBoardDriver.o
+                0x0000447c                startSamplingBatteryVoltage
+ .text.BatterySequenceIntHandler
+                0x00004494       0x6c ./MainBoardDriver.o
+                0x00004494                BatterySequenceIntHandler
+ .text.initSpeaker
+                0x00004500      0x16c ./MainBoardDriver.o
+                0x00004500                initSpeaker
+ .text.startSpeaker
+                0x0000466c       0x3c ./MainBoardDriver.o
+                0x0000466c                startSpeaker
+ .text.SpeakerTimerIntHandler
+                0x000046a8       0x4c ./MainBoardDriver.o
+                0x000046a8                SpeakerTimerIntHandler
+ .text.initRfModule
+                0x000046f4       0x9c ./MainBoardDriver.o
+                0x000046f4                initRfModule
+ .text.sendDataToControlBoard
+                0x00004790      0x158 ./MainBoardDriver.o
+                0x00004790                sendDataToControlBoard
+ .text.testCarrierDetection
+                0x000048e8       0x60 ./MainBoardDriver.o
+                0x000048e8                testCarrierDetection
+ .text.testRfTransmission
+                0x00004948      0x120 ./MainBoardDriver.o
+                0x00004948                testRfTransmission
+ .text.sendTestData
+                0x00004a68       0x50 ./MainBoardDriver.o
+                0x00004a68                sendTestData
+ .text.initLowPowerMode
+                0x00004ab8       0x90 ./MainBoardDriver.o
+                0x00004ab8                initLowPowerMode
+ .text.gotoSleepMode
+                0x00004b48       0x24 ./MainBoardDriver.o
+                0x00004b48                gotoSleepMode
+ .text.gotoDeepSleepMode
+                0x00004b6c       0x14 ./MainBoardDriver.o
+                0x00004b6c                gotoDeepSleepMode
+ .text.wakeUpFormLPM
+                0x00004b80       0x30 ./MainBoardDriver.o
+                0x00004b80                wakeUpFormLPM
+ .text.GPIOPinToggle
+                0x00004bb0       0x38 ./CustomTivaDrivers.o
+                0x00004bb0                GPIOPinToggle
+ .text.ADCDitherEnable
+                0x00004be8       0x28 ./CustomTivaDrivers.o
+                0x00004be8                ADCDitherEnable
+ .text.ADCDitherDisable
+                0x00004c10       0x28 ./CustomTivaDrivers.o
+                0x00004c10                ADCDitherDisable
+ .text.__register_exitproc
+                0x00004c38       0xf4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+                0x00004c38                __register_exitproc
+ .text.exit     0x00004d2c       0x34 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+                0x00004d2c                exit
+ .text.__libc_fini_array
+                0x00004d60       0x44 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+                0x00004d60                __libc_fini_array
+ .text.__libc_init_array
+                0x00004da4       0x88 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+                0x00004da4                __libc_init_array
+ .text.memset   0x00004e2c       0xf8 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+                0x00004e2c                memset
+ .text.startup.register_fini
+                0x00004f24       0x24 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .text.__call_exitprocs
+                0x00004f48      0x17c d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+                0x00004f48                __call_exitprocs
+ .text.atexit   0x000050c4       0x20 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+                0x000050c4                atexit
+ .text._exit    0x000050e4        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+                0x000050e4                _exit
+ .text._ADCIntNumberGet
+                0x000050e8       0x4c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ .text.ADCIntRegister
+                0x00005134       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005134                ADCIntRegister
+ .text.ADCIntUnregister
+                0x0000514e       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000514e                ADCIntUnregister
+ .text.ADCIntDisable
+                0x00005164        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005164                ADCIntDisable
+ .text.ADCIntEnable
+                0x00005172        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005172                ADCIntEnable
+ .text.ADCIntStatus
+                0x00005180       0x36 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005180                ADCIntStatus
+ .text.ADCIntClear
+                0x000051b6        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000051b6                ADCIntClear
+ .text.ADCSequenceEnable
+                0x000051be        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000051be                ADCSequenceEnable
+ .text.ADCSequenceDisable
+                0x000051cc        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000051cc                ADCSequenceDisable
+ .text.ADCSequenceConfigure
+                0x000051da       0x48 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000051da                ADCSequenceConfigure
+ .text.ADCSequenceStepConfigure
+                0x00005222       0x8c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005222                ADCSequenceStepConfigure
+ .text.ADCSequenceOverflow
+                0x000052ae        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052ae                ADCSequenceOverflow
+ .text.ADCSequenceOverflowClear
+                0x000052b8        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052b8                ADCSequenceOverflowClear
+ .text.ADCSequenceUnderflow
+                0x000052c0        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052c0                ADCSequenceUnderflow
+ .text.ADCSequenceUnderflowClear
+                0x000052ca        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052ca                ADCSequenceUnderflowClear
+ .text.ADCSequenceDataGet
+                0x000052d2       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052d2                ADCSequenceDataGet
+ .text.ADCProcessorTrigger
+                0x000052f2       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000052f2                ADCProcessorTrigger
+ .text.ADCSoftwareOversampleConfigure
+                0x0000530c       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000530c                ADCSoftwareOversampleConfigure
+ .text.ADCSoftwareOversampleStepConfigure
+                0x00005324       0x78 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005324                ADCSoftwareOversampleStepConfigure
+ .text.ADCSoftwareOversampleDataGet
+                0x0000539c       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000539c                ADCSoftwareOversampleDataGet
+ .text.ADCHardwareOversampleConfigure
+                0x000053cc       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000053cc                ADCHardwareOversampleConfigure
+ .text.ADCComparatorConfigure
+                0x000053de        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000053de                ADCComparatorConfigure
+ .text.ADCComparatorRegionSet
+                0x000053e8        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000053e8                ADCComparatorRegionSet
+ .text.ADCComparatorReset
+                0x000053f6       0x1e D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000053f6                ADCComparatorReset
+ .text.ADCComparatorIntDisable
+                0x00005414       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005414                ADCComparatorIntDisable
+ .text.ADCComparatorIntEnable
+                0x00005424       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005424                ADCComparatorIntEnable
+ .text.ADCComparatorIntStatus
+                0x00005434        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005434                ADCComparatorIntStatus
+ .text.ADCComparatorIntClear
+                0x00005438        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005438                ADCComparatorIntClear
+ .text.ADCIntDisableEx
+                0x0000543c        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000543c                ADCIntDisableEx
+ .text.ADCIntEnableEx
+                0x00005446        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005446                ADCIntEnableEx
+ .text.ADCIntStatusEx
+                0x0000544e       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000544e                ADCIntStatusEx
+ .text.ADCIntClearEx
+                0x00005462        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005462                ADCIntClearEx
+ .text.ADCReferenceSet
+                0x0000546a        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000546a                ADCReferenceSet
+ .text.ADCReferenceGet
+                0x00005476        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005476                ADCReferenceGet
+ .text.ADCPhaseDelaySet
+                0x0000547e        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x0000547e                ADCPhaseDelaySet
+ .text.ADCPhaseDelayGet
+                0x00005482        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005482                ADCPhaseDelayGet
+ .text.ADCSequenceDMAEnable
+                0x00005486       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005486                ADCSequenceDMAEnable
+ .text.ADCSequenceDMADisable
+                0x00005496       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x00005496                ADCSequenceDMADisable
+ .text.ADCBusy  0x000054a6        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000054a6                ADCBusy
+ .text.ADCClockConfigSet
+                0x000054ae       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000054ae                ADCClockConfigSet
+ .text.ADCClockConfigGet
+                0x000054c8       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                0x000054c8                ADCClockConfigGet
+ .text._GPIOIntNumberGet
+                0x000054e4       0x48 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .text.GPIODirModeSet
+                0x0000552c       0x2e D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000552c                GPIODirModeSet
+ .text.GPIODirModeGet
+                0x0000555a       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000555a                GPIODirModeGet
+ .text.GPIOIntTypeSet
+                0x0000557e       0x62 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000557e                GPIOIntTypeSet
+ .text.GPIOIntTypeGet
+                0x000055e0       0x42 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000055e0                GPIOIntTypeGet
+ .text.GPIOPadConfigSet
+                0x00005622      0x14e D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005622                GPIOPadConfigSet
+ .text.GPIOPadConfigGet
+                0x00005770       0xbc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005770                GPIOPadConfigGet
+ .text.GPIOIntEnable
+                0x0000582c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000582c                GPIOIntEnable
+ .text.GPIOIntDisable
+                0x00005838        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005838                GPIOIntDisable
+ .text.GPIOIntStatus
+                0x00005846        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005846                GPIOIntStatus
+ .text.GPIOIntClear
+                0x00005854        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005854                GPIOIntClear
+ .text.GPIOIntRegister
+                0x0000585a       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000585a                GPIOIntRegister
+ .text.GPIOIntUnregister
+                0x00005874       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005874                GPIOIntUnregister
+ .text.GPIOPinRead
+                0x0000588a        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000588a                GPIOPinRead
+ .text.GPIOPinWrite
+                0x00005890        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005890                GPIOPinWrite
+ .text.GPIOPinTypeADC
+                0x00005896       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005896                GPIOPinTypeADC
+ .text.GPIOPinTypeCAN
+                0x000058b2       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000058b2                GPIOPinTypeCAN
+ .text.GPIOPinTypeComparator
+                0x000058ce       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000058ce                GPIOPinTypeComparator
+ .text.GPIOPinTypeEPI
+                0x000058ea       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000058ea                GPIOPinTypeEPI
+ .text.GPIOPinTypeEthernetLED
+                0x00005906       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005906                GPIOPinTypeEthernetLED
+ .text.GPIOPinTypeEthernetMII
+                0x00005922       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005922                GPIOPinTypeEthernetMII
+ .text.GPIOPinTypeGPIOInput
+                0x0000593e       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000593e                GPIOPinTypeGPIOInput
+ .text.GPIOPinTypeGPIOOutput
+                0x0000595a       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x0000595a                GPIOPinTypeGPIOOutput
+ .text.GPIOPinTypeGPIOOutputOD
+                0x00005976       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005976                GPIOPinTypeGPIOOutputOD
+ .text.GPIOPinTypeI2C
+                0x00005992       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005992                GPIOPinTypeI2C
+ .text.GPIOPinTypeI2CSCL
+                0x000059ae       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000059ae                GPIOPinTypeI2CSCL
+ .text.GPIOPinTypeLCD
+                0x000059ca       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000059ca                GPIOPinTypeLCD
+ .text.GPIOPinTypeLPC
+                0x000059e6       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x000059e6                GPIOPinTypeLPC
+ .text.GPIOPinTypePECIRx
+                0x00005a02       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a02                GPIOPinTypePECIRx
+ .text.GPIOPinTypePECITx
+                0x00005a1e       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a1e                GPIOPinTypePECITx
+ .text.GPIOPinTypePWM
+                0x00005a3a       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a3a                GPIOPinTypePWM
+ .text.GPIOPinTypeQEI
+                0x00005a56       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a56                GPIOPinTypeQEI
+ .text.GPIOPinTypeSSI
+                0x00005a72       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a72                GPIOPinTypeSSI
+ .text.GPIOPinTypeTimer
+                0x00005a8e       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005a8e                GPIOPinTypeTimer
+ .text.GPIOPinTypeUART
+                0x00005aaa       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005aaa                GPIOPinTypeUART
+ .text.GPIOPinTypeUSBAnalog
+                0x00005ac6       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005ac6                GPIOPinTypeUSBAnalog
+ .text.GPIOPinTypeUSBDigital
+                0x00005ae2       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005ae2                GPIOPinTypeUSBDigital
+ .text.GPIOPinTypeWakeHigh
+                0x00005afe       0x1e D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005afe                GPIOPinTypeWakeHigh
+ .text.GPIOPinTypeWakeLow
+                0x00005b1c       0x1e D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005b1c                GPIOPinTypeWakeLow
+ .text.GPIOPinTypeKBRow
+                0x00005b3a       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005b3a                GPIOPinTypeKBRow
+ .text.GPIOPinTypeKBColumn
+                0x00005b56       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005b56                GPIOPinTypeKBColumn
+ .text.GPIOPinTypeLEDSeq
+                0x00005b72       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005b72                GPIOPinTypeLEDSeq
+ .text.GPIOPinTypeCIR
+                0x00005b8e       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005b8e                GPIOPinTypeCIR
+ .text.GPIOPinWakeStatus
+                0x00005baa        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005baa                GPIOPinWakeStatus
+ .text.GPIOPinConfigure
+                0x00005bb0       0x4c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005bb0                GPIOPinConfigure
+ .text.GPIODMATriggerEnable
+                0x00005bfc        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005bfc                GPIODMATriggerEnable
+ .text.GPIODMATriggerDisable
+                0x00005c08        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005c08                GPIODMATriggerDisable
+ .text.GPIOADCTriggerEnable
+                0x00005c16        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005c16                GPIOADCTriggerEnable
+ .text.GPIOADCTriggerDisable
+                0x00005c22        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+                0x00005c22                GPIOADCTriggerDisable
+ .text._IntDefaultHandler
+                0x00005c30        0x2 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .text.IntMasterEnable
+                0x00005c32        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005c32                IntMasterEnable
+ .text.IntMasterDisable
+                0x00005c40        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005c40                IntMasterDisable
+ *fill*         0x00005c4e        0x2 00
+ .text.IntRegister
+                0x00005c50       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005c50                IntRegister
+ .text.IntUnregister
+                0x00005c80       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005c80                IntUnregister
+ .text.IntPriorityGroupingSet
+                0x00005c94       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005c94                IntPriorityGroupingSet
+ .text.IntPriorityGroupingGet
+                0x00005cb0       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005cb0                IntPriorityGroupingGet
+ .text.IntPrioritySet
+                0x00005cd4       0x28 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005cd4                IntPrioritySet
+ .text.IntPriorityGet
+                0x00005cfc       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005cfc                IntPriorityGet
+ .text.IntEnable
+                0x00005d18       0x60 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005d18                IntEnable
+ .text.IntDisable
+                0x00005d78       0x60 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005d78                IntDisable
+ .text.IntIsEnabled
+                0x00005dd8       0x64 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005dd8                IntIsEnabled
+ .text.IntPendSet
+                0x00005e3c       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005e3c                IntPendSet
+ .text.IntPendClear
+                0x00005e8c       0x40 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005e8c                IntPendClear
+ .text.IntPriorityMaskSet
+                0x00005ecc        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005ecc                IntPriorityMaskSet
+ .text.IntPriorityMaskGet
+                0x00005ed0        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005ed0                IntPriorityMaskGet
+ .text.IntTrigger
+                0x00005ed4        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x00005ed4                IntTrigger
+ .text._PWMGenIntNumberGet
+                0x00005ee0      0x120 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .text._PWMFaultIntNumberGet
+                0x00006000       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .text.PWMGenConfigure
+                0x00006050       0x34 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006050                PWMGenConfigure
+ .text.PWMGenPeriodSet
+                0x00006084       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006084                PWMGenPeriodSet
+ .text.PWMGenPeriodGet
+                0x00006098       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006098                PWMGenPeriodGet
+ .text.PWMGenEnable
+                0x000060b0        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000060b0                PWMGenEnable
+ .text.PWMGenDisable
+                0x000060ba        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000060ba                PWMGenDisable
+ .text.PWMPulseWidthSet
+                0x000060c4       0x22 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000060c4                PWMPulseWidthSet
+ .text.PWMPulseWidthGet
+                0x000060e6       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000060e6                PWMPulseWidthGet
+ .text.PWMDeadBandEnable
+                0x0000610a       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000610a                PWMDeadBandEnable
+ .text.PWMDeadBandDisable
+                0x0000611a        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000611a                PWMDeadBandDisable
+ .text.PWMSyncUpdate
+                0x00006126        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006126                PWMSyncUpdate
+ .text.PWMSyncTimeBase
+                0x0000612a        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000612a                PWMSyncTimeBase
+ .text.PWMOutputState
+                0x0000612e       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000612e                PWMOutputState
+ .text.PWMOutputInvert
+                0x00006142       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006142                PWMOutputInvert
+ .text.PWMOutputFaultLevel
+                0x00006156       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006156                PWMOutputFaultLevel
+ .text.PWMOutputFault
+                0x0000616a       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000616a                PWMOutputFault
+ .text.PWMGenIntRegister
+                0x0000617e       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000617e                PWMGenIntRegister
+ .text.PWMGenIntUnregister
+                0x00006198       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006198                PWMGenIntUnregister
+ .text.PWMFaultIntRegister
+                0x000061ae       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000061ae                PWMFaultIntRegister
+ .text.PWMFaultIntUnregister
+                0x000061c8       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000061c8                PWMFaultIntUnregister
+ .text.PWMGenIntTrigEnable
+                0x000061de        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000061de                PWMGenIntTrigEnable
+ .text.PWMGenIntTrigDisable
+                0x000061e8        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000061e8                PWMGenIntTrigDisable
+ .text.PWMGenIntStatus
+                0x000061f4        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000061f4                PWMGenIntStatus
+ .text.PWMGenIntClear
+                0x00006200        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006200                PWMGenIntClear
+ .text.PWMIntEnable
+                0x00006206        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006206                PWMIntEnable
+ .text.PWMIntDisable
+                0x0000620e        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000620e                PWMIntDisable
+ .text.PWMFaultIntClear
+                0x00006218        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006218                PWMFaultIntClear
+ .text.PWMIntStatus
+                0x00006220        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006220                PWMIntStatus
+ .text.PWMFaultIntClearExt
+                0x0000622a        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000622a                PWMFaultIntClearExt
+ .text.PWMGenFaultConfigure
+                0x0000622e       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000622e                PWMGenFaultConfigure
+ .text.PWMGenFaultTriggerSet
+                0x00006246        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006246                PWMGenFaultTriggerSet
+ .text.PWMGenFaultTriggerGet
+                0x00006252        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006252                PWMGenFaultTriggerGet
+ .text.PWMGenFaultStatus
+                0x00006260       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006260                PWMGenFaultStatus
+ .text.PWMGenFaultClear
+                0x0000627c       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x0000627c                PWMGenFaultClear
+ .text.PWMClockSet
+                0x00006294       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x00006294                PWMClockSet
+ .text.PWMClockGet
+                0x000062a8       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000062a8                PWMClockGet
+ .text.PWMOutputUpdateMode
+                0x000062c4       0x32 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+                0x000062c4                PWMOutputUpdateMode
+ *fill*         0x000062f6        0x2 00
+ .text._SSIIntNumberGet
+                0x000062f8       0x48 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .text.SSIConfigSetExpClk
+                0x00006340       0x4a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006340                SSIConfigSetExpClk
+ .text.SSIEnable
+                0x0000638a        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000638a                SSIEnable
+ .text.SSIDisable
+                0x00006394        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006394                SSIDisable
+ .text.SSIIntRegister
+                0x0000639e       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000639e                SSIIntRegister
+ .text.SSIIntUnregister
+                0x000063b8       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063b8                SSIIntUnregister
+ .text.SSIIntEnable
+                0x000063ce        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063ce                SSIIntEnable
+ .text.SSIIntDisable
+                0x000063d6        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063d6                SSIIntDisable
+ .text.SSIIntStatus
+                0x000063e0        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063e0                SSIIntStatus
+ .text.SSIIntClear
+                0x000063ea        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063ea                SSIIntClear
+ .text.SSIDataPut
+                0x000063ee        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063ee                SSIDataPut
+ .text.SSIDataPutNonBlocking
+                0x000063fa       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x000063fa                SSIDataPutNonBlocking
+ .text.SSIDataGet
+                0x0000640c        0xe D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000640c                SSIDataGet
+ .text.SSIDataGetNonBlocking
+                0x0000641a       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000641a                SSIDataGetNonBlocking
+ .text.SSIDMAEnable
+                0x0000642e        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000642e                SSIDMAEnable
+ .text.SSIDMADisable
+                0x00006436        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006436                SSIDMADisable
+ .text.SSIBusy  0x00006440        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006440                SSIBusy
+ .text.SSIClockSourceSet
+                0x00006448        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006448                SSIClockSourceSet
+ .text.SSIClockSourceGet
+                0x0000644e        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000644e                SSIClockSourceGet
+ .text.SSIAdvModeSet
+                0x00006454        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006454                SSIAdvModeSet
+ .text.SSIAdvDataPutFrameEnd
+                0x00006460       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006460                SSIAdvDataPutFrameEnd
+ .text.SSIAdvDataPutFrameEndNonBlocking
+                0x00006474       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006474                SSIAdvDataPutFrameEndNonBlocking
+ .text.SSIAdvFrameHoldEnable
+                0x0000648e        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x0000648e                SSIAdvFrameHoldEnable
+ .text.SSIAdvFrameHoldDisable
+                0x00006498        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+                0x00006498                SSIAdvFrameHoldDisable
+ *fill*         0x000064a2        0x2 00
+ .text._SysCtlMemTimingGet
+                0x000064a4       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .text.SysCtlSRAMSizeGet
+                0x000064c8       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000064c8                SysCtlSRAMSizeGet
+ .text.SysCtlFlashSizeGet
+                0x000064d8       0x40 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000064d8                SysCtlFlashSizeGet
+ .text.SysCtlFlashSectorSizeGet
+                0x00006518       0x3c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006518                SysCtlFlashSectorSizeGet
+ .text.SysCtlPeripheralPresent
+                0x00006554       0x34 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006554                SysCtlPeripheralPresent
+ .text.SysCtlPeripheralReady
+                0x00006588       0x34 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006588                SysCtlPeripheralReady
+ .text.SysCtlPeripheralPowerOn
+                0x000065bc       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000065bc                SysCtlPeripheralPowerOn
+ .text.SysCtlPeripheralPowerOff
+                0x000065ec       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000065ec                SysCtlPeripheralPowerOff
+ .text.SysCtlPeripheralReset
+                0x0000661c       0x48 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000661c                SysCtlPeripheralReset
+ .text.SysCtlPeripheralEnable
+                0x00006664       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006664                SysCtlPeripheralEnable
+ .text.SysCtlPeripheralDisable
+                0x00006694       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006694                SysCtlPeripheralDisable
+ .text.SysCtlPeripheralSleepEnable
+                0x000066c4       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000066c4                SysCtlPeripheralSleepEnable
+ .text.SysCtlPeripheralSleepDisable
+                0x000066f4       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000066f4                SysCtlPeripheralSleepDisable
+ .text.SysCtlPeripheralDeepSleepEnable
+                0x00006724       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006724                SysCtlPeripheralDeepSleepEnable
+ .text.SysCtlPeripheralDeepSleepDisable
+                0x00006754       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006754                SysCtlPeripheralDeepSleepDisable
+ .text.SysCtlPeripheralClockGating
+                0x00006784       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006784                SysCtlPeripheralClockGating
+ .text.SysCtlIntRegister
+                0x000067d4       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000067d4                SysCtlIntRegister
+ .text.SysCtlIntUnregister
+                0x000067e8       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000067e8                SysCtlIntUnregister
+ *fill*         0x000067fa        0x2 00
+ .text.SysCtlIntEnable
+                0x000067fc       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000067fc                SysCtlIntEnable
+ .text.SysCtlIntDisable
+                0x0000680c       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000680c                SysCtlIntDisable
+ .text.SysCtlIntClear
+                0x0000681c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000681c                SysCtlIntClear
+ .text.SysCtlIntStatus
+                0x00006828       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006828                SysCtlIntStatus
+ .text.SysCtlLDOSleepSet
+                0x00006840        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006840                SysCtlLDOSleepSet
+ .text.SysCtlLDOSleepGet
+                0x0000684c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000684c                SysCtlLDOSleepGet
+ .text.SysCtlLDODeepSleepSet
+                0x00006858        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006858                SysCtlLDODeepSleepSet
+ .text.SysCtlLDODeepSleepGet
+                0x00006864        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006864                SysCtlLDODeepSleepGet
+ .text.SysCtlSleepPowerSet
+                0x00006870        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006870                SysCtlSleepPowerSet
+ .text.SysCtlDeepSleepPowerSet
+                0x0000687c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000687c                SysCtlDeepSleepPowerSet
+ .text.SysCtlReset
+                0x00006888       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006888                SysCtlReset
+ .text.SysCtlSleep
+                0x00006898        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006898                SysCtlSleep
+ .text.SysCtlDeepSleep
+                0x0000689c       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000689c                SysCtlDeepSleep
+ .text.SysCtlResetCauseGet
+                0x000068bc        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000068bc                SysCtlResetCauseGet
+ .text.SysCtlResetCauseClear
+                0x000068c8       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000068c8                SysCtlResetCauseClear
+ .text.SysCtlDelay
+                0x000068d8        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000068d8                SysCtlDelay
+ *fill*         0x000068de        0x2 00
+ .text.SysCtlMOSCConfigSet
+                0x000068e0        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000068e0                SysCtlMOSCConfigSet
+ .text.SysCtlPIOSCCalibrate
+                0x000068ec       0x54 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x000068ec                SysCtlPIOSCCalibrate
+ .text.SysCtlResetBehaviorSet
+                0x00006940        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006940                SysCtlResetBehaviorSet
+ .text.SysCtlResetBehaviorGet
+                0x0000694c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x0000694c                SysCtlResetBehaviorGet
+ .text.SysCtlClockFreqSet
+                0x00006958      0x264 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006958                SysCtlClockFreqSet
+ .text.SysCtlClockSet
+                0x00006bbc      0x128 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006bbc                SysCtlClockSet
+ .text.SysCtlClockGet
+                0x00006ce4      0x15c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006ce4                SysCtlClockGet
+ .text.SysCtlDeepSleepClockSet
+                0x00006e40        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006e40                SysCtlDeepSleepClockSet
+ .text.SysCtlDeepSleepClockConfigSet
+                0x00006e4c       0x68 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006e4c                SysCtlDeepSleepClockConfigSet
+ .text.SysCtlPWMClockSet
+                0x00006eb4       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006eb4                SysCtlPWMClockSet
+ .text.SysCtlPWMClockGet
+                0x00006ec8       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006ec8                SysCtlPWMClockGet
+ .text.SysCtlGPIOAHBEnable
+                0x00006ee0       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006ee0                SysCtlGPIOAHBEnable
+ .text.SysCtlGPIOAHBDisable
+                0x00006efc       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006efc                SysCtlGPIOAHBDisable
+ .text.SysCtlUSBPLLEnable
+                0x00006f18       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f18                SysCtlUSBPLLEnable
+ .text.SysCtlUSBPLLDisable
+                0x00006f28       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f28                SysCtlUSBPLLDisable
+ .text.SysCtlVoltageEventConfig
+                0x00006f38        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f38                SysCtlVoltageEventConfig
+ .text.SysCtlVoltageEventStatus
+                0x00006f44        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f44                SysCtlVoltageEventStatus
+ .text.SysCtlVoltageEventClear
+                0x00006f50       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f50                SysCtlVoltageEventClear
+ .text.SysCtlNMIStatus
+                0x00006f60        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f60                SysCtlNMIStatus
+ .text.SysCtlNMIClear
+                0x00006f6c       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f6c                SysCtlNMIClear
+ .text.SysCtlClockOutConfig
+                0x00006f7c       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f7c                SysCtlClockOutConfig
+ .text.SysCtlAltClkConfig
+                0x00006f90        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+                0x00006f90                SysCtlAltClkConfig
+ .text._TimerIntNumberGet
+                0x00006f9c       0x54 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .text.TimerEnable
+                0x00006ff0       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00006ff0                TimerEnable
+ .text.TimerDisable
+                0x00007002       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007002                TimerDisable
+ .text.TimerConfigure
+                0x00007014       0x64 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007014                TimerConfigure
+ .text.TimerControlLevel
+                0x00007078       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007078                TimerControlLevel
+ .text.TimerControlTrigger
+                0x00007098       0x5c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007098                TimerControlTrigger
+ .text.TimerControlEvent
+                0x000070f4       0x18 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000070f4                TimerControlEvent
+ .text.TimerControlStall
+                0x0000710c       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000710c                TimerControlStall
+ .text.TimerControlWaitOnTrigger
+                0x0000712c       0x34 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000712c                TimerControlWaitOnTrigger
+ .text.TimerRTCEnable
+                0x00007160        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007160                TimerRTCEnable
+ .text.TimerRTCDisable
+                0x0000716a        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000716a                TimerRTCDisable
+ .text.TimerClockSourceSet
+                0x00007174        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007174                TimerClockSourceSet
+ .text.TimerClockSourceGet
+                0x0000717a        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000717a                TimerClockSourceGet
+ .text.TimerPrescaleSet
+                0x00007180       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007180                TimerPrescaleSet
+ .text.TimerPrescaleGet
+                0x00007192        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007192                TimerPrescaleGet
+ .text.TimerPrescaleMatchSet
+                0x0000719c       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000719c                TimerPrescaleMatchSet
+ .text.TimerPrescaleMatchGet
+                0x000071ae        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071ae                TimerPrescaleMatchGet
+ .text.TimerLoadSet
+                0x000071b8       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071b8                TimerLoadSet
+ .text.TimerLoadGet
+                0x000071ca        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071ca                TimerLoadGet
+ .text.TimerLoadSet64
+                0x000071d4        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071d4                TimerLoadSet64
+ .text.TimerLoadGet64
+                0x000071da       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071da                TimerLoadGet64
+ .text.TimerValueGet
+                0x000071ee        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071ee                TimerValueGet
+ .text.TimerValueGet64
+                0x000071f8       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000071f8                TimerValueGet64
+ .text.TimerMatchSet
+                0x0000720c       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000720c                TimerMatchSet
+ .text.TimerMatchGet
+                0x0000721e        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000721e                TimerMatchGet
+ .text.TimerMatchSet64
+                0x00007228        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007228                TimerMatchSet64
+ .text.TimerMatchGet64
+                0x0000722e       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000722e                TimerMatchGet64
+ .text.TimerIntRegister
+                0x00007242       0x1a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007242                TimerIntRegister
+ .text.TimerIntUnregister
+                0x0000725c       0x16 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000725c                TimerIntUnregister
+ .text.TimerIntEnable
+                0x00007272        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007272                TimerIntEnable
+ .text.TimerIntDisable
+                0x0000727a        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000727a                TimerIntDisable
+ .text.TimerIntStatus
+                0x00007284        0xa D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007284                TimerIntStatus
+ .text.TimerIntClear
+                0x0000728e        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000728e                TimerIntClear
+ .text.TimerSynchronize
+                0x00007292        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007292                TimerSynchronize
+ .text.TimerADCEventSet
+                0x00007296        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x00007296                TimerADCEventSet
+ .text.TimerADCEventGet
+                0x0000729a        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000729a                TimerADCEventGet
+ .text.TimerDMAEventSet
+                0x0000729e        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x0000729e                TimerDMAEventSet
+ .text.TimerDMAEventGet
+                0x000072a2        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000072a2                TimerDMAEventGet
+ .text.TimerUpdateMode
+                0x000072a6       0x2a D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+                0x000072a6                TimerUpdateMode
+ .text.uDMAEnable
+                0x000072d0        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000072d0                uDMAEnable
+ .text.uDMADisable
+                0x000072dc        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000072dc                uDMADisable
+ .text.uDMAErrorStatusGet
+                0x000072e8        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000072e8                uDMAErrorStatusGet
+ .text.uDMAErrorStatusClear
+                0x000072f4        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000072f4                uDMAErrorStatusClear
+ .text.uDMAChannelEnable
+                0x00007300       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007300                uDMAChannelEnable
+ .text.uDMAChannelDisable
+                0x00007314       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007314                uDMAChannelDisable
+ .text.uDMAChannelIsEnabled
+                0x00007328       0x1c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007328                uDMAChannelIsEnabled
+ .text.uDMAControlBaseSet
+                0x00007344        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007344                uDMAControlBaseSet
+ .text.uDMAControlBaseGet
+                0x00007350        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007350                uDMAControlBaseGet
+ .text.uDMAControlAlternateBaseGet
+                0x0000735c        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x0000735c                uDMAControlAlternateBaseGet
+ .text.uDMAChannelRequest
+                0x00007368       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007368                uDMAChannelRequest
+ .text.uDMAChannelAttributeEnable
+                0x0000737c       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x0000737c                uDMAChannelAttributeEnable
+ .text.uDMAChannelAttributeDisable
+                0x000073cc       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000073cc                uDMAChannelAttributeDisable
+ .text.uDMAChannelAttributeGet
+                0x0000741c       0x4c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x0000741c                uDMAChannelAttributeGet
+ .text.uDMAChannelControlSet
+                0x00007468       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007468                uDMAChannelControlSet
+ .text.uDMAChannelTransferSet
+                0x0000748c       0x84 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x0000748c                uDMAChannelTransferSet
+ .text.uDMAChannelScatterGatherSet
+                0x00007510       0x50 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007510                uDMAChannelScatterGatherSet
+ .text.uDMAChannelSizeGet
+                0x00007560       0x24 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007560                uDMAChannelSizeGet
+ .text.uDMAChannelModeGet
+                0x00007584       0x28 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007584                uDMAChannelModeGet
+ .text.uDMAIntRegister
+                0x000075ac       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000075ac                uDMAIntRegister
+ .text.uDMAIntUnregister
+                0x000075be       0x12 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000075be                uDMAIntUnregister
+ .text.uDMAIntStatus
+                0x000075d0        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000075d0                uDMAIntStatus
+ .text.uDMAIntClear
+                0x000075dc        0xc D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000075dc                uDMAIntClear
+ .text.uDMAChannelAssign
+                0x000075e8       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x000075e8                uDMAChannelAssign
+ .text.uDMAChannelSelectSecondary
+                0x00007618       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007618                uDMAChannelSelectSecondary
+ .text.uDMAChannelSelectDefault
+                0x00007628       0x10 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+                0x00007628                uDMAChannelSelectDefault
+ .text.CPUcpsid
+                0x00007638        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x00007638                CPUcpsid
+ .text.CPUprimask
+                0x00007640        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x00007640                CPUprimask
+ .text.CPUcpsie
+                0x00007646        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x00007646                CPUcpsie
+ .text.CPUwfi   0x0000764e        0x4 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x0000764e                CPUwfi
+ .text.CPUbasepriSet
+                0x00007652        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x00007652                CPUbasepriSet
+ .text.CPUbasepriGet
+                0x00007658        0x6 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+                0x00007658                CPUbasepriGet
+                0x00007660                . = ALIGN (0x4)
+ *fill*         0x0000765e        0x2 00
+ *(.ctors)
+                0x00007660                . = ALIGN (0x4)
+ *(.dtors)
+                0x00007660                . = ALIGN (0x4)
+                0x00007660                __init_array_start = .
+ *(.init_array*)
+ .init_array    0x00007660        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .init_array.00000
+                0x00007664        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+                0x00007668                __init_array_end = .
+ *(.init)
+ .init          0x00007668        0xc d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+                0x00007668                _init
+ .init          0x00007674        0xc d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+ *(.fini*)
+ .fini          0x00007680        0xc d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+                0x00007680                _fini
+ .fini_array    0x0000768c        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .fini          0x00007690        0xc d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+                0x0000769c                PROVIDE (__etext, .)
+                0x0000769c                PROVIDE (_etext, .)
+                0x0000769c                PROVIDE (etext, .)
+
+.glue_7         0x0000769c        0x0
+ .glue_7        0x00000000        0x0 linker stubs
+
+.glue_7t        0x0000769c        0x0
+ .glue_7t       0x00000000        0x0 linker stubs
+
+.vfp11_veneer   0x0000769c        0x0
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+
+.v4_bx          0x0000769c        0x0
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.iplt           0x0000769c        0x0
+ .iplt          0x00000000        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+
+.rodata         0x0000769c      0x5cc
+ *(.rodata)
+ .rodata        0x0000769c        0x4 ./MainBoardDriver.o
+ *(.rodata*)
+ .rodata.str1.4
+                0x000076a0        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .rodata._global_impure_ptr
+                0x000076a4        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+                0x000076a4                _global_impure_ptr
+ .rodata.g_ppui32GPIOIntMapSnowflake
+                0x000076a8       0xc0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .rodata.g_pui32GPIOBaseAddrs
+                0x00007768       0x90 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .rodata.g_ppui32GPIOIntMapBlizzard
+                0x000077f8       0xc0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .rodata.g_pui32Priority
+                0x000078b8       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_pui32Dii16Regs
+                0x000078d8       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_pui32PendRegs
+                0x000078ec       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_pui32Regs
+                0x00007900       0x9c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_pui32EnRegs
+                0x0000799c       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_pui32UnpendRegs
+                0x000079b0       0x14 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .rodata.g_ppui32SSIIntMap
+                0x000079c4       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .rodata.g_ppui32SSIIntMapSnowflake
+                0x000079e4       0x20 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .rodata.g_pppui32XTALtoVCO
+                0x00007a04      0x120 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .rodata.g_pui32VCOFrequencies
+                0x00007b24        0x8 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .rodata.g_sXTALtoMEMTIM
+                0x00007b2c       0x30 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .rodata.g_pui32Xtals
+                0x00007b5c       0x6c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .rodata.g_ppui32TimerIntMapSnowflake
+                0x00007bc8       0x40 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .rodata.g_ppui32TimerIntMap
+                0x00007c08       0x60 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+
+.eh_frame       0x00007c68        0x4
+ .eh_frame      0x00007c68        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .eh_frame      0x00007c68        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+
+.data           0x20000000      0x434 load address 0x00007c6c
+                0x00007c6c                __data_load__ = LOADADDR (.data)
+                0x20000000                __data_start__ = .
+ *(.data)
+ .data          0x20000000        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+ .data          0x20000000        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+                0x20000000                __dso_handle
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+ .data          0x20000004        0x0 ./libnrf24l01/src/nRF24L01.o
+ .data          0x20000004        0x0 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .data          0x20000004        0x0 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .data          0x20000004        0x0 ./main.o
+ .data          0x20000004        0x0 ./MainBoardDriver.o
+ .data          0x20000004        0x0 ./CustomTivaDrivers.o
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+ .data          0x20000004        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+ .data          0x20000004        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+ *(.data*)
+ .data.CPUState
+                0x20000004        0x1 ./MainBoardDriver.o
+                0x20000004                CPUState
+ *fill*         0x20000005        0x3 00
+ .data.impure_data
+                0x20000008      0x428 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .data._impure_ptr
+                0x20000430        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+                0x20000430                _impure_ptr
+                0x20000434                . = ALIGN (0x4)
+                0x20000434                __data_end__ = .
+
+.jcr            0x20000434        0x4 load address 0x000080a0
+ .jcr           0x20000434        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .jcr           0x20000434        0x4 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+
+.igot.plt       0x20000438        0x0 load address 0x000080a4
+ .igot.plt      0x00000000        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+
+vtable          0x20000800      0x400 load address 0x000080a4
+                0x20000800                . = ALIGN (0x400)
+                0x20000800                PROVIDE (__start_vtable, ABSOLUTE (.))
+ vtable         0x20000800      0x400 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+                0x20000c00                PROVIDE (__stop_vtable, .)
+
+.ARM.exidx      0x000084a4        0x8
+                0x000084a4                __exidx_start = .
+ *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+ .ARM.exidx     0x000084a4        0x8 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+                0x000084ac                __exidx_end = .
+
+.ARM.extab      0x000084ac        0x0
+ *(.ARM.extab* .gnu.linkonce.armextab.*)
+ .ARM.extab     0x000084ac        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+
+.rel.dyn        0x000084ac        0x0
+ .rel.iplt      0x00000000        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+
+.bss            0x20000c00     0x1ce0
+                0x20000c00                __bss_start__ = .
+ *(.shbss)
+ *(.bss)
+ .bss           0x20000c00        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+ .bss           0x20000c00       0x1c d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+ .bss           0x20000c1c        0x0 ./libnrf24l01/src/nRF24L01.o
+ .bss           0x20000c1c        0x0 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .bss           0x20000c1c        0x0 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .bss           0x20000c1c        0x0 ./main.o
+ .bss           0x20000c1c        0x0 ./MainBoardDriver.o
+ .bss           0x20000c1c        0x0 ./CustomTivaDrivers.o
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+ .bss           0x20000c1c        0x0 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+ .bss           0x20000c1c        0x0 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+ *(.bss.*)
+ .bss.crcConfig
+                0x20000c1c        0x1 ./libnrf24l01/src/nRF24L01.o
+ .bss.addressWidth
+                0x20000c1d        0x1 ./libnrf24l01/src/nRF24L01.o
+ .bss.status    0x20000c1e        0x1 ./libnrf24l01/src/nRF24L01.o
+ .bss.features  0x20000c1f        0x1 ./libnrf24l01/src/nRF24L01.o
+ .bss.CEState   0x20000c20        0x1 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ *fill*         0x20000c21        0x3 00
+ .bss.pui32Stack
+                0x20000c24     0x1000 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .bss.ui32PWMPeriod
+                0x20001c24        0x4 ./MainBoardDriver.o
+ .bss.countAdcDMAsStopped
+                0x20001c28        0x1 ./MainBoardDriver.o
+ *fill*         0x20001c29        0x3 00
+ .bss.g_ui32uDMAErrCount
+                0x20001c2c        0x4 ./MainBoardDriver.o
+ *fill*         0x20001c30      0x3d0 00
+ .bss.ui8ControlTable
+                0x20002000      0x400 ./MainBoardDriver.o
+ .bss.g_pui8OversampleFactor
+                0x20002400        0x3 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ *(COMMON)
+ *fill*         0x20002403        0x1 00
+ COMMON         0x20002404      0x4dc ./main.o
+                0x20002404                g_ui16ADC0Result
+                0x2000265c                g_ui16ADC1Result
+                0x200028b4                g_ui32SysTickCount
+                0x200028b8                ui8LeftMotorDutyCycles
+                0x200028ba                g_ui16BatteryVoltage
+                0x200028bc                ui8RightMotorDutyCycles
+                0x200028c0                RF24_RX_buffer
+                0x200028e0                . = ALIGN (0x4)
+                0x200028e0                __bss_end__ = .
+
+.heap           0x200028e0        0x0
+                0x200028e0                __heap_start__ = .
+                0x200028e0                end = __heap_start__
+                0x200028e0                _end = end
+                0x200028e0                __end = end
+ *(.heap)
+                0x200028e0                __heap_end__ = .
+                0x200028e0                __HeapLimit = __heap_end__
+
+.stack          0x200028e0        0x0
+                0x200028e0                _stack = .
+                0x200028e0                __stack = .
+ *(.stack)
+START GROUP
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4\libgcc.a
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a
+LOAD D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a
+END GROUP
+START GROUP
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4\libgcc.a
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libg.a
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a
+END GROUP
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+LOAD d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+OUTPUT(BootLoaderTesting.out elf32-littlearm)
+
+.ARM.attributes
+                0x00000000       0x37
+ .ARM.attributes
+                0x00000000       0x16 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crti.o
+ .ARM.attributes
+                0x00000016       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtbegin.o
+ .ARM.attributes
+                0x00000046       0x14 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib/crt0.o
+ .ARM.attributes
+                0x0000005a       0x39 ./libnrf24l01/src/nRF24L01.o
+ .ARM.attributes
+                0x00000093       0x39 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .ARM.attributes
+                0x000000cc       0x39 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .ARM.attributes
+                0x00000105       0x39 ./main.o
+ .ARM.attributes
+                0x0000013e       0x39 ./MainBoardDriver.o
+ .ARM.attributes
+                0x00000177       0x39 ./CustomTivaDrivers.o
+ .ARM.attributes
+                0x000001b0       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+ .ARM.attributes
+                0x000001e0       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+ .ARM.attributes
+                0x00000210       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+ .ARM.attributes
+                0x00000240       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-impure.o)
+ .ARM.attributes
+                0x00000270       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+ .ARM.attributes
+                0x000002a0       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+ .ARM.attributes
+                0x000002d0       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .ARM.attributes
+                0x00000300       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+ .ARM.attributes
+                0x00000330       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
+ .ARM.attributes
+                0x00000360       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+ .ARM.attributes
+                0x00000397       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .ARM.attributes
+                0x000003ce       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .ARM.attributes
+                0x00000405       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .ARM.attributes
+                0x0000043c       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .ARM.attributes
+                0x00000473       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .ARM.attributes
+                0x000004aa       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .ARM.attributes
+                0x000004e1       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+ .ARM.attributes
+                0x00000518       0x37 D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+ .ARM.attributes
+                0x0000054f       0x30 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtend.o
+ .ARM.attributes
+                0x0000057f       0x18 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/crtn.o
+
+.comment        0x00000000       0x9b
+ .comment       0x00000000       0x70 ./libnrf24l01/src/nRF24L01.o
+                                 0x71 (size before relaxing)
+ .comment       0x00000000       0x71 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .comment       0x00000000       0x71 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .comment       0x00000000       0x71 ./main.o
+ .comment       0x00000000       0x71 ./MainBoardDriver.o
+ .comment       0x00000000       0x71 ./CustomTivaDrivers.o
+ .comment       0x00000070       0x2b D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(adc.o)
+                                 0x2c (size before relaxing)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(gpio.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(interrupt.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(pwm.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(ssi.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(sysctl.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(timer.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(udma.o)
+ .comment       0x00000000       0x2c D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc\libdriver.a(cpu.o)
+
+.debug_info     0x00000000     0x158b
+ .debug_info    0x00000000      0x8c5 ./libnrf24l01/src/nRF24L01.o
+ .debug_info    0x000008c5      0x18e ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_info    0x00000a53      0x16c ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_info    0x00000bbf      0x1d6 ./main.o
+ .debug_info    0x00000d95      0x6fa ./MainBoardDriver.o
+ .debug_info    0x0000148f       0xfc ./CustomTivaDrivers.o
+
+.debug_abbrev   0x00000000      0x619
+ .debug_abbrev  0x00000000      0x1ca ./libnrf24l01/src/nRF24L01.o
+ .debug_abbrev  0x000001ca       0xa9 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_abbrev  0x00000273       0xcf ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_abbrev  0x00000342       0xe5 ./main.o
+ .debug_abbrev  0x00000427      0x184 ./MainBoardDriver.o
+ .debug_abbrev  0x000005ab       0x6e ./CustomTivaDrivers.o
+
+.debug_loc      0x00000000     0x1274
+ .debug_loc     0x00000000      0x874 ./libnrf24l01/src/nRF24L01.o
+ .debug_loc     0x00000874      0x184 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_loc     0x000009f8       0xbc ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_loc     0x00000ab4       0xbc ./main.o
+ .debug_loc     0x00000b70      0x65c ./MainBoardDriver.o
+ .debug_loc     0x000011cc       0xa8 ./CustomTivaDrivers.o
+
+.debug_aranges  0x00000000      0x370
+ .debug_aranges
+                0x00000000      0x160 ./libnrf24l01/src/nRF24L01.o
+ .debug_aranges
+                0x00000160       0x58 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_aranges
+                0x000001b8       0x38 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_aranges
+                0x000001f0       0x38 ./main.o
+ .debug_aranges
+                0x00000228      0x118 ./MainBoardDriver.o
+ .debug_aranges
+                0x00000340       0x30 ./CustomTivaDrivers.o
+
+.debug_line     0x00000000      0xe70
+ .debug_line    0x00000000      0x454 ./libnrf24l01/src/nRF24L01.o
+ .debug_line    0x00000454      0x189 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_line    0x000005dd      0x126 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_line    0x00000703      0x170 ./main.o
+ .debug_line    0x00000873      0x4f8 ./MainBoardDriver.o
+ .debug_line    0x00000d6b      0x105 ./CustomTivaDrivers.o
+
+.debug_str      0x00000000      0xb58
+ .debug_str     0x00000000      0x59a ./libnrf24l01/src/nRF24L01.o
+                                0x603 (size before relaxing)
+ .debug_str     0x0000059a       0xb2 ./libnrf24l01/src/TM4C123_nRF24L01.o
+                                0x1d8 (size before relaxing)
+ .debug_str     0x0000064c       0xa4 ./tm4c123gh6pm_startup_ccs_gcc.o
+                                0x1ba (size before relaxing)
+ .debug_str     0x000006f0       0xe7 ./main.o
+                                0x21d (size before relaxing)
+ .debug_str     0x000007d7      0x321 ./MainBoardDriver.o
+                                0x550 (size before relaxing)
+ .debug_str     0x00000af8       0x60 ./CustomTivaDrivers.o
+                                0x17e (size before relaxing)
+
+.debug_frame    0x00000000      0xc94
+ .debug_frame   0x00000000      0x504 ./libnrf24l01/src/nRF24L01.o
+ .debug_frame   0x00000504       0xf8 ./libnrf24l01/src/TM4C123_nRF24L01.o
+ .debug_frame   0x000005fc       0x78 ./tm4c123gh6pm_startup_ccs_gcc.o
+ .debug_frame   0x00000674       0x80 ./main.o
+ .debug_frame   0x000006f4      0x3c8 ./MainBoardDriver.o
+ .debug_frame   0x00000abc       0x64 ./CustomTivaDrivers.o
+ .debug_frame   0x00000b20       0x34 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__atexit.o)
+ .debug_frame   0x00000b54       0x28 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-exit.o)
+ .debug_frame   0x00000b7c       0x2c d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-fini.o)
+ .debug_frame   0x00000ba8       0x2c d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-init.o)
+ .debug_frame   0x00000bd4       0x28 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-memset.o)
+ .debug_frame   0x00000bfc       0x50 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-__call_atexit.o)
+ .debug_frame   0x00000c4c       0x28 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libc.a(lib_a-atexit.o)
+ .debug_frame   0x00000c74       0x20 d:/program files/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/lib\libnosys.a(_exit.o)
