@@ -140,16 +140,33 @@ inline void RF24_IntHandler()
       break;
 
       case PC_CHANGE_MOTORS_SPEED:
-        disableMOTOR();
-        PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-        PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-        setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-        setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-        setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, RF24_RX_buffer[1]);
-        setMotorSpeed(LEFT_MOTOR_PWM_OUT1, RF24_RX_buffer[2]);
-        PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-        PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-        enableMOTOR();
+          disableMOTOR();
+          PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+          PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+          setMotorDirection(LEFT_MOTOR_PORT_BASE, RF24_RX_buffer[1]);
+          setMotorSpeed(LEFT_MOTOR_PWM_OUT1, RF24_RX_buffer[2]);
+          setMotorDirection(RIGHT_MOTOR_PORT_BASE, RF24_RX_buffer[3]);
+          setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, RF24_RX_buffer[4]);
+
+          PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+          PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+          PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+          PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
+          enableMOTOR();
+      break;
+
+      case PC_SEND_STOP_MOTOR_LEFT:
+    	  PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+    	  setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+    	  PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+      break;
+
+      case PC_SEND_STOP_MOTOR_RIGHT:
+    	  PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+    	  setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+    	  PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
       break;
 
       case PC_SEND_TEST_DATA_TO_PC:

@@ -12,6 +12,8 @@
 inline void initLED();
 inline void turnOnLED(uint8_t LEDpin);
 inline void turnOffLED(uint8_t LEDpin);
+inline void toggleLED(uint8_t LEDpin);
+
 void signalUnhandleError();
 //------------------------------------------------LED functions
 
@@ -29,16 +31,16 @@ void signalUnhandleError();
 #define MOTOR_SLEEP_PIN_BASE    GPIO_PORTD_BASE
 #define MOTOR_SLEEP_PIN         GPIO_PIN_0
 
-#define LEFT_MOTOR_PORT_CLOCK   SYSCTL_PERIPH_GPIOE
-#define LEFT_MOTOR_PORT_BASE    GPIO_PORTE_BASE
-#define LEFT_MOTOR_IN1          GPIO_PIN_5
-#define LEFT_MOTOR_IN2          GPIO_PIN_4
-#define LEFT_MOTOR_PWM_CONFIG   GPIO_PE5_M0PWM5
-#define LEFT_MOTOR_PWM_GEN      PWM_GEN_2
-#define LEFT_MOTOR_PWM_OUT1     PWM_OUT_5
-#define LEFT_MOTOR_PWM_OUT2     PWM_OUT_4
-#define LEFT_MOTOR_PWM_OUT1_BIT PWM_OUT_5_BIT
-#define LEFT_MOTOR_PWM_OUT2_BIT PWM_OUT_4_BIT
+#define LEFT_MOTOR_PORT_CLOCK   	SYSCTL_PERIPH_GPIOE
+#define LEFT_MOTOR_PORT_BASE    	GPIO_PORTE_BASE
+#define LEFT_MOTOR_IN1          	GPIO_PIN_5
+#define LEFT_MOTOR_IN2          	GPIO_PIN_4
+#define LEFT_MOTOR_PWM_CONFIG   	GPIO_PE5_M0PWM5
+#define LEFT_MOTOR_PWM_GEN      	PWM_GEN_2
+#define LEFT_MOTOR_PWM_OUT1     	PWM_OUT_5
+#define LEFT_MOTOR_PWM_OUT2     	PWM_OUT_4
+#define LEFT_MOTOR_PWM_OUT1_BIT 	PWM_OUT_5_BIT
+#define LEFT_MOTOR_PWM_OUT2_BIT 	PWM_OUT_4_BIT
 
 #define RIGHT_MOTOR_PORT_CLOCK          SYSCTL_PERIPH_GPIOB
 #define RIGHT_MOTOR_PORT_BASE           GPIO_PORTB_BASE
@@ -150,6 +152,9 @@ inline void startSamplingBatteryVoltage();
 #define PC_SEND_DATA_ADC0_TO_PC         0xA0
 #define PC_SEND_DATA_ADC1_TO_PC         0xA1
 #define PC_SEND_BATT_VOLT_TO_PC			0xA3
+
+#define PC_SEND_STOP_MOTOR_LEFT			0xA4
+#define PC_SEND_STOP_MOTOR_RIGHT		0xA5
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
