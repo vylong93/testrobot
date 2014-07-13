@@ -21,6 +21,7 @@
 
 // Settings for 50MHz System Clock
 #define DELAY_CYCLES_5MS       250000
+#define DELAY_CYCLES_1MS5      75000
 #define DELAY_CYCLES_130US     6500
 #define DELAY_CYCLES_15US      750
 

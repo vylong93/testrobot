@@ -334,7 +334,7 @@ void RF24_startStandby ();
 unsigned char RF24_scan ();
 
 // Send read register command and read data of the corresponding register
-inline unsigned char RF24_readRegister	(unsigned char addr);
+unsigned char RF24_readRegister	(unsigned char addr);
 
 // Send write register command and write data to the corresponding register
 inline void RF24_writeRegister	(unsigned char addr, unsigned char data);
