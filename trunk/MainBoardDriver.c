@@ -363,6 +363,7 @@ inline void startSamplingMicSignals()
 {
   disableMOTOR();
   countAdcDMAsStopped = 0;
+  SysCtlDelay(100000);
   TimerEnable(ADC_TIMER, TIMER_A);
 }
 
@@ -540,8 +541,19 @@ void SpeakerTimerIntHandler(void)
 //----------------------RF24 Functions------------------------
 extern uint8_t RF24_RX_buffer[32];
 
+extern uint8_t TxAddrControlBoard[3];
+extern uint8_t RxAddrControlBoard[3];
+
 inline void initRfModule()
 {
+	TxAddrControlBoard[0] =  0xDE;
+	TxAddrControlBoard[1] =  0xAD;
+	TxAddrControlBoard[2] =  0xBE;
+
+	RxAddrControlBoard[0] =  0x0E;
+	RxAddrControlBoard[1] =  0xAC;
+	RxAddrControlBoard[2] =  0xC1;
+
   RF24_InitTypeDef initRf24;
   initRf24.AddressWidth = RF24_ADRESS_WIDTH_3;
   initRf24.Channel = RF24_CHANNEL_0;
@@ -562,9 +574,8 @@ inline void initRfModule()
   // Open pipe#0 with Enhanced ShockBurst enabled for receiving Auto-ACKs
   RF24_PIPE_open(RF24_PIPE0, true);
 
-  uint8_t addr[3] =  {0xDE, 0xAD, 0xBE};
-  RF24_RX_setAddress(RF24_PIPE0, addr);
-  RF24_TX_setAddress(addr);
+  RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
+  RF24_TX_setAddress(RxAddrControlBoard);
 
   RF24_RX_activate();
 }
@@ -584,6 +595,7 @@ void sendDataToControlBoard(uint8_t * data)
   uint32_t pointer = 0;
   uint32_t i;
 
+  RF24_RX_setAddress(RF24_PIPE0, RxAddrControlBoard);
   RF24_RX_flush();
   RF24_clearIrqFlag(RF24_IRQ_RX);
   RF24_TX_activate();
@@ -608,6 +620,7 @@ void sendDataToControlBoard(uint8_t * data)
          if(RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
          {
            RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
+           RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
            RF24_RX_activate();
            return;
          }
@@ -619,6 +632,7 @@ void sendDataToControlBoard(uint8_t * data)
       length -= 32;
     else
     {
+    	RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
         RF24_RX_activate();
         GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
       return;
