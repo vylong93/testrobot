@@ -3,43 +3,31 @@
 ################################################################################
 
 # Add inputs and outputs from these tool invocations to the build variables 
-CMD_SRCS += \
-../CustomTm4c123gh6pm.cmd 
+LDS_SRCS += \
+../tm4c123gh6pm.lds 
 
 C_SRCS += \
-../CustomTivaDrivers.c \
-../MainBoardDriver.c \
 ../main.c \
-../tm4c123gh6pm_startup_ccs.c 
+../tm4c123gh6pm_startup_ccs_gcc.c 
 
 OBJS += \
-./CustomTivaDrivers.obj \
-./MainBoardDriver.obj \
-./main.obj \
-./tm4c123gh6pm_startup_ccs.obj 
+./main.o \
+./tm4c123gh6pm_startup_ccs_gcc.o 
 
 C_DEPS += \
-./CustomTivaDrivers.pp \
-./MainBoardDriver.pp \
-./main.pp \
-./tm4c123gh6pm_startup_ccs.pp 
+./main.d \
+./tm4c123gh6pm_startup_ccs_gcc.d 
 
 C_DEPS__QUOTED += \
-"CustomTivaDrivers.pp" \
-"MainBoardDriver.pp" \
-"main.pp" \
-"tm4c123gh6pm_startup_ccs.pp" 
+"main.d" \
+"tm4c123gh6pm_startup_ccs_gcc.d" 
 
 OBJS__QUOTED += \
-"CustomTivaDrivers.obj" \
-"MainBoardDriver.obj" \
-"main.obj" \
-"tm4c123gh6pm_startup_ccs.obj" 
+"main.o" \
+"tm4c123gh6pm_startup_ccs_gcc.o" 
 
 C_SRCS__QUOTED += \
-"../CustomTivaDrivers.c" \
-"../MainBoardDriver.c" \
 "../main.c" \
-"../tm4c123gh6pm_startup_ccs.c" 
+"../tm4c123gh6pm_startup_ccs_gcc.c" 
 
 

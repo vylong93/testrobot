@@ -289,6 +289,44 @@ void RF24_TX_pulseTransmit()
   clearRfCE();
 }
 
+void RF24_TX_jamming(uint32_t ui32Period)
+{
+  unsigned char DummyBuffer[32] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                         };
+  RF24_TX_activate();
+
+  //8
+  RF24_TX_writePayloadNoAck(32, DummyBuffer);
+
+  //11
+  setRfCE();
+  rfDelayLoop(DELAY_CYCLES_15US);
+  clearRfCE();
+
+  //12
+ //while (ROM_GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0);
+  while(RF24_getIrqFlag(RF24_IRQ_TX) == 0);
+
+  RF24_clearIrqFlag(RF24_IRQ_TX);
+
+  //14
+  RF24_TX_reuseLastPayload();
+
+  //13
+  setRfCE();
+  rfDelayLoop(ui32Period);
+  clearRfCE();
+
+  while (ROM_GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0)
+              ;
+  RF24_clearIrqFlag(RF24_IRQ_TX);
+
+  RF24_TX_flush();
+}
+
 void RF24_RX_setAddress(unsigned char pipe, unsigned char *addr)
 {
     signed char i;

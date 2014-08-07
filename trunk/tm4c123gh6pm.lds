@@ -8,7 +8,7 @@
 
 MEMORY
 {
-    FLASH (RX) : ORIGIN = 0x00002000, LENGTH = 0x00040000
+    FLASH (RX) : ORIGIN = 0x00000000, LENGTH = 0x00040000
     SRAM (WX)  : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
@@ -22,7 +22,7 @@ REGION_ALIAS("REGION_ARM_EXTAB", FLASH);
 
 SECTIONS {
 
-    PROVIDE (_intvecs_base_address = 0x00002000);
+    PROVIDE (_intvecs_base_address = 0x00000000);
 
     .intvecs (_intvecs_base_address) : AT (_intvecs_base_address) {
         KEEP (*(.intvecs))

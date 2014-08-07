@@ -128,6 +128,7 @@ typedef struct
 //#define RF24_CH_CH	 0x01 // BIT0
 
 //RF_SETUP register bitwise definitions
+#define RF24_CONT_WAVE   0x80 // BIT7
 #define RF24_PLL_LOCK    0x10 // BIT4
 #define RF24_RF_DR       0x08 // BIT3
 #define RF24_RF_PWR      0x02 // BIT1
@@ -416,6 +417,10 @@ void RF24_RETRANS_setCount (unsigned char count);
 
 // Number of times a packet was retransmitted during last TX attempt
 unsigned char RF24_RETRANS_getLastRetransmits ();
+
+// Ref - Appendix C datasheet nRF24L01, ~325us/jamming time
+void RF24_TX_jamming(uint32_t ui32Period);
+
 
 //this thing is too long so I left it here
 #define RF24_CHANNEL_0          0

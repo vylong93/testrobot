@@ -1,1 +1,1 @@
-"./libnrf24l01/src/nRF24L01.obj" "./libnrf24l01/src/TM4C123_nRF24L01.obj" "./tm4c123gh6pm_startup_ccs.obj" "./main.obj" "./MainBoardDriver.obj" "./CustomTivaDrivers.obj" "../CustomTm4c123gh6pm.cmd" -l"libc.a" -l"D:\Portable\Programs\TivaDriver\driverlib\ccs\Debug\driverlib.lib" 
+"./main.o" "./tm4c123gh6pm_startup_ccs_gcc.o" -Wl,-T"../tm4c123gh6pm.lds" -Wl,--start-group -l"c" -l"gcc" -l"nosys" -l"driver" -Wl,--end-group 

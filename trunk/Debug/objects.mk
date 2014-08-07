@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -l"libc.a" -l"D:/Portable/Programs/TivaDriver/driverlib/ccs/Debug/driverlib.lib"
+LIBS := -l"c" -l"gcc" -l"nosys" -l"driver"
 

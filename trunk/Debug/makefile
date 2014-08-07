@@ -4,19 +4,19 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5
+CG_TOOL_ROOT := D:/TI/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3
 
 ORDERED_OBJS += \
+"./main.o" \
+"./tm4c123gh6pm_startup_ccs_gcc.o" \
+-Wl,-T"../tm4c123gh6pm.lds" \
 $(GEN_CMDS__FLAG) \
-"./libnrf24l01/src/nRF24L01.obj" \
-"./libnrf24l01/src/TM4C123_nRF24L01.obj" \
-"./tm4c123gh6pm_startup_ccs.obj" \
-"./main.obj" \
-"./MainBoardDriver.obj" \
-"./CustomTivaDrivers.obj" \
-"../CustomTm4c123gh6pm.cmd" \
--l"libc.a" \
--l"D:\Portable\Programs\TivaDriver\driverlib\ccs\Debug\driverlib.lib" \
+-Wl,--start-group \
+-l"c" \
+-l"gcc" \
+-l"nosys" \
+-l"driver" \
+-Wl,--end-group \
 
 -include ../makefile.init
 
@@ -26,9 +26,7 @@ RMDIR := RMDIR /S/Q
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include subdir_vars.mk
--include libnrf24l01/src/subdir_vars.mk
 -include subdir_rules.mk
--include libnrf24l01/src/subdir_rules.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -116,51 +114,47 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-BootLoaderTesting.out \
+Bootloader_Test.out \
 
 EXE_OUTPUTS__QUOTED += \
-"BootLoaderTesting.out" \
+"Bootloader_Test.out" \
 
 BIN_OUTPUTS += \
-BootLoaderTesting.hex \
+Bootloader_Test.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"BootLoaderTesting.hex" \
+"Bootloader_Test.hex" \
 
 
 # All Target
-all: BootLoaderTesting.out
+all: Bootloader_Test.out secondary-outputs
 
 # Tool invocations
-BootLoaderTesting.out: $(OBJS) $(CMD_SRCS) $(LDS_SRCS) $(GEN_CMDS)
+Bootloader_Test.out: $(OBJS) $(LDS_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: ARM Linker'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --gcc --define=css="css" --define=TARGET_IS_BLIZZARD_RB1 --define=PART_TM4C123GH6PM --display_error_number --diag_warning=225 --diag_wrap=off -z -m"BootLoaderTesting.map" --heap_size=0 --stack_size=1024 -i"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/lib" -i"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --xml_link_info="BootLoaderTesting_linkInfo.xml" --rom_model -o "BootLoaderTesting.out" $(ORDERED_OBJS)
+	@echo 'Invoking: GNU Linker'
+	"D:/TI/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/arm-none-eabi-gcc.exe" -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -DPART_TM4C123GH6PM -DTARGET_IS_BLIZZARD_RB1 -Dgcc -O0 -ffunction-sections -fdata-sections -g -gstrict-dwarf -Wall -Wl,-Map,"Bootloader_Test.map" -L"D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573/driverlib/gcc" -o"Bootloader_Test.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
-	@$(MAKE) --no-print-directory post-build
 
-BootLoaderTesting.hex: $(EXE_OUTPUTS)
-	@echo 'Invoking: ARM Hex Utility'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armhex" --intel -o "BootLoaderTesting.hex" $(EXE_OUTPUTS__QUOTED)
+Bootloader_Test.hex: $(EXE_OUTPUTS)
+	@echo 'Invoking: GNU Objcopy Utility'
+	"D:/TI/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/arm-none-eabi-objcopy.exe" -O ihex $(EXE_OUTPUTS__QUOTED) "Bootloader_Test.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "CustomTivaDrivers.pp" "MainBoardDriver.pp" "main.pp" "tm4c123gh6pm_startup_ccs.pp" "libnrf24l01\src\TM4C123_nRF24L01.pp" "libnrf24l01\src\nRF24L01.pp" 
-	-$(RM) "CustomTivaDrivers.obj" "MainBoardDriver.obj" "main.obj" "tm4c123gh6pm_startup_ccs.obj" "libnrf24l01\src\TM4C123_nRF24L01.obj" "libnrf24l01\src\nRF24L01.obj" 
+	-$(RM) "main.d" "tm4c123gh6pm_startup_ccs_gcc.d" 
+	-$(RM) "main.o" "tm4c123gh6pm_startup_ccs_gcc.o" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
-post-build:
-	-@echo 'hex generator'
-	-"c:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/arm-none-eabi-objcopy.exe" -O ihex  "BootLoaderTesting.out"  "BootLoaderTesting.out.hex"
-	-@echo ' '
+secondary-outputs: $(BIN_OUTPUTS)
 
 .PHONY: all clean dependents
-.SECONDARY: post-build
+.SECONDARY:
 
 -include ../makefile.targets
 

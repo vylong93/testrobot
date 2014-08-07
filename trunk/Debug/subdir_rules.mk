@@ -3,31 +3,10 @@
 ################################################################################
 
 # Each subdirectory must supply rules for building sources it contributes
-CustomTivaDrivers.obj: ../CustomTivaDrivers.c $(GEN_OPTS) $(GEN_HDRS)
+%.o: ../%.c $(GEN_OPTS) $(GEN_HDRS)
 	@echo 'Building file: $<'
-	@echo 'Invoking: ARM Compiler'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me --include_path="E:/00 SwarmRobot/00 Tiva/Workspace/BootLoaderTesting" --include_path="D:/Portable/Programs/TivaDriver" --include_path="D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/include" -g --gcc --define=css="css" --define=TARGET_IS_BLIZZARD_RB1 --define=PART_TM4C123GH6PM --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="CustomTivaDrivers.pp" $(GEN_OPTS__FLAG) "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
-
-MainBoardDriver.obj: ../MainBoardDriver.c $(GEN_OPTS) $(GEN_HDRS)
-	@echo 'Building file: $<'
-	@echo 'Invoking: ARM Compiler'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me --include_path="E:/00 SwarmRobot/00 Tiva/Workspace/BootLoaderTesting" --include_path="D:/Portable/Programs/TivaDriver" --include_path="D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/include" -g --gcc --define=css="css" --define=TARGET_IS_BLIZZARD_RB1 --define=PART_TM4C123GH6PM --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="MainBoardDriver.pp" $(GEN_OPTS__FLAG) "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
-
-main.obj: ../main.c $(GEN_OPTS) $(GEN_HDRS)
-	@echo 'Building file: $<'
-	@echo 'Invoking: ARM Compiler'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me --include_path="E:/00 SwarmRobot/00 Tiva/Workspace/BootLoaderTesting" --include_path="D:/Portable/Programs/TivaDriver" --include_path="D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/include" -g --gcc --define=css="css" --define=TARGET_IS_BLIZZARD_RB1 --define=PART_TM4C123GH6PM --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp" $(GEN_OPTS__FLAG) "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
-
-tm4c123gh6pm_startup_ccs.obj: ../tm4c123gh6pm_startup_ccs.c $(GEN_OPTS) $(GEN_HDRS)
-	@echo 'Building file: $<'
-	@echo 'Invoking: ARM Compiler'
-	"D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me --include_path="E:/00 SwarmRobot/00 Tiva/Workspace/BootLoaderTesting" --include_path="D:/Portable/Programs/TivaDriver" --include_path="D:/Program Files/TI/ccsv6/tools/compiler/arm_5.1.5/include" -g --gcc --define=css="css" --define=TARGET_IS_BLIZZARD_RB1 --define=PART_TM4C123GH6PM --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="tm4c123gh6pm_startup_ccs.pp" $(GEN_OPTS__FLAG) "$<"
+	@echo 'Invoking: GNU Compiler'
+	"D:/TI/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/bin/arm-none-eabi-gcc.exe" -c -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -DPART_TM4C123GH6PM -DTARGET_IS_BLIZZARD_RB1 -Dgcc -I"D:/TI/ccsv6/tools/compiler/gcc-arm-none-eabi-4_7-2013q3/arm-none-eabi/include" -I"E:/00 SwarmRobot/Workspace/Bootloader_Test" -I"D:/Program Files/TI/TivaWare_C_Series-2.1.0.12573" -O0 -ffunction-sections -fdata-sections -g -gstrict-dwarf -Wall -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" $(GEN_OPTS__FLAG) "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
