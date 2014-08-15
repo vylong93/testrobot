@@ -1,0 +1,1 @@
+"./CustomTivaDrivers.o" "./MainBoardDriver.o" "./main.o" "./tm4c123gh6pm_startup_ccs_gcc.o" "./libnrf24l01/src/TM4C123_nRF24L01.o" "./libnrf24l01/src/nRF24L01.o" -Wl,-T"../tm4c123gh6pm.lds" -Wl,--start-group -l"c" -l"gcc" -l"nosys" -l"driver" -Wl,--end-group 
