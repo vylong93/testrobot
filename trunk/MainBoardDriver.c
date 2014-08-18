@@ -637,7 +637,7 @@ initRfModule()
   initRf24.Features = RF24_FEATURE_EN_DYNAMIC_PAYLOAD
       | RF24_FEATURE_EN_NO_ACK_COMMAND;
   initRf24.InterruptEnable = true;
-  initRf24.LNAGainEnable = false;
+  initRf24.LNAGainEnable = true;
   RF24_init(&initRf24);
 
   // Set payload pipe#0 dynamic
@@ -814,7 +814,8 @@ initLowPowerMode()
   //
   // Enable Peripherals in Sleep Mode.
   //
-  SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK);	// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+  SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+  SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
   SysCtlPeripheralSleepEnable(MOTOR_PWM_CLOCK);	// keep PWM operate in Sleep Mode for Motor control.
   SysCtlPeripheralSleepEnable(MOTOR_SLEEP_PIN_CLOCK); //TODO: use PWM out instead of GPIO
   SysCtlPeripheralSleepEnable(RIGHT_MOTOR_PORT_CLOCK); //TODO: use PWM out instead of GPIO
@@ -845,6 +846,7 @@ initLowPowerMode()
   // Enable Peripherals in Deep-Sleep Mode.
   //
   SysCtlPeripheralDeepSleepEnable(RF24_INT_PORT_CLOCK);	// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+  SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
 
   //
   // Set LDO to 0.9V in Deep-Sleep.
@@ -861,6 +863,11 @@ initLowPowerMode()
   // IMPORTANCE: Enable Auto Clock Gating Control.
   //==============================================
   SysCtlPeripheralClockGating(true);
+
+  IntPrioritySet(INT_I2C1_TM4C123, 0x20);
+  int a = IntPriorityGroupingGet();
+  IntPrioritySet(RF24_INT, 0x10);
+  IntEnable(INT_I2C1_TM4C123);
 
   CPUState = RUN_MODE;
 }
@@ -902,6 +909,7 @@ wakeUpFormLPM()
     SysCtlClockSet(
     SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   }
+
   CPUState = RUN_MODE;
 }
 
