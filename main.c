@@ -9,6 +9,7 @@
 #include "inc/hw_udma.h"
 #include "inc/hw_timer.h"
 #include "inc/hw_ssi.h"
+#include "inc/hw_i2c.h"
 #include "inc/hw_eeprom.h"
 #include "driverlib/debug.h"
 #include "driverlib/pin_map.h"
@@ -19,6 +20,7 @@
 #include "driverlib/udma.h"
 #include "driverlib/timer.h"
 #include "driverlib/ssi.h"
+#include "driverlib/i2c.h"
 //#include "driverlib/rom.h"
 #include "driverlib/pwm.h"
 #include "driverlib/eeprom.h"
@@ -36,6 +38,11 @@ volatile uint32_t g_ui32SysTickCount;
 void
 SysTickHandler(void)
 {
+//  if (g_ui32SysTickCount == 1000)
+//  { toggleLED(LED_RED);
+//    g_ui32SysTickCount = 0;
+//  }
+//  else
   g_ui32SysTickCount++;
 }
 
@@ -69,7 +76,12 @@ main(void)
   //SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_INT);
 
   SysCtlClockSet(
-      SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+  SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+//  // Set the system tick to fire 1000 times per second.
+//  SysTickPeriodSet(SysCtlClockGet() / SYSTICKS_PER_SECOND);
+//  SysTickIntEnable();
+//  SysTickEnable();
 
   initEEPROM();
 
@@ -89,21 +101,10 @@ main(void)
 
   while (1)
   {
-    switch (CPUState)
-    {
-      case SLEEP_MODE:
-        gotoSleepMode();
-        break;
-      case DEEP_SLEEP_MODE:
-        gotoDeepSleepMode();
-        break;
-      default: //  RUN MODE
-        rfDelayLoop(DELAY_CYCLES_5MS * 25);
-        turnOnLED(LED_RED);
-        rfDelayLoop(DELAY_CYCLES_5MS * 25);
-        turnOffLED(LED_RED);
-        break;
-    }
+    rfDelayLoop(DELAY_CYCLES_5MS * 25);
+    turnOnLED(LED_RED);
+    rfDelayLoop(DELAY_CYCLES_5MS * 25);
+    turnOffLED(LED_RED);
   }
 }
 
@@ -225,10 +226,12 @@ RF24_IntHandler()
 
         case COMMAND_SLEEP:
           CPUState = SLEEP_MODE;
+          IntTrigger(INT_I2C1);
           break;
 
         case COMMAND_DEEP_SLEEP:
           CPUState = DEEP_SLEEP_MODE;
+          IntTrigger(INT_I2C1);
           break;
 
         case COMMAND_WAKE_UP:
@@ -253,6 +256,22 @@ RF24_IntHandler()
       GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
       GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
     }
+  }
+}
+
+void
+I2C1_IntHandler(void)
+{
+  switch (CPUState)
+  {
+    case SLEEP_MODE:
+      gotoSleepMode();
+      break;
+    case DEEP_SLEEP_MODE:
+      gotoDeepSleepMode();
+      break;
+    default:
+      break;
   }
 }
 
