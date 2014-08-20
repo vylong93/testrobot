@@ -525,13 +525,14 @@ initBatteryChannel()
 
   // Interrupts Configure
   IntEnable(ADC_BATT_INT);
+  IntPrioritySet(ADC_BATT_INT,0x00);
   IntEnable(INT_UDMAERR);
 }
 
 inline void
 startSamplingBatteryVoltage()
 {
-  //disableMOTOR();
+  disableMOTOR();
   ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
 
@@ -552,7 +553,8 @@ BatterySequenceIntHandler(void)
         (void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
         &g_ui16BatteryVoltage, 1);
     uDMAChannelEnable(BATT_DMA_CHANNEL);
-    //enableMOTOR();
+    sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
+    enableMOTOR();
   }
 }
 //-----------------------------------Battery measurement functions
@@ -796,7 +798,7 @@ sendTestData()
 //----------------------------------------------RF24 Functions
 
 //----------------Low Power Mode functions-------------------
-int8_t CPUState = RUN_MODE;
+CpuStateEnum CPUState = RUN_MODE;
 
 inline void
 initLowPowerMode()
@@ -865,7 +867,6 @@ initLowPowerMode()
   SysCtlPeripheralClockGating(true);
 
   IntPrioritySet(INT_I2C1_TM4C123, 0x20);
-  int a = IntPriorityGroupingGet();
   IntPrioritySet(RF24_INT, 0x10);
   IntEnable(INT_I2C1_TM4C123);
 
@@ -901,15 +902,7 @@ gotoDeepSleepMode()
 inline void
 wakeUpFormLPM()
 {
-  if (CPUState == SLEEP_MODE)
-  {
-    // Switch back to the IOSC + PLL (50MHz sysclk)
-    //SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_INT);
-
-    SysCtlClockSet(
-    SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-  }
-
+  SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   CPUState = RUN_MODE;
 }
 

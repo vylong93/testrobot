@@ -133,122 +133,149 @@ RF24_IntHandler()
       length = RF24_RX_getPayloadWidth();
       RF24_RX_getPayloadData(length, RF24_RX_buffer);
 
-      switch (RF24_RX_buffer[0])
+      // Commands allowed to be processed when uC is in sleep/deep_sleep mode
+      if(CPUState != RUN_MODE)
       {
-        case PC_TEST_RF_TRANSMISSION:
-          testRfTransmission();
-          break;
+        switch (RF24_RX_buffer[0])
+        {
+          case COMMAND_SLEEP:
+            CPUState = SLEEP_MODE;
+            IntTrigger(INT_I2C1);
+            break;
 
-        case PC_SEND_TEST_DATA_TO_PC:
-          sendTestData();
-          break;
+          case COMMAND_DEEP_SLEEP:
+            CPUState = DEEP_SLEEP_MODE;
+            IntTrigger(INT_I2C1);
+            break;
 
-        case PC_TEST_RF_CARRIER_DETECTION:
-          testCarrierDetection();
-          break;
+          case COMMAND_WAKE_UP:
+            wakeUpFormLPM();
+            break;
 
-        case PC_TOGGLE_ALL_STATUS_LEDS:
-          GPIOPinToggle(LED_PORT_BASE, LED_ALL);
-          break;
+          case COMMAND_RESET:
+            HWREG(NVIC_APINT) = (NVIC_APINT_VECTKEY |
+            NVIC_APINT_SYSRESETREQ);
+            break;
 
-        case PC_TEST_ALL_MOTOR_MODES:
-          testAllMotorModes();
-          break;
+          default:
+            IntTrigger(INT_I2C1);
+            break;
+        }
+      }
+      else
+      {
+        switch (RF24_RX_buffer[0])
+        {
+          case PC_TEST_RF_TRANSMISSION:
+            testRfTransmission();
+            break;
 
-        case PC_CHANGE_MOTORS_SPEED:
-          disableMOTOR();
-          PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-          PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+          case PC_SEND_TEST_DATA_TO_PC:
+            sendTestData();
+            break;
 
-          setMotorDirection(LEFT_MOTOR_PORT_BASE, RF24_RX_buffer[1]);
-          setMotorSpeed(LEFT_MOTOR_PWM_OUT1, RF24_RX_buffer[2]);
-          setMotorDirection(RIGHT_MOTOR_PORT_BASE, RF24_RX_buffer[3]);
-          setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, RF24_RX_buffer[4]);
+          case PC_TEST_RF_CARRIER_DETECTION:
+            testCarrierDetection();
+            break;
 
-          PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-          PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+          case PC_TOGGLE_ALL_STATUS_LEDS:
+            GPIOPinToggle(LED_PORT_BASE, LED_ALL);
+            break;
 
-          PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-          PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
-          enableMOTOR();
-          break;
+          case PC_TEST_ALL_MOTOR_MODES:
+            testAllMotorModes();
+            break;
 
-        case PC_SEND_STOP_MOTOR_LEFT:
-          PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-          setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-          PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
-          break;
+          case PC_CHANGE_MOTORS_SPEED:
+            disableMOTOR();
+            PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+            PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-        case PC_SEND_STOP_MOTOR_RIGHT:
-          PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-          setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-          PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
-          break;
+            setMotorDirection(LEFT_MOTOR_PORT_BASE, RF24_RX_buffer[1]);
+            setMotorSpeed(LEFT_MOTOR_PWM_OUT1, RF24_RX_buffer[2]);
+            setMotorDirection(RIGHT_MOTOR_PORT_BASE, RF24_RX_buffer[3]);
+            setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, RF24_RX_buffer[4]);
 
-        case PC_SEND_DATA_ADC0_TO_PC:
-          sendDataToControlBoard((uint8_t *) g_ui16ADC0Result);
-          break;
+            PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+            PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-        case PC_SEND_DATA_ADC1_TO_PC:
-          sendDataToControlBoard((uint8_t *) g_ui16ADC1Result);
-          break;
+            PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+            PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
+            enableMOTOR();
+            break;
 
-        case PC_SEND_BATT_VOLT_TO_PC:
-          sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
-          break;
+          case PC_SEND_STOP_MOTOR_LEFT:
+            PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+            setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+            PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+            break;
 
-        case PC_SEND_READ_EEPROM:
-          readFormEEPROM();
-          break;
+          case PC_SEND_STOP_MOTOR_RIGHT:
+            PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+            setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+            PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+            break;
 
-        case PC_SEND_WRITE_EEPROM:
-          writeToEEPROM();
-          break;
+          case PC_SEND_DATA_ADC0_TO_PC:
+            sendDataToControlBoard((uint8_t *) g_ui16ADC0Result);
+            break;
 
-        case PC_SEND_SET_ADDRESS_EEPROM:
-          setAddressEEPROM();
-          break;
+          case PC_SEND_DATA_ADC1_TO_PC:
+            sendDataToControlBoard((uint8_t *) g_ui16ADC1Result);
+            break;
 
-        case PC_START_SAMPLING_MIC:
-          startSamplingMicSignals();
-          break;
+          case PC_SEND_BATT_VOLT_TO_PC:
+            startSamplingBatteryVoltage();
+            break;
 
-        case PC_START_DISTANCE_SENSING:
-          break;
+          case PC_SEND_READ_EEPROM:
+            readFormEEPROM();
+            break;
 
-        case PC_START_SPEAKER:
-          startSpeaker();
-          break;
+          case PC_SEND_WRITE_EEPROM:
+            writeToEEPROM();
+            break;
 
-        case PC_START_SAMPLING_BATTERY:
-          startSamplingBatteryVoltage();
-          break;
+          case PC_SEND_SET_ADDRESS_EEPROM:
+            setAddressEEPROM();
+            break;
 
-        case COMMAND_SLEEP:
-          CPUState = SLEEP_MODE;
-          IntTrigger(INT_I2C1);
-          break;
+          case PC_START_SAMPLING_MIC:
+            startSamplingMicSignals();
+            break;
 
-        case COMMAND_DEEP_SLEEP:
-          CPUState = DEEP_SLEEP_MODE;
-          IntTrigger(INT_I2C1);
-          break;
+          case PC_START_DISTANCE_SENSING:
+            break;
 
-        case COMMAND_WAKE_UP:
-          wakeUpFormLPM();
-          break;
+          case PC_START_SPEAKER:
+            startSpeaker();
+            break;
 
-        case COMMAND_RESET:
-          HWREG(NVIC_APINT) = (NVIC_APINT_VECTKEY |
-          NVIC_APINT_SYSRESETREQ);
-          break;
+          case COMMAND_SLEEP:
+            CPUState = SLEEP_MODE;
+            IntTrigger(INT_I2C1);
+            break;
 
-        default:
-          signalUnhandleError();
-          break;
+          case COMMAND_DEEP_SLEEP:
+            CPUState = DEEP_SLEEP_MODE;
+            IntTrigger(INT_I2C1);
+            break;
+
+          case COMMAND_WAKE_UP:
+            wakeUpFormLPM();
+            break;
+
+          case COMMAND_RESET:
+            HWREG(NVIC_APINT) = (NVIC_APINT_VECTKEY |
+            NVIC_APINT_SYSRESETREQ);
+            break;
+
+          default:
+            signalUnhandleError();
+            break;
+        }
       }
     }
-
     // Only clear the IRQ if the RF FIFO is empty
     if (RF24_RX_isEmpty())
     {

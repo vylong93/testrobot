@@ -147,7 +147,6 @@ inline void startSamplingBatteryVoltage();
 #define PC_SEND_TEST_DATA_TO_PC         0xC6
 #define PC_START_DISTANCE_SENSING       0xC7
 #define PC_START_SPEAKER                0xC8
-#define PC_START_SAMPLING_BATTERY	0xC9
 
 #define PC_SEND_DATA_ADC0_TO_PC         0xA0
 #define PC_SEND_DATA_ADC1_TO_PC         0xA1
@@ -176,11 +175,14 @@ inline void sendTestData();
 
 
 //----------------------Low Power Mode Functions------------------------
-#define RUN_MODE			0x01
-#define SLEEP_MODE			0x02
-#define DEEP_SLEEP_MODE		0x03
+typedef enum
+{
+  RUN_MODE,
+  SLEEP_MODE,
+  DEEP_SLEEP_MODE,
+} CpuStateEnum;
 
-extern int8_t CPUState;	// Low Power Mode State
+extern CpuStateEnum  CPUState;	// Low Power Mode State
 
 //-----------------------------------------------------------------------------
 //  void initLowPowerMode()
