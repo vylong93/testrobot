@@ -73,7 +73,7 @@ extern void BatterySequenceIntHandler(void);
 // the program if located at a start address other than 0.
 //
 //*****************************************************************************
-__attribute__ ((section(".intvecs")))
+__attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
     (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)),
