@@ -28,298 +28,300 @@
 #include "CustomTivaDrivers.h"
 #include "MainBoardDriver.h"
 
+//----------------Robot Init functions-------------------
+extern uint32_t g_ui32RobotID;
+
+void initRobotParameters()
+{
+	EEPROMRead(&g_ui32RobotID, EEPROM_ADDR_ROBOT_ID, sizeof(&g_ui32RobotID));
+}
+
+//-----------------------------------Robot Int functions
+
 //-----------------------LED functions-------------------------
-inline void
-initLED()
+inline void initLED()
 {
-  SysCtlPeripheralEnable(LED_CLOCK_PORT);
-  GPIOPinTypeGPIOOutput(LED_PORT_BASE, LED_RED | LED_GREEN | LED_BLUE);
-  turnOffLED(LED_RED | LED_GREEN | LED_BLUE);
+	SysCtlPeripheralEnable(LED_CLOCK_PORT);
+	GPIOPinTypeGPIOOutput(LED_PORT_BASE, LED_RED | LED_GREEN | LED_BLUE);
+	turnOffLED(LED_RED | LED_GREEN | LED_BLUE);
 }
 
-inline void
-turnOnLED(uint8_t LEDpin)
+inline void turnOnLED(uint8_t LEDpin)
 {
-  ASSERT(_GPIOBaseValid(LED_PORT_BASE));
-  HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) = LEDpin;
+	ASSERT(_GPIOBaseValid(LED_PORT_BASE));
+	HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) = LEDpin;
 }
 
-inline void
-turnOffLED(uint8_t LEDpin)
+inline void turnOffLED(uint8_t LEDpin)
 {
-  ASSERT(_GPIOBaseValid(LED_PORT_BASE));
-  HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) = 0x00;
+	ASSERT(_GPIOBaseValid(LED_PORT_BASE));
+	HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) = 0x00;
 }
 
-inline void
-toggleLED(uint8_t LEDpin)
+inline void toggleLED(uint8_t LEDpin)
 {
-  ASSERT(_GPIOBaseValid(LED_PORT_BASE));
-  HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) ^= 0xFF;
+	ASSERT(_GPIOBaseValid(LED_PORT_BASE));
+	HWREG(LED_PORT_BASE + (GPIO_O_DATA + (LEDpin << 2))) ^= 0xFF;
 }
 
-void
-signalUnhandleError()
+void signalUnhandleError()
 {
-  while (1)
-  {
-    GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
-    SysCtlDelay(2000000);
+	while (1)
+	{
+		GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
+		SysCtlDelay(2000000);
 
-    GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
-    SysCtlDelay(2000000);
+		GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
+		SysCtlDelay(2000000);
 
-    GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_BLUE);
-    SysCtlDelay(2000000);
-  }
+		GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_BLUE);
+		SysCtlDelay(2000000);
+	}
 }
 //------------------------------------------------LED functions
 
 //-----------------------Motor functions-----------------------
 static uint32_t ui32PWMPeriod;
 
-inline void
-initMotor()
+inline void initMotor()
 {
-  SysCtlPWMClockSet(PWM_CLOCK_SELECT);
-  SysCtlDelay(2);
-  SysCtlPeripheralEnable(MOTOR_PWM_CLOCK);
+	SysCtlPWMClockSet(PWM_CLOCK_SELECT);
+	SysCtlDelay(2);
+	SysCtlPeripheralEnable(MOTOR_PWM_CLOCK);
 
-  uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
-  ui32PWMPeriod = (pwmClock / MOTOR_PWM_FREQUENCY);
+	uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
+	ui32PWMPeriod = (pwmClock / MOTOR_PWM_FREQUENCY);
 
-  SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
-  SysCtlDelay(2);
-  GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
+	SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
+	SysCtlDelay(2);
+	GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
 
-  SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
-  SysCtlDelay(2);
-  GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
-  GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG);
-  GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
+	SysCtlDelay(2);
+	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+	GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG);
+	GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
 
-  SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
-  SysCtlDelay(2);
-  GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
-  GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG);
-  GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
+	SysCtlDelay(2);
+	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+	GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG);
+	GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
 
-  PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-  PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
-  PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
-  PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
 
-  PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN); // M0PWM3
-  PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
-  PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
-  PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN); // M0PWM3
+	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
 }
 
-inline void
-enableMOTOR()
+inline void enableMOTOR()
 {
-  ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
-  HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) = 0x01;
+	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
+	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
+			0x01;
 }
 
-inline void
-disableMOTOR()
+inline void disableMOTOR()
 {
-  ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
-  HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) = 0x00;
+	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
+	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
+			0x00;
 }
 
-inline void
-setMotorDirection(uint32_t motorPortBase, uint8_t direction)
+inline void setMotorDirection(uint32_t motorPortBase, uint8_t direction)
 {
-  if (direction == FORWARD)
-    GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, 0);
-  else if (direction == REVERSE)
-    GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
+	if (direction == FORWARD)
+		GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, 0);
+	else if (direction == REVERSE)
+		GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
 }
 
-inline void
-testAllMotorModes()
+inline void testAllMotorModes()
 {
-  uint8_t motorDutyCycles;
+	uint8_t motorDutyCycles;
 
-  enableMOTOR();
-  turnOnLED(LED_RED);
+	enableMOTOR();
+	turnOnLED(LED_RED);
 
-  //=========================Test LEFT Motor=========================
-  setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-  PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	//=========================Test LEFT Motor=========================
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 
-  // speed up
-  turnOnLED(LED_GREEN);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_GREEN);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_GREEN);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// slow down
+	turnOffLED(LED_GREEN);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
 
-  // speed up
-  turnOnLED(LED_BLUE);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_BLUE);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_BLUE);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
-  //==================================================Test LEFT Motor
+	// slow down
+	turnOffLED(LED_BLUE);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
+	//==================================================Test LEFT Motor
 
-  //=========================Test RIGHT Motor=========================
-  setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-  PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	//=========================Test RIGHT Motor=========================
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-  // speed up
-  turnOnLED(LED_GREEN);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_GREEN);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_GREEN);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// slow down
+	turnOffLED(LED_GREEN);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
 
-  // speed up
-  turnOnLED(LED_BLUE);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_BLUE);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_BLUE);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
-  //==================================================Test RIGHT Motor
+	// slow down
+	turnOffLED(LED_BLUE);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
+	//==================================================Test RIGHT Motor
 
-  //=========================Test BOTH Motors=========================
-  setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-  setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-  PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-  PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	//=========================Test BOTH Motors=========================
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 
-  // speed up
-  turnOnLED(LED_GREEN);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_GREEN);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_GREEN);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// slow down
+	turnOffLED(LED_GREEN);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-  setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-  PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-  PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 
-  // speed up
-  turnOnLED(LED_BLUE);
-  motorDutyCycles = 100;
-  while (motorDutyCycles > 0)
-  {
-    motorDutyCycles--;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
+	// speed up
+	turnOnLED(LED_BLUE);
+	motorDutyCycles = 100;
+	while (motorDutyCycles > 0)
+	{
+		motorDutyCycles--;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
 
-  // slow down
-  turnOffLED(LED_BLUE);
-  motorDutyCycles = 0;
-  while (motorDutyCycles < 100)
-  {
-    motorDutyCycles++;
-    PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-        motorDutyCycles * ui32PWMPeriod / 100);
-    SysCtlDelay(500000);
-  }
-  //==================================================Test BOTH Motors
+	// slow down
+	turnOffLED(LED_BLUE);
+	motorDutyCycles = 0;
+	while (motorDutyCycles < 100)
+	{
+		motorDutyCycles++;
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				motorDutyCycles * ui32PWMPeriod / 100);
+		SysCtlDelay(500000);
+	}
+	//==================================================Test BOTH Motors
 
-  disableMOTOR();
-  turnOffLED(LED_RED);
+	disableMOTOR();
+	turnOffLED(LED_RED);
 }
 
-inline void
-setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
+inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
 {
-  PWMPulseWidthSet(MOTOR_PWM_BASE, motorPortOut, (speed * ui32PWMPeriod) / 100);
+	PWMPulseWidthSet(MOTOR_PWM_BASE, motorPortOut,
+			(speed * ui32PWMPeriod) / 100);
 }
 //----------------------------------------------Motor functions
 
@@ -328,6 +330,26 @@ static unsigned char countAdcDMAsStopped = 0;
 
 static uint32_t g_ui32uDMAErrCount = 0;
 
+float32_t SamplesMicA[NUMBER_OF_SAMPLE];
+float32_t SamplesMicB[NUMBER_OF_SAMPLE];
+
+// Initialize two filter, input and output buffer pointers
+arm_fir_instance_f32 FilterA;
+arm_fir_instance_f32 FilterB;
+static float32_t OutputMicA[NUMBER_OF_SAMPLE];
+static float32_t OutputMicB[NUMBER_OF_SAMPLE];
+static float32_t pStateA[BLOCK_SIZE + FILTER_ORDER - 1] =
+{ 0 };
+static float32_t pStateB[BLOCK_SIZE + FILTER_ORDER - 1] =
+{ 0 };
+
+extern float32_t peakEnvelopeA;
+extern float32_t maxEnvelopeA;
+extern float32_t peakEnvelopeB;
+extern float32_t maxEnvelopeB;
+extern uint16_t g_pf32DistanceResultMic1[];
+extern uint16_t g_pf32DistanceResultMic2[];
+extern uint8_t g_ui16TestingTimes;
 #ifdef gcc
 static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 #else
@@ -335,641 +357,907 @@ static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 static uint8_t ui8ControlTable[1024];
 #endif
 
-void
-initADC(uint32_t adcClock, uint32_t adcBase, uint32_t adcChannel)
+void initADC(uint32_t adcClock, uint32_t adcBase, uint32_t adcChannel)
 {
-  SysCtlPeripheralEnable(adcClock);
+	SysCtlPeripheralEnable(adcClock);
 
-  // Hardware Faulterror happens if enable this command.
-  // The reason is unknown but it only happens when
-  // we step over this function in the debug mode (or let it run consecutively)
-  // ADCSequenceDisable(adcBase, ADC_SEQUENCE_TYPE);
+	// Hardware Faulterror happens if enable this command.
+	// The reason is unknown but it only happens when
+	// we step over this function in the debug mode (or let it run consecutively)
+	// ADCSequenceDisable(adcBase, ADC_SEQUENCE_TYPE);
 
-  ADCHardwareOversampleConfigure(adcBase, ADC_AVERAGING_FACTOR);
-  ADCSequenceConfigure(adcBase, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
-  DISTANCE_SENSING_PRIORITY);
-  ADCSequenceStepConfigure(adcBase, ADC_SEQUENCE_TYPE, 0,
-      adcChannel | ADC_CTL_IE | ADC_CTL_END);
-  ADCDitherEnable(adcBase);
+	ADCHardwareOversampleConfigure(adcBase, ADC_AVERAGING_FACTOR);
+	ADCSequenceConfigure(adcBase, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
+	DISTANCE_SENSING_PRIORITY);
+	ADCSequenceStepConfigure(adcBase, ADC_SEQUENCE_TYPE, 0,
+			adcChannel | ADC_CTL_IE | ADC_CTL_END);
+	// ADCDitherEnable(adcBase);
 
-  ADCSequenceEnable(adcBase, ADC_SEQUENCE_TYPE);
-  ADCSequenceDMAEnable(adcBase, ADC_SEQUENCE_TYPE);
+	ADCSequenceEnable(adcBase, ADC_SEQUENCE_TYPE);
+	ADCSequenceDMAEnable(adcBase, ADC_SEQUENCE_TYPE);
 }
 
-inline void
-groundAdjacentADCPins()
+inline void groundAdjacentADCPins()
 {
-  GPIOPinTypeGPIOOutput(ADC_PORT, ADC_ADJACENT_PINS);
-  GPIOPinWrite(ADC_PORT, ADC_ADJACENT_PINS, 0);
+	GPIOPinTypeGPIOOutput(ADC_PORT, ADC_ADJACENT_PINS);
+	GPIOPinWrite(ADC_PORT, ADC_ADJACENT_PINS, 0);
 }
 
-inline void
-initDistanceSensingModules(void)
+inline void initDistanceSensingModules(void)
 {
-  //=====================Init ADCs==========================
-  SysCtlPeripheralEnable(ADC_PORT_CLOCK);
-  GPIOPinTypeADC(ADC_PORT, ADC0_IN);
-  GPIOPinTypeADC(ADC_PORT, ADC1_IN);
-  initADC(SYSCTL_PERIPH_ADC0, ADC0_BASE, ADC0_CHANNEL);
-  initADC(SYSCTL_PERIPH_ADC1, ADC1_BASE, ADC1_CHANNEL);
-  groundAdjacentADCPins();
-  //===============================================Init ADCs
+	//=====================Init ADCs==========================
+	SysCtlPeripheralEnable(ADC_PORT_CLOCK);
+	GPIOPinTypeADC(ADC_PORT, ADC0_IN);
+	GPIOPinTypeADC(ADC_PORT, ADC1_IN);
+	initADC(SYSCTL_PERIPH_ADC0, ADC0_BASE, ADC0_CHANNEL);
+	initADC(SYSCTL_PERIPH_ADC1, ADC1_BASE, ADC1_CHANNEL);
+	groundAdjacentADCPins();
+	//===============================================Init ADCs
 
-  //=====================uDMA configure=====================
-  SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-  uDMAEnable();
-  uDMAControlBaseSet(ui8ControlTable);
+	//=====================uDMA configure=====================
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+	uDMAEnable();
+	uDMAControlBaseSet(ui8ControlTable);
 
-  uDMAChannelAssign(DMA_ADC0_CHANNEL);
-  uDMAChannelAttributeDisable(ADC0_DMA_CHANNEL,
-  UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-  uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
-  UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-  uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-      (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC0Result,
-      NUMBER_OF_SAMPLE);
+	uDMAChannelAssign(DMA_ADC0_CHANNEL);
+	uDMAChannelAttributeDisable(ADC0_DMA_CHANNEL,
+	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
+	uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
+	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
+	uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+			(void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC0Result,
+			NUMBER_OF_SAMPLE);
 
-  uDMAChannelAssign(DMA_ADC1_CHANNEL);
-  uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
-  UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-  uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
-  UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-  uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-      (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC1Result,
-      NUMBER_OF_SAMPLE);
+	uDMAChannelAssign(DMA_ADC1_CHANNEL);
+	uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
+	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
+	uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
+	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
+	uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+			(void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC1Result,
+			NUMBER_OF_SAMPLE);
 
-  uDMAChannelEnable(ADC0_DMA_CHANNEL);
-  uDMAChannelEnable(ADC1_DMA_CHANNEL);
-  //==========================================uDMA configure
+	uDMAChannelEnable(ADC0_DMA_CHANNEL);
+	uDMAChannelEnable(ADC1_DMA_CHANNEL);
+	//==========================================uDMA configure
 
-  // Interrupts Configure
-  IntEnable(ADC0_INT);
-  IntEnable(ADC1_INT);
-  IntEnable(INT_UDMAERR);
+	// Interrupts Configure
+	IntPrioritySet(ADC0_INT, 0x40);
+	IntPrioritySet(ADC1_INT, 0x40);
+	IntEnable(ADC0_INT);
+	IntEnable(ADC1_INT);
+	IntEnable(INT_UDMAERR);
 
-  // ADC timer trigger configure
-  SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
-  TimerDisable(ADC_TIMER, TIMER_A);
-  TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
-  TimerLoadSet(ADC_TIMER, TIMER_A, (SysCtlClockGet() / SAMPLE_FREQUENCY));
-  TimerControlTrigger(ADC_TIMER, TIMER_A, true);
+	// ADC timer trigger configure
+	SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
+	TimerDisable(ADC_TIMER, TIMER_A);
+	TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
+	TimerLoadSet(ADC_TIMER, TIMER_A, (SysCtlClockGet() / SAMPLE_FREQUENCY));
+	TimerControlTrigger(ADC_TIMER, TIMER_A, true);
 }
 
-inline void
-startSamplingMicSignals()
+void initFilters(float32_t* FilterCoeffs)
 {
-  disableMOTOR();
-  countAdcDMAsStopped = 0;
-  SysCtlDelay(100000);
-  TimerEnable(ADC_TIMER, TIMER_A);
+
+	// Call FIR init function to initialize the instance structure.
+	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
+	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);
+
+	turnOffLED(LED_ALL);
+}
+void filterADCsSignals()
+{
+	int i;
+
+	while (countAdcDMAsStopped != 2)
+		;
+
+	// Convert g_ui32ADC0/1Result to SamplesMicA/B
+	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
+	{
+		SamplesMicA[i] = g_ui16ADC0Result[i];
+		SamplesMicB[i] = g_ui16ADC1Result[i];
+	}
+
+	// Filter signals
+	for (i = 0; i < NUM_BLOCKS; i++)
+	{
+		arm_fir_f32(&FilterA, SamplesMicA + (i * BLOCK_SIZE),
+				OutputMicA + (i * BLOCK_SIZE),
+				BLOCK_SIZE);
+		arm_fir_f32(&FilterB, SamplesMicB + (i * BLOCK_SIZE),
+				OutputMicB + (i * BLOCK_SIZE),
+				BLOCK_SIZE);
+	}
+
+	// Drop some invalid samples at the begin output buffer
+	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
+	{
+		OutputMicA[i] = OutputMicA[i + START_SAMPLES_POSTITION];
+		OutputMicB[i] = OutputMicB[i + START_SAMPLES_POSTITION];
+	}
+
+	getDistances(OutputMicA, &peakEnvelopeA, &maxEnvelopeA);
+	getDistances(OutputMicB, &peakEnvelopeB, &maxEnvelopeB);
+
+	//TODO: check max threshold and save to table
 }
 
-void
-ADC0IntHandler(void)
+float32_t getDistances(float32_t *myData, float32_t *peakEnvelope,
+		float32_t *maxEnvelope)
 {
-  uint32_t ui32Status;
-  uint32_t ui32Mode;
+	float32_t step = +0.125f;
+	float32_t localPeaksPosition[3] =
+	{ 0 };
+	float32_t localMaxValue[3] =
+	{ 0 };
 
-  ui32Status = ADCIntStatus(ADC0_BASE, ADC_SEQUENCE_TYPE, true);
-  ADCIntClear(ADC0_BASE, ui32Status);
+	find3LocalPeaks(myData, localPeaksPosition);
+	if (localPeaksPosition[0] != 0 && localPeaksPosition[1] != 0
+			&& localPeaksPosition[2] != 0)
+	{
+		float32_t PositionsArray[3] =
+		{ 0 };
+		float32_t ValuesArray[3] =
+		{ 0 };
+		int i;
+		for (i = 0; i < 3; i++)
+		{
+			PositionsArray[0] = localPeaksPosition[i] - 1;
+			PositionsArray[1] = localPeaksPosition[i];
+			PositionsArray[2] = localPeaksPosition[i] + 1;
+			ValuesArray[0] = *(myData + (uint32_t) PositionsArray[0]);
+			ValuesArray[1] = *(myData + (uint32_t) PositionsArray[1]);
+			ValuesArray[2] = *(myData + (uint32_t) PositionsArray[2]);
+			localMaxValue[i] = *(myData + (uint32_t) localPeaksPosition[i]);
+			interPeak(PositionsArray, ValuesArray, localPeaksPosition[i],
+					localMaxValue[i], step, &localPeaksPosition[i],
+					&localMaxValue[i]);
+		}
+		interPeak(localPeaksPosition, localMaxValue, localPeaksPosition[1],
+				localMaxValue[1], step, peakEnvelope, maxEnvelope);
+	}
+	else
+		return 0;       //signal error
 
-  ui32Mode = uDMAChannelModeGet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT);
-  if (ui32Mode == UDMA_MODE_STOP)
-  {
-    TimerDisable(ADC_TIMER, TIMER_A);
-    // Setup for a future request
-    uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-        (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC0Result,
-        NUMBER_OF_SAMPLE);
-    uDMAChannelEnable(ADC0_DMA_CHANNEL);
-
-    countAdcDMAsStopped++;
-    if (countAdcDMAsStopped == 2)
-      enableMOTOR();
-  }
+	// return (0.379 * (*peakEnvelope + START_SAMPLES_POSTITION) - 8.734676667);
+	return 1;
 }
 
-void
-ADC1IntHandler(void)
+void find3LocalPeaks(float32_t *myData, float32_t* LocalPeaksStoragePointer)
 {
-  uint32_t ui32Status;
-  uint32_t ui32Mode;
+	uint32_t SamplePosition = 0;
+	uint32_t maxSamplePosition = 0;
+	int i;
+	for (i = START_SAMPLES_POSTITION; i < NUM_DATAS; i++)
+	{
+		if (*(myData + i) > *(myData + maxSamplePosition))
+		{
+			maxSamplePosition = i;
+		}
+	}
+	LocalPeaksStoragePointer[1] = maxSamplePosition;
+	SamplePosition = reachBottom(myData, LocalPeaksStoragePointer[1], -1);
+	if (SamplePosition != 0)
+	{
+		LocalPeaksStoragePointer[0] = reachPeak(myData, SamplePosition, -1);
+	}
+	SamplePosition = reachBottom(myData, LocalPeaksStoragePointer[1], 1);
+	if (SamplePosition != 0)
+	{
+		LocalPeaksStoragePointer[2] = reachPeak(myData, SamplePosition, 1);
+	}
+}
+uint32_t reachBottom(float32_t *myData, uint32_t const PeakPosition,
+		uint32_t const PointerIncreaseNumber)
+{
+	uint32_t SamplePosition = PeakPosition;
+	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
+	{
+		if (*(myData + SamplePosition)
+				< *(myData + SamplePosition + PointerIncreaseNumber))
+		{
+			return SamplePosition;
+		}
+		else
+		{
+			SamplePosition += PointerIncreaseNumber;
+		}
+	}
+	SamplePosition = 0;
+	return 0;
+}
+uint32_t reachPeak(float32_t *myData, uint32_t const PeakPosition,
+		uint32_t const PointerIncreaseNumber)
+{
+	uint32_t SamplePosition = PeakPosition;
+	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
+	{
+		if (*(myData + SamplePosition)
+				> *(myData + SamplePosition + PointerIncreaseNumber))
+		{
+			return SamplePosition;
+		}
+		else
+		{
+			SamplePosition += PointerIncreaseNumber;
+		}
+	}
+	SamplePosition = 0;
+	return 0;
+}
+void interPeak(float32_t* PositionsArray, float32_t* ValuesArray,
+		float32_t UserPosition, float32_t UserMaxValue, float32_t const step,
+		float32_t* ReturnPosition, float32_t* ReturnValue)
+{
+	float32_t realLocalPeak = UserPosition;
+	float32_t realLocalMax = UserMaxValue;
+	float32_t samplePosition = realLocalPeak - step;
+	float32_t interpolateValue = larange(PositionsArray, ValuesArray,
+			samplePosition);
+	float32_t PointerDirection = 0;
+	if (interpolateValue > UserMaxValue)
+	{
+		PointerDirection = -1;
+		realLocalPeak = samplePosition;
+		realLocalMax = interpolateValue;
+	}
+	else
+	{
+		PointerDirection = 1;
+	}
+	int flag = 1;
+	while (flag)
+	{
+		samplePosition = realLocalPeak + step * PointerDirection;
+		interpolateValue = larange(PositionsArray, ValuesArray, samplePosition);
+		if (interpolateValue >= realLocalMax)
+		{
+			realLocalMax = interpolateValue;
+			realLocalPeak = samplePosition;
+		}
+		else
+		{
+			*ReturnPosition = realLocalPeak;
+			*ReturnValue = realLocalMax;
+			flag = 0;
+		}
+	}
+}
+float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray,
+		float32_t interpolatePoint)
+{
+	float32_t result = 0;
+	int i, j;
+	float32_t temp;
 
-  ui32Status = ADCIntStatus(ADC1_BASE, ADC_SEQUENCE_TYPE, true);
-  ADCIntClear(ADC1_BASE, ui32Status);
+	for (j = 0; j < 3; j++)
+	{
+		temp = 1;
+		for (i = 0; i < 3; i++)
+		{
+			if (i != j)
+				temp = (interpolatePoint - (*(PositionsArray + i))) * temp
+						/ ((*(PositionsArray + j)) - (*(PositionsArray + i)));
+		}
+		result = result + (*(ValuesArray + j) * temp);
+	}
 
-  ui32Mode = uDMAChannelModeGet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT);
-  if (ui32Mode == UDMA_MODE_STOP)
-  {
-    TimerDisable(ADC_TIMER, TIMER_A);
-    // Setup for a future request
-    uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-        (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC1Result,
-        NUMBER_OF_SAMPLE);
-    uDMAChannelEnable(ADC1_DMA_CHANNEL);
-
-    countAdcDMAsStopped++;
-    if (countAdcDMAsStopped == 2)
-      enableMOTOR();
-  }
+	return result;
+}
+inline void startSamplingMicSignals()
+{
+	disableMOTOR();
+	countAdcDMAsStopped = 0;
+	ROM_SysCtlDelay(90000);
+	TimerEnable(ADC_TIMER, TIMER_A);
 }
 
-void
-uDMAErrorHandler(void)
+void ADC0IntHandler(void)
 {
-  uint32_t ui32Status;
+	uint32_t ui32Status;
+	uint32_t ui32Mode;
 
-  ui32Status = uDMAErrorStatusGet();
+	ui32Status = ADCIntStatus(ADC0_BASE, ADC_SEQUENCE_TYPE, true);
+	ADCIntClear(ADC0_BASE, ui32Status);
 
-  if (ui32Status)
-  {
-    uDMAErrorStatusClear();
-    g_ui32uDMAErrCount++;
-  }
+	ui32Mode = uDMAChannelModeGet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT);
+	if (ui32Mode == UDMA_MODE_STOP)
+	{
+		TimerDisable(ADC_TIMER, TIMER_A);
+		// Setup for a future request
+		uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
+				UDMA_MODE_BASIC, (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS),
+				g_ui16ADC0Result,
+				NUMBER_OF_SAMPLE);
+		uDMAChannelEnable(ADC0_DMA_CHANNEL);
+
+		countAdcDMAsStopped++;
+		if (countAdcDMAsStopped == 2)
+			enableMOTOR();
+	}
+}
+
+void ADC1IntHandler(void)
+{
+	uint32_t ui32Status;
+	uint32_t ui32Mode;
+
+	ui32Status = ADCIntStatus(ADC1_BASE, ADC_SEQUENCE_TYPE, true);
+	ADCIntClear(ADC1_BASE, ui32Status);
+
+	ui32Mode = uDMAChannelModeGet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT);
+	if (ui32Mode == UDMA_MODE_STOP)
+	{
+		TimerDisable(ADC_TIMER, TIMER_A);
+		// Setup for a future request
+		uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
+				UDMA_MODE_BASIC, (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS),
+				g_ui16ADC1Result,
+				NUMBER_OF_SAMPLE);
+		uDMAChannelEnable(ADC1_DMA_CHANNEL);
+
+		countAdcDMAsStopped++;
+		if (countAdcDMAsStopped == 2)
+			enableMOTOR();
+	}
+}
+
+void uDMAErrorHandler(void)
+{
+	uint32_t ui32Status;
+
+	ui32Status = uDMAErrorStatusGet();
+
+	if (ui32Status)
+	{
+		uDMAErrorStatusClear();
+		g_ui32uDMAErrCount++;
+	}
 }
 //-----------------------------------Distance Sensing functions
 
 //----------------Battery measurement functions-------------------
-inline void
-initBatteryChannel()
+inline void initBatteryChannel()
 {
-  SysCtlPeripheralEnable(BATTERY_PORT_CLOCK);
-  SysCtlDelay(2);
-  GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
+	SysCtlPeripheralEnable(BATTERY_PORT_CLOCK);
+	SysCtlDelay(2);
+	GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
 
-  //=====================ADC configure=====================
-  ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
-  ADC_TRIGGER_PROCESSOR, BATTERY_MEASURENMENT_PRIORITY);
-  ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
-  BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-  ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-  ADCIntClear(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-  //==========================================ADC configure
+	//=====================ADC configure=====================
+	ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
+	ADC_TRIGGER_PROCESSOR, BATTERY_MEASURENMENT_PRIORITY);
+	ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
+	BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
+	ADCIntClear(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
+	//==========================================ADC configure
 
-  //=====================uDMA configure=====================
-  SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-  uDMAEnable();
-  uDMAControlBaseSet(ui8ControlTable);
+	//=====================uDMA configure=====================
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+	uDMAEnable();
+	uDMAControlBaseSet(ui8ControlTable);
 
-  uDMAChannelAssign(DMA_BATT_CHANNEL);
-  uDMAChannelAttributeDisable(BATT_DMA_CHANNEL,
-  UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-  uDMAChannelControlSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
-  UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_NONE | UDMA_ARB_1);
-  uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-      (void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
-      &g_ui16BatteryVoltage, 1);
+	uDMAChannelAssign(DMA_BATT_CHANNEL);
+	uDMAChannelAttributeDisable(BATT_DMA_CHANNEL,
+	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
+	uDMAChannelControlSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
+	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_NONE | UDMA_ARB_1);
+	uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+			(void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
+			&g_ui16BatteryVoltage, 1);
 
-  uDMAChannelEnable(BATT_DMA_CHANNEL);
-  //==========================================uDMA configure
+	uDMAChannelEnable(BATT_DMA_CHANNEL);
+	//==========================================uDMA configure
 
-  // Interrupts Configure
-  IntEnable(ADC_BATT_INT);
-  IntPrioritySet(ADC_BATT_INT,0x00);
-  IntEnable(INT_UDMAERR);
+	// Interrupts Configure
+	IntEnable(ADC_BATT_INT);
+	IntPrioritySet(ADC_BATT_INT, 0x00);
+	IntEnable(INT_UDMAERR);
 }
 
-inline void
-startSamplingBatteryVoltage()
+inline void startSamplingBatteryVoltage()
 {
-  disableMOTOR();
-  ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
+	disableMOTOR();
+	ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
 
-void
-BatterySequenceIntHandler(void)
+void BatterySequenceIntHandler(void)
 {
-  uint32_t ui32Status;
-  uint32_t ui32Mode;
+	uint32_t ui32Status;
+	uint32_t ui32Mode;
 
-  ui32Status = ADCIntStatus(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, true);
-  ADCIntClear(ADC_BATT_BASE, ui32Status);
+	ui32Status = ADCIntStatus(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, true);
+	ADCIntClear(ADC_BATT_BASE, ui32Status);
 
-  ui32Mode = uDMAChannelModeGet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT);
-  if (ui32Mode == UDMA_MODE_STOP)
-  {
-    // Setup for a future request
-    uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-        (void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
-        &g_ui16BatteryVoltage, 1);
-    uDMAChannelEnable(BATT_DMA_CHANNEL);
-    sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
-    enableMOTOR();
-  }
+	ui32Mode = uDMAChannelModeGet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT);
+	if (ui32Mode == UDMA_MODE_STOP)
+	{
+		// Setup for a future request
+		uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
+				UDMA_MODE_BASIC,
+				(void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
+				&g_ui16BatteryVoltage, 1);
+		uDMAChannelEnable(BATT_DMA_CHANNEL);
+		sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
+		enableMOTOR();
+	}
 }
 //-----------------------------------Battery measurement functions
 
 //----------------Speaker functions-------------------
-inline void
-initSpeaker()
+inline void initSpeaker()
 {
-  SysCtlPWMClockSet(PWM_CLOCK_SELECT);
-  SysCtlDelay(2);
-  SysCtlPeripheralEnable(SPEAKER_PWM_CLOCK_BASE);
+	SysCtlPWMClockSet(PWM_CLOCK_SELECT);
+	SysCtlDelay(2);
+	SysCtlPeripheralEnable(SPEAKER_PWM_CLOCK_BASE);
 
 //  SysCtlPeripheralEnable(SPEAKER_PORT_CLOCK);
-  SysCtlDelay(2);
+	SysCtlDelay(2);
 
-  if ((SPEAKER_PORT_BASE == GPIO_PORTF_BASE) && (SPEAKER_PIN == GPIO_PIN_0))
-  {
-    // unlock the GPIO commit control register to modify PF0 configuration because it may be configured to be a NMI input.
-    HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
-    HWREG(GPIO_PORTF_BASE + GPIO_O_CR) |= 0x01;
-    HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = 0;
-  }
+	if ((SPEAKER_PORT_BASE == GPIO_PORTF_BASE) && (SPEAKER_PIN == GPIO_PIN_0))
+	{
+		// unlock the GPIO commit control register to modify PF0 configuration because it may be configured to be a NMI input.
+		HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+		HWREG(GPIO_PORTF_BASE + GPIO_O_CR) |= 0x01;
+		HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = 0;
+	}
 
-  uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
-  uint32_t pwmPeriod = (pwmClock / SPEAKER_PWM_FREQUENCY);
+	uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
+	uint32_t pwmPeriod = (pwmClock / SPEAKER_PWM_FREQUENCY);
 
-  GPIOPinConfigure(SPEAKER_PWM_CONFIG);
-  GPIODirModeSet(SPEAKER_PORT_BASE, SPEAKER_PIN, GPIO_DIR_MODE_HW);
-  GPIOPadConfigSet(SPEAKER_PORT_BASE, SPEAKER_PIN, GPIO_STRENGTH_8MA,
-  GPIO_PIN_TYPE_STD);
+	GPIOPinConfigure(SPEAKER_PWM_CONFIG);
+	GPIODirModeSet(SPEAKER_PORT_BASE, SPEAKER_PIN, GPIO_DIR_MODE_HW);
+	GPIOPadConfigSet(SPEAKER_PORT_BASE, SPEAKER_PIN, GPIO_STRENGTH_8MA,
+	GPIO_PIN_TYPE_STD);
 
-  PWMGenConfigure(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, PWM_GEN_MODE_DOWN);
-  PWMGenPeriodSet(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, pwmPeriod);
-  PWMPulseWidthSet(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT, pwmPeriod / 2);
+	PWMGenConfigure(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, PWM_GEN_MODE_DOWN);
+	PWMGenPeriodSet(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, pwmPeriod);
+	PWMPulseWidthSet(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT, pwmPeriod / 2);
 
-  SysCtlPeripheralEnable(SPEAKER_TIMER_CLOCK);
-  TimerDisable(SPEAKER_TIMER_BASE, TIMER_A);
-  TimerConfigure(SPEAKER_TIMER_BASE, TIMER_CFG_ONE_SHOT);
-  TimerLoadSet(SPEAKER_TIMER_BASE, TIMER_A,
-      (SysCtlClockGet() / SPEAKER_TIMER_FREQUENCY));
-  IntMasterEnable();
-  TimerIntEnable(SPEAKER_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-  IntEnable(SPEAKER_INT);
+	SysCtlPeripheralEnable(SPEAKER_TIMER_CLOCK);
+	TimerDisable(SPEAKER_TIMER_BASE, TIMER_A);
+	TimerConfigure(SPEAKER_TIMER_BASE, TIMER_CFG_ONE_SHOT);
+	TimerLoadSet(SPEAKER_TIMER_BASE, TIMER_A,
+			(SysCtlClockGet() / SPEAKER_TIMER_FREQUENCY));
+	IntMasterEnable();
+	TimerIntEnable(SPEAKER_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	IntEnable(SPEAKER_INT);
 }
 
-void
-startSpeaker()
+void startSpeaker()
 {
-  PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, true);
-  PWMGenEnable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
-  TimerEnable(SPEAKER_TIMER_BASE, TIMER_A);
+	PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, true);
+	PWMGenEnable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
+	TimerEnable(SPEAKER_TIMER_BASE, TIMER_A);
 }
 
-void
-SpeakerTimerIntHandler(void)
+void SpeakerTimerIntHandler(void)
 {
-  TimerIntClear(SPEAKER_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-  PWMGenDisable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
-  PWMSyncTimeBase(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN_BIT);
-  PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, false);
+	TimerIntClear(SPEAKER_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	PWMGenDisable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
+	PWMSyncTimeBase(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN_BIT);
+	PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, false);
 }
 //-----------------------------------Speaker functions
 
 //----------------------RF24 Functions------------------------
 extern uint8_t RF24_RX_buffer[32];
 
-extern uint8_t TxAddrControlBoard[3];
-extern uint8_t RxAddrControlBoard[3];
+#define RF24_CONTOLBOARD_ADDR_BYTE2		0xC1
+#define RF24_CONTOLBOARD_ADDR_BYTE1		0xAC
+#define RF24_CONTOLBOARD_ADDR_BYTE0		0x02
 
-inline void
-initRfModule()
+inline void initRfModule()
 {
-  RF24_InitTypeDef initRf24;
-  initRf24.AddressWidth = RF24_ADRESS_WIDTH_3;
-  initRf24.Channel = RF24_CHANNEL_0;
-  initRf24.CrcBytes = RF24_CRC_2BYTES;
-  initRf24.CrcState = RF24_CRC_EN;
-  initRf24.RetransmitCount = RF24_RETRANS_COUNT15;
-  initRf24.RetransmitDelay = RF24_RETRANS_DELAY_4000u;
-  initRf24.Speed = RF24_SPEED_1MBPS;
-  initRf24.Power = RF24_POWER_0DBM;
-  initRf24.Features = RF24_FEATURE_EN_DYNAMIC_PAYLOAD
-      | RF24_FEATURE_EN_NO_ACK_COMMAND;
-  initRf24.InterruptEnable = true;
-  initRf24.LNAGainEnable = true;
-  RF24_init(&initRf24);
+	RF24_InitTypeDef initRf24;
+	initRf24.AddressWidth = RF24_ADRESS_WIDTH_3;
+	initRf24.Channel = RF24_CHANNEL_0;
+	initRf24.CrcBytes = RF24_CRC_2BYTES;
+	initRf24.CrcState = RF24_CRC_EN;
+	initRf24.RetransmitCount = RF24_RETRANS_COUNT15;
+	initRf24.RetransmitDelay = RF24_RETRANS_DELAY_4000u;
+	initRf24.Speed = RF24_SPEED_1MBPS;
+	initRf24.Power = RF24_POWER_0DBM;
+	initRf24.Features = RF24_FEATURE_EN_DYNAMIC_PAYLOAD
+			| RF24_FEATURE_EN_NO_ACK_COMMAND;
+	initRf24.InterruptEnable = true;
+	initRf24.LNAGainEnable = true;
+	RF24_init(&initRf24);
 
-  // Set payload pipe#0 dynamic
-  RF24_PIPE_setPacketSize(RF24_PIPE0, RF24_PACKET_SIZE_DYNAMIC);
+	// Set payload 4 pipes dynamic
+	RF24_PIPE_setPacketSize(RF24_PIPE0, RF24_PACKET_SIZE_DYNAMIC);
+	RF24_PIPE_setPacketSize(RF24_PIPE1, RF24_PACKET_SIZE_DYNAMIC);
+	RF24_PIPE_setPacketSize(RF24_PIPE2, RF24_PACKET_SIZE_DYNAMIC);
+	RF24_PIPE_setPacketSize(RF24_PIPE3, RF24_PACKET_SIZE_DYNAMIC);
 
-  // Open pipe#0 with Enhanced ShockBurst enabled for receiving Auto-ACKs
-  RF24_PIPE_open(RF24_PIPE0, true);
+	// Open 4 pipes with Enhanced ShockBurst enabled for receiving Auto-ACKs
+	RF24_PIPE_open(RF24_PIPE0, true); // Reserved
+	RF24_PIPE_open(RF24_PIPE1, true); // Global Boardcast (RX command form ControlBoard)
+	RF24_PIPE_open(RF24_PIPE2, true); // Local Boardcast (RX message form another robots)
 
-  TxAddrControlBoard[0] = 0xDE;
-  TxAddrControlBoard[1] = 0xAD;
-  TxAddrControlBoard[2] = 0xBE;
+	uint8_t addr[3];
 
-  RxAddrControlBoard[0] = 0x0E;
-  RxAddrControlBoard[1] = 0xAC;
-  RxAddrControlBoard[2] = 0xC1;
+	addr[2] = RF24_GLOBAL_BOARDCAST_BYTE2;
+	addr[1] = RF24_GLOBAL_BOARDCAST_BYTE1;
+	addr[0] = RF24_GLOBAL_BOARDCAST_BYTE0;
+	RF24_RX_setAddress(RF24_PIPE1, addr);
 
-  RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
-  RF24_TX_setAddress(RxAddrControlBoard);
+	addr[2] = RF24_LOCAL_BOARDCAST_BYTE2;
+	addr[1] = RF24_LOCAL_BOARDCAST_BYTE1;
+	addr[0] = RF24_LOCAL_BOARDCAST_BYTE0;
+	RF24_RX_setAddress(RF24_PIPE2, addr);
 
-  RF24_RX_activate();
+	if (!((((g_ui32RobotID >> 16) & 0xFF) != RF24_LOCAL_BOARDCAST_BYTE2) || (((g_ui32RobotID >> 8) & 0xFF) != RF24_LOCAL_BOARDCAST_BYTE1)))
+	{
+		addr[2] = RF24_LOCAL_BOARDCAST_BYTE2;
+		addr[1] = RF24_LOCAL_BOARDCAST_BYTE1;
+		addr[0] = (uint8_t)(g_ui32RobotID & 0xFF);
+		RF24_RX_setAddress(RF24_PIPE3, addr);
+
+		RF24_PIPE_open(RF24_PIPE3, true); // Robot ID
+	}
+
+	addr[2] = RF24_CONTOLBOARD_ADDR_BYTE2;
+	addr[1] = RF24_CONTOLBOARD_ADDR_BYTE1;
+	addr[0] = RF24_CONTOLBOARD_ADDR_BYTE0;
+	RF24_TX_setAddress(addr);
+	RF24_RX_setAddress(RF24_PIPE0, addr);
+
+	RF24_RX_activate();
+
+//	uint32_t g_ui32AddressTX;
+//	uint32_t g_ui32AddressPipe[6];
+//
+//	clearRfCSN();
+//    SPI_sendAndGetData((RF24_REG_TX_ADDR & RF24_REG_MASK) | RF24_COMMAND_R_REGISTER);
+//	g_ui32AddressTX  = SPI_sendAndGetData(RF24_COMMAND_NOP) & 0x0000FF;
+//	g_ui32AddressTX |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 8;
+//	g_ui32AddressTX |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 16;
+//	setRfCSN();
+//
+//	clearRfCSN();
+//    SPI_sendAndGetData((RF24_REG_RX_ADDR_P0 & RF24_REG_MASK) | RF24_COMMAND_R_REGISTER);
+//	g_ui32AddressPipe[0]  = SPI_sendAndGetData(RF24_COMMAND_NOP) & 0x0000FF;
+//	g_ui32AddressPipe[0] |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 8;
+//	g_ui32AddressPipe[0] |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 16;
+//	setRfCSN();
+//
+//	clearRfCSN();
+//    SPI_sendAndGetData((RF24_REG_RX_ADDR_P1 & RF24_REG_MASK) | RF24_COMMAND_R_REGISTER);
+//	g_ui32AddressPipe[1]  = SPI_sendAndGetData(RF24_COMMAND_NOP) & 0x0000FF;
+//	g_ui32AddressPipe[1] |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 8;
+//	g_ui32AddressPipe[1] |= SPI_sendAndGetData(RF24_COMMAND_NOP) << 16;
+//	setRfCSN();
+//
+//	g_ui32AddressPipe[2] = (g_ui32AddressPipe[1] & 0xFFFF00) | RF24_readRegister(RF24_REG_RX_ADDR_P2);
+//
+//	g_ui32AddressPipe[3] = (g_ui32AddressPipe[1] & 0xFFFF00) | RF24_readRegister(RF24_REG_RX_ADDR_P3);
+//
+//	g_ui32AddressPipe[4] = (g_ui32AddressPipe[1] & 0xFFFF00) | RF24_readRegister(RF24_REG_RX_ADDR_P4);
+//
+//	g_ui32AddressPipe[5] = (g_ui32AddressPipe[1] & 0xFFFF00) | RF24_readRegister(RF24_REG_RX_ADDR_P5);
 }
 
-void
-sendDataToControlBoard(uint8_t * data)
+void sendDataToControlBoard(uint8_t * data)
 {
-  GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
+	GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
 
-  uint32_t length;
-  length = RF24_RX_buffer[1];
-  //length = length << 8;
-  length = (length << 8) + RF24_RX_buffer[2];
-  length = (length << 8) + RF24_RX_buffer[3];
-  length = (length << 8) + RF24_RX_buffer[4];
+	uint32_t length;
+	length = RF24_RX_buffer[1];
 
-  uint8_t buffer[32];
-  uint32_t pointer = 0;
-  uint32_t i;
+	length = (length << 8) + RF24_RX_buffer[2];
+	length = (length << 8) + RF24_RX_buffer[3];
+	length = (length << 8) + RF24_RX_buffer[4];
 
-  RF24_RX_setAddress(RF24_PIPE0, RxAddrControlBoard);
-  RF24_RX_flush();
-  RF24_clearIrqFlag(RF24_IRQ_RX);
-  RF24_TX_activate();
-  RF24_RETRANS_setCount(RF24_RETRANS_COUNT15);
-  RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_4000u);
-  while (1)
-  {
-    rfDelayLoop(DELAY_CYCLES_1MS5);
-    for (i = 0; (i < length) && (i < 32); i++)
-    {
-      buffer[i] = *(data + pointer);
-      pointer++;
-    }
-    RF24_TX_writePayloadAck(i, &buffer[0]);
-    RF24_TX_pulseTransmit();
+	uint8_t buffer[32];
+	uint32_t pointer = 0;
+	uint32_t i;
 
-    while (1)
-    {
-      if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
-      {
-        if (RF24_getIrqFlag(RF24_IRQ_TX))
-          break;
-        if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
-        {
-          RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
-          RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
-          RF24_RX_activate();
-          return;
-        }
-      }
-    }
-    RF24_clearIrqFlag(RF24_IRQ_TX);
+	uint8_t addr[3];
 
-    if (length > 32)
-      length -= 32;
-    else
-    {
-      RF24_RX_setAddress(RF24_PIPE0, TxAddrControlBoard);
-      RF24_RX_activate();
-      GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
-      return;
-    }
-  }
+	addr[2] = RF24_CONTOLBOARD_ADDR_BYTE2;
+	addr[1] = RF24_CONTOLBOARD_ADDR_BYTE1;
+	addr[0] = RF24_CONTOLBOARD_ADDR_BYTE0;
+	RF24_RX_setAddress(RF24_PIPE0, addr);
+	RF24_TX_setAddress(addr);
+
+	RF24_RX_flush();
+	RF24_clearIrqFlag(RF24_IRQ_RX);
+	RF24_TX_activate();
+	RF24_RETRANS_setCount(RF24_RETRANS_COUNT15);
+	RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_4000u);
+	while (1)
+	{
+		rfDelayLoop(DELAY_CYCLES_1MS5);
+		for (i = 0; (i < length) && (i < 32); i++)
+		{
+			buffer[i] = *(data + pointer);
+			pointer++;
+		}
+		RF24_TX_writePayloadAck(i, &buffer[0]);
+		RF24_TX_pulseTransmit();
+
+		while (1)
+		{
+			if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+			{
+				if (RF24_getIrqFlag(RF24_IRQ_TX))
+					break;
+				if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
+				{
+					RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
+					addr[0] = 0;
+					addr[1] = 0;
+					addr[2] = 0;
+					RF24_RX_setAddress(RF24_PIPE0, addr);
+					RF24_RX_activate();
+					return;
+				}
+			}
+		}
+		RF24_clearIrqFlag(RF24_IRQ_TX);
+
+		if (length > 32)
+			length -= 32;
+		else
+		{
+			addr[0] = 0;
+			addr[1] = 0;
+			addr[2] = 0;
+			RF24_RX_setAddress(RF24_PIPE0, addr);
+			RF24_RX_activate();
+			GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
+			return;
+		}
+	}
 }
 
-inline void
-testCarrierDetection()
+inline void testCarrierDetection()
 {
-  rfDelayLoop(DELAY_CYCLES_5MS);
-  while (RF24_RX_carrierDetection())
-  {
-    GPIOPinWrite(LED_PORT_BASE, LED_BLUE, LED_BLUE);
-    rfDelayLoop(DELAY_CYCLES_5MS * 25);
-    GPIOPinWrite(LED_PORT_BASE, LED_BLUE, 0);
-    rfDelayLoop(DELAY_CYCLES_5MS * 25);
-  }
+	rfDelayLoop(DELAY_CYCLES_5MS);
+	while (RF24_RX_carrierDetection())
+	{
+		GPIOPinWrite(LED_PORT_BASE, LED_BLUE, LED_BLUE);
+		rfDelayLoop(DELAY_CYCLES_5MS * 25);
+		GPIOPinWrite(LED_PORT_BASE, LED_BLUE, 0);
+		rfDelayLoop(DELAY_CYCLES_5MS * 25);
+	}
 }
 
-inline void
-testRfTransmission()
+inline void testRfTransmission()
 {
-  GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
+	GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_GREEN);
 
-  uint32_t length;
-  uint8_t dataLength;
-  length = RF24_RX_buffer[1];
-  length = length << 8;
-  length = (length << 8) | RF24_RX_buffer[2];
-  length = (length << 8) | RF24_RX_buffer[3];
-  length = (length << 8) | RF24_RX_buffer[4];
+	uint32_t length;
+	uint8_t dataLength;
+	length = RF24_RX_buffer[1];
+	length = length << 8;
+	length = (length << 8) | RF24_RX_buffer[2];
+	length = (length << 8) | RF24_RX_buffer[3];
+	length = (length << 8) | RF24_RX_buffer[4];
 
-  uint8_t value = 0;
-  uint32_t i;
+	uint8_t value = 0;
+	uint32_t i;
 
-  while (1)
-  {
-    RF24_clearIrqFlag(RF24_IRQ_RX);
+	while (1)
+	{
+		RF24_clearIrqFlag(RF24_IRQ_RX);
 
-    while (RF24_getIrqFlag(RF24_IRQ_RX) == 0)
-      ;
+		while (RF24_getIrqFlag(RF24_IRQ_RX) == 0)
+			;
 
-    dataLength = RF24_RX_getPayloadWidth();
-    RF24_RX_getPayloadData(dataLength, RF24_RX_buffer);
+		dataLength = RF24_RX_getPayloadWidth();
+		RF24_RX_getPayloadData(dataLength, RF24_RX_buffer);
 
-    for (i = 0; (i < length) && (i < 32); i++)
-    {
-      if (RF24_RX_buffer[i] != value)
-      {
-        GPIOPinWrite(LED_PORT_BASE, LED_RED, LED_RED);
-        return;
-      }
-      value++;
-    }
+		for (i = 0; (i < length) && (i < 32); i++)
+		{
+			if (RF24_RX_buffer[i] != value)
+			{
+				GPIOPinWrite(LED_PORT_BASE, LED_RED, LED_RED);
+				return;
+			}
+			value++;
+		}
 
-    if (length > 32)
-      length -= 32;
-    else
-    {
-      GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
-      return;
-    }
+		if (length > 32)
+			length -= 32;
+		else
+		{
+			GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
+			return;
+		}
 
-  }
+	}
 }
 
-inline void
-sendTestData()
+inline void sendTestData()
 {
-  uint32_t i;
-  uint16_t testData[NUMBER_OF_SAMPLE];
-  for (i = 0; i < NUMBER_OF_SAMPLE; i++)
-  {
-    testData[i] = i;
-  }
-  sendDataToControlBoard((uint8_t *) testData);
+	uint32_t i;
+	uint16_t testData[NUMBER_OF_SAMPLE];
+	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
+	{
+		testData[i] = i;
+	}
+	sendDataToControlBoard((uint8_t *) testData);
 }
 //----------------------------------------------RF24 Functions
 
 //----------------Low Power Mode functions-------------------
-CpuStateEnum CPUState = RUN_MODE;
+CpuStateEnum g_eCPUState = RUN_MODE;
 
-inline void
-initLowPowerMode()
+inline void initLowPowerMode()
 {
-  //
-  // Wake up condition form Sleep/Deep Sleep mode:
-  // Any interrupt events will force CPU back to Run Mode.
-  //
+	//
+	// Wake up condition form Sleep/Deep Sleep mode:
+	// Any interrupt events will force CPU back to Run Mode.
+	//
 
-  //==========================
-  // SLEEP MODE Configuration
-  //==========================
-  // In Sleep mode, the clock frequency of the active peripherals is unchanged.
+	//==========================
+	// SLEEP MODE Configuration
+	//==========================
+	// In Sleep mode, the clock frequency of the active peripherals is unchanged.
 
-  //
-  // Enable Peripherals in Sleep Mode.
-  //
-  SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
-  SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
-  SysCtlPeripheralSleepEnable(MOTOR_PWM_CLOCK);	// keep PWM operate in Sleep Mode for Motor control.
-  SysCtlPeripheralSleepEnable(MOTOR_SLEEP_PIN_CLOCK); //TODO: use PWM out instead of GPIO
-  SysCtlPeripheralSleepEnable(RIGHT_MOTOR_PORT_CLOCK); //TODO: use PWM out instead of GPIO
+	//
+	// Enable Peripherals in Sleep Mode.
+	//
+	SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+	SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
+	SysCtlPeripheralSleepEnable(MOTOR_PWM_CLOCK);// keep PWM operate in Sleep Mode for Motor control.
+	SysCtlPeripheralSleepEnable(MOTOR_SLEEP_PIN_CLOCK); //TODO: use PWM out instead of GPIO
+	SysCtlPeripheralSleepEnable(RIGHT_MOTOR_PORT_CLOCK); //TODO: use PWM out instead of GPIO
 
-  //
-  // Set LDO to 1.15V in Sleep.
-  // Available options: 0.9V, 0.95V, 1V, 1.05V, 1.1V, 1.15V, 1.2V
-  //
-  SysCtlLDOSleepSet(SYSCTL_LDO_1_15V);
+	//
+	// Set LDO to 1.15V in Sleep.
+	// Available options: 0.9V, 0.95V, 1V, 1.05V, 1.1V, 1.15V, 1.2V
+	//
+	SysCtlLDOSleepSet(SYSCTL_LDO_1_15V);
 
-  //
-  // Set SRAM to Standby when in Sleep Mode.
-  //
-  SysCtlSleepPowerSet(SYSCTL_SRAM_STANDBY);
+	//
+	// Set SRAM to Standby when in Sleep Mode.
+	//
+	SysCtlSleepPowerSet(SYSCTL_SRAM_STANDBY);
 
-  //==============================
-  // DEEP SLEEP MODE Configuration
-  //==============================
-  //
-  // Set the clocking for Deep-Sleep.
-  // Power down the PIOSC & MOSC to save power and run from the
-  // internal 30kHz osc.
-  //
-  SysCtlDeepSleepClockConfigSet(1, (SYSCTL_DSLP_OSC_INT30 |
-  SYSCTL_DSLP_PIOSC_PD | SYSCTL_DSLP_MOSC_PD));
+	//==============================
+	// DEEP SLEEP MODE Configuration
+	//==============================
+	//
+	// Set the clocking for Deep-Sleep.
+	// Power down the PIOSC & MOSC to save power and run from the
+	// internal 30kHz osc.
+	//
+	SysCtlDeepSleepClockConfigSet(1, (SYSCTL_DSLP_OSC_INT30 |
+	SYSCTL_DSLP_PIOSC_PD | SYSCTL_DSLP_MOSC_PD));
 
-  //
-  // Enable Peripherals in Deep-Sleep Mode.
-  //
-  SysCtlPeripheralDeepSleepEnable(RF24_INT_PORT_CLOCK);	// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
-  SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
+	//
+	// Enable Peripherals in Deep-Sleep Mode.
+	//
+	SysCtlPeripheralDeepSleepEnable(RF24_INT_PORT_CLOCK);// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+	SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
 
-  //
-  // Set LDO to 0.9V in Deep-Sleep.
-  // Available options: 0.9V, 0.95V, 1V, 1.05V, 1.1V, 1.15V, 1.2V
-  //
-  SysCtlLDODeepSleepSet(SYSCTL_LDO_0_90V);
+	//
+	// Set LDO to 0.9V in Deep-Sleep.
+	// Available options: 0.9V, 0.95V, 1V, 1.05V, 1.1V, 1.15V, 1.2V
+	//
+	SysCtlLDODeepSleepSet(SYSCTL_LDO_0_90V);
 
-  //
-  // Set Flash & SRAM to Low Power in Deep-Sleep Mode.
-  //
-  SysCtlDeepSleepPowerSet(SYSCTL_FLASH_LOW_POWER | SYSCTL_SRAM_LOW_POWER);
+	//
+	// Set Flash & SRAM to Low Power in Deep-Sleep Mode.
+	//
+	SysCtlDeepSleepPowerSet(SYSCTL_FLASH_LOW_POWER | SYSCTL_SRAM_LOW_POWER);
 
-  //==============================================
-  // IMPORTANCE: Enable Auto Clock Gating Control.
-  //==============================================
-  SysCtlPeripheralClockGating(true);
+	//==============================================
+	// IMPORTANCE: Enable Auto Clock Gating Control.
+	//==============================================
+	SysCtlPeripheralClockGating(true);
 
-  IntPrioritySet(INT_I2C1_TM4C123, 0x20);
-  IntPrioritySet(RF24_INT, 0x10);
-  IntEnable(INT_I2C1_TM4C123);
+	IntPrioritySet(INT_I2C1_TM4C123, 0x20);
 
-  CPUState = RUN_MODE;
+	IntEnable(INT_I2C1_TM4C123);
+
+	g_eCPUState = RUN_MODE;
 }
 
-inline void
-gotoSleepMode()
+inline void gotoSleepMode()
 {
-  //
-  // NOTE: Switch clock to PIOSC and power down the MOSC before going into Sleep.
-  // This will be the Run mode's clock configuration after wake up form Sleep mode.
-  // So that reconfigure system clock should be considered if required.
-  //
-  SysCtlClockSet(SYSCTL_OSC_INT | SYSCTL_USE_OSC | SYSCTL_MAIN_OSC_DIS);
+	//
+	// NOTE: Switch clock to PIOSC and power down the MOSC before going into Sleep.
+	// This will be the Run mode's clock configuration after wake up form Sleep mode.
+	// So that reconfigure system clock should be considered if required.
+	//
+	SysCtlClockSet(SYSCTL_OSC_INT | SYSCTL_USE_OSC | SYSCTL_MAIN_OSC_DIS);
 
-  turnOffLED(LED_ALL);
-  turnOnLED(LED_GREEN);
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_GREEN);
 
-  SysCtlSleep();
+	SysCtlSleep();
 
-  turnOffLED(LED_GREEN);
+	turnOffLED(LED_GREEN);
 }
 
-inline void
-gotoDeepSleepMode()
+inline void gotoDeepSleepMode()
 {
-  turnOffLED(LED_ALL);
+	turnOffLED(LED_ALL);
 
-  SysCtlDeepSleep();
+	SysCtlDeepSleep();
 }
 
-inline void
-wakeUpFormLPM()
+inline void wakeUpFormLPM()
 {
-  SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-  CPUState = RUN_MODE;
+	SysCtlClockSet(
+			SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN
+					| SYSCTL_XTAL_16MHZ);
+	g_eCPUState = RUN_MODE;
 }
 
 //----------------------------------Low Power Mode Functions
+
+//----------------EEPROM functions-------------------
 extern uint32_t g_ui32EEPROMAdderss;
 
 void initEEPROM()
 {
-  SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
-  while(EEPROMInit() != EEPROM_INIT_OK);
-  EEPROMIntDisable(EEPROM_INT_PROGRAM);
-  g_ui32EEPROMAdderss = 0;
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+	while (EEPROMInit() != EEPROM_INIT_OK)
+		;
+	EEPROMIntDisable(EEPROM_INT_PROGRAM);
+	g_ui32EEPROMAdderss = 0;
 }
 
 void writeToEEPROM()
 {
-  uint32_t ui32WriteAddress;
-  uint32_t ui32WriteWord;
+	uint32_t ui32WriteAddress;
+	uint32_t ui32WriteWord;
 
-  ui32WriteAddress = RF24_RX_buffer[1] << 24;
-  ui32WriteAddress = RF24_RX_buffer[2] << 16;
-  ui32WriteAddress = RF24_RX_buffer[3] << 8;
-  ui32WriteAddress |= RF24_RX_buffer[4];
+	ui32WriteAddress = RF24_RX_buffer[1] << 24;
+	ui32WriteAddress = RF24_RX_buffer[2] << 16;
+	ui32WriteAddress = RF24_RX_buffer[3] << 8;
+	ui32WriteAddress |= RF24_RX_buffer[4];
 
-  ui32WriteAddress <<= 2;
+	ui32WriteAddress <<= 2;
 
-  ui32WriteWord = RF24_RX_buffer[5] << 24;
-  ui32WriteWord |= RF24_RX_buffer[6] << 16;
-  ui32WriteWord |= RF24_RX_buffer[7] << 8;
-  ui32WriteWord |= RF24_RX_buffer[8];
+	ui32WriteWord = RF24_RX_buffer[5] << 24;
+	ui32WriteWord |= RF24_RX_buffer[6] << 16;
+	ui32WriteWord |= RF24_RX_buffer[7] << 8;
+	ui32WriteWord |= RF24_RX_buffer[8];
 
-  EEPROMProgramNonBlocking(ui32WriteWord, ui32WriteAddress);
+	EEPROMProgramNonBlocking(ui32WriteWord, ui32WriteAddress);
 
-  if (EEPROMStatusGet() == 0)
-  {
-    EEPROMIntClear(EEPROM_INT_PROGRAM);
-  }
-  else
-  {
-    // EEPROM operation error occur...
-  }
+	if (EEPROMStatusGet() == 0)
+	{
+		EEPROMIntClear(EEPROM_INT_PROGRAM);
+	}
+	else
+	{
+		// EEPROM operation error occur...
+	}
 }
 
 void readFormEEPROM()
 {
-  uint8_t pui8ReadBuffer[4];
-  uint32_t pui32Read[1];
+	uint8_t pui8ReadBuffer[4];
+	uint32_t pui32Read[1];
 
-  EEPROMRead(pui32Read, g_ui32EEPROMAdderss, sizeof(pui32Read));
+	EEPROMRead(pui32Read, g_ui32EEPROMAdderss, sizeof(pui32Read));
 
-  pui8ReadBuffer[0] = *pui32Read;
-  pui8ReadBuffer[1] = (*pui32Read) >> 8;
-  pui8ReadBuffer[2] = (*pui32Read) >> 16;
-  pui8ReadBuffer[3] = (*pui32Read) >> 24;
+	pui8ReadBuffer[0] = *pui32Read;
+	pui8ReadBuffer[1] = (*pui32Read) >> 8;
+	pui8ReadBuffer[2] = (*pui32Read) >> 16;
+	pui8ReadBuffer[3] = (*pui32Read) >> 24;
 
-  sendDataToControlBoard(pui8ReadBuffer);
+	sendDataToControlBoard(pui8ReadBuffer);
 }
 
 void setAddressEEPROM()
 {
-  turnOnLED(LED_GREEN);
+	turnOnLED(LED_GREEN);
 
-  g_ui32EEPROMAdderss = RF24_RX_buffer[1] << 24;
-  g_ui32EEPROMAdderss = RF24_RX_buffer[2] << 16;
-  g_ui32EEPROMAdderss = RF24_RX_buffer[3] << 8;
-  g_ui32EEPROMAdderss |= RF24_RX_buffer[4];
-  g_ui32EEPROMAdderss <<= 2;
+	g_ui32EEPROMAdderss = RF24_RX_buffer[1] << 24;
+	g_ui32EEPROMAdderss = RF24_RX_buffer[2] << 16;
+	g_ui32EEPROMAdderss = RF24_RX_buffer[3] << 8;
+	g_ui32EEPROMAdderss |= RF24_RX_buffer[4];
+	g_ui32EEPROMAdderss <<= 2;
 
-  turnOffLED(LED_GREEN);
+	turnOffLED(LED_GREEN);
 }
+//-----------------------------------EEPROM functions
