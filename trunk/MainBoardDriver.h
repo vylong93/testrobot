@@ -1,6 +1,14 @@
 #ifndef MAIN_BOARD_DRIVERS_H
 #define MAIN_BOARD_DRIVERS_H
 
+#include "arm_math.h"
+
+//----------------Robot Init functions-------------------
+#define EEPROM_ADDR_ROBOT_ID			0x0040
+
+void initRobotParameters();
+//-----------------------------------Robot Int functions
+
 //-----------------------LED functions-------------------------
 #define LED_CLOCK_PORT          SYSCTL_PERIPH_GPIOF
 #define LED_PORT_BASE           GPIO_PORTF_BASE
@@ -88,11 +96,29 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 #define DMA_ADC1_CHANNEL       		UDMA_CH27_ADC1_3
 #define DISTANCE_SENSING_PRIORITY	0
 
+#define FILTER_ORDER                    34
+#define BLOCK_SIZE                      10
+#define START_SAMPLES_POSTITION         40
+#define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
+#define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 extern uint16_t g_ui16ADC0Result[NUMBER_OF_SAMPLE];
 extern uint16_t g_ui16ADC1Result[NUMBER_OF_SAMPLE];
 
 inline void initDistanceSensingModules(void);
 inline void startSamplingMicSignals();
+inline void initFilters(float32_t* FilterCoeffs);
+void filterADCsSignals();
+
+float32_t getDistances(float32_t *myData, float32_t *peakEnvelope, float32_t *maxEnvelope);
+void find3LocalPeaks(float32_t *myData, float32_t *LocalPeaksStoragePointer);
+uint32_t reachBottom(float32_t *myData, uint32_t const PeakPosition,
+                uint32_t const PointerIncreaseNumber);
+uint32_t reachPeak(float32_t *myData, uint32_t const PeakPosition,
+                uint32_t const PointerIncreaseNumber);
+void interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t UserPosition,
+                float32_t UserMaxValue, float32_t const step, float32_t* ReturnPosition,
+                float32_t* ReturnValue);
+float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t interpolatePoint);
 
 //----------------------Speaker Functions------------------------
 #define SPEAKER_PORT_BASE               GPIO_PORTF_BASE
@@ -182,7 +208,7 @@ typedef enum
   DEEP_SLEEP_MODE,
 } CpuStateEnum;
 
-extern CpuStateEnum  CPUState;	// Low Power Mode State
+extern CpuStateEnum  g_eCPUState;	// Low Power Mode State
 
 //-----------------------------------------------------------------------------
 //  void initLowPowerMode()
