@@ -57,15 +57,17 @@ static uint32_t pui32Stack[4096];
 // External declarations for the interrupt handlers used by the application.
 //
 //*****************************************************************************
-extern void SysTickHandler(void);
 extern void ADC0IntHandler(void);
 extern void ADC1IntHandler(void);
 extern void uDMAErrorHandler(void);
 extern void RF24_IntHandler(void);
-extern void I2C1_IntHandler(void);
+extern void LowPowerModeIntHandler(void);
 extern void SpeakerTimerIntHandler(void);
 extern void BatterySequenceIntHandler(void);
 extern void RandomGeneratorIntHandler(void);
+extern void RobotProcessIntHandler(void);
+extern void DelayTimerAIntHanler(void);
+extern void DelayTimerBIntHanler(void);
 
 //*****************************************************************************
 //
@@ -93,7 +95,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Debug monitor handler
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
-    SysTickHandler,                      // The SysTick handler
+    IntDefaultHandler,                      // The SysTick handler
     RF24_IntHandler,                      // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
     IntDefaultHandler,                      // GPIO Port C
@@ -131,7 +133,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // SSI1 Rx and Tx
     IntDefaultHandler,                      // Timer 3 subtimer A
     IntDefaultHandler,                      // Timer 3 subtimer B
-    I2C1_IntHandler,                      // I2C1 Master and Slave
+    LowPowerModeIntHandler,                      // I2C1 Master and Slave
     IntDefaultHandler,                      // Quadrature Encoder 1
     IntDefaultHandler,                      // CAN0
     IntDefaultHandler,                      // CAN1
@@ -162,7 +164,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    IntDefaultHandler,                      // I2C2 Master and Slave
+    RobotProcessIntHandler,                      // I2C2 Master and Slave
     IntDefaultHandler,                      // I2C3 Master and Slave
     IntDefaultHandler,                      // Timer 4 subtimer A
     IntDefaultHandler,                      // Timer 4 subtimer B
@@ -188,8 +190,8 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // Timer 5 subtimer A
     IntDefaultHandler,                      // Timer 5 subtimer B
-    IntDefaultHandler,                      // Wide Timer 0 subtimer A
-    IntDefaultHandler,                      // Wide Timer 0 subtimer B
+    DelayTimerAIntHanler,                      // Wide Timer 0 subtimer A
+    DelayTimerBIntHanler,                      // Wide Timer 0 subtimer B
     IntDefaultHandler,                      // Wide Timer 1 subtimer A
     IntDefaultHandler,                      // Wide Timer 1 subtimer B
     IntDefaultHandler,                      // Wide Timer 2 subtimer A
