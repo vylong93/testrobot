@@ -65,6 +65,7 @@ extern void RF24_IntHandler(void);
 extern void I2C1_IntHandler(void);
 extern void SpeakerTimerIntHandler(void);
 extern void BatterySequenceIntHandler(void);
+extern void RandomGeneratorIntHandler(void);
 
 //*****************************************************************************
 //
@@ -141,7 +142,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // PWM Generator 3
     IntDefaultHandler,                      // uDMA Software Transfer
     uDMAErrorHandler,                      // uDMA Error
-    IntDefaultHandler,                      // ADC1 Sequence 0
+    RandomGeneratorIntHandler,                      // ADC1 Sequence 0
     IntDefaultHandler,                      // ADC1 Sequence 1
     IntDefaultHandler,                      // ADC1 Sequence 2
     ADC1IntHandler,                      // ADC1 Sequence 3

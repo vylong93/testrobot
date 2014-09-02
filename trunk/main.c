@@ -61,6 +61,8 @@ volatile uint8_t ui8RightMotorDutyCycles;
 //*****************************************************************************
 uint16_t g_ui16ADC0Result[NUMBER_OF_SAMPLE];
 uint16_t g_ui16ADC1Result[NUMBER_OF_SAMPLE];
+uint8_t g_ui8RandomBuffer[8];
+uint8_t g_ui8RandomNumber;
 uint16_t g_ui16BatteryVoltage;
 
 uint32_t g_ui32EEPROMAdderss;
@@ -121,16 +123,18 @@ int main(void)
 
 	initRfModule();
 
-	initDistanceSensingModules();
+	initPeripheralsForAnalogFunction();
+	//initBatteryChannel();
+	//initDistanceSensingModules();
 
 	initSpeaker();
-
-	initBatteryChannel();
 
 	initLowPowerMode();
 
 	while (1)
 	{
+		generateRandomByte();
+		while(g_ui8RandomNumber == 0);
 		rfDelayLoop(DELAY_CYCLES_5MS * 25);
 		turnOnLED(LED_RED);
 		rfDelayLoop(DELAY_CYCLES_5MS * 25);
