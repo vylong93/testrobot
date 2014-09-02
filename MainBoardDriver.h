@@ -3,11 +3,64 @@
 
 #include "arm_math.h"
 
+#define DELAY_START_SPEAKER	100000
+#define DELAY_SAMPING_MIC	 90000
+
+/*
+ * Priority level: 0x00 = 0x20 :: 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
+ */
+
+//#define PRIORITY_RF24_IRQ			0x00 // CANNOT change this priority in here!
+#define PRIORITY_DMA_BATT			0x20
+#define PRIORITY_DMA_RANDOM_GEN		0x20
+#define PRIORITY_DMA_MIC1			0x40
+#define PRIORITY_DMA_MIC2			0x40
+#define PRIORITY_DELAY_TIMERA		0x60
+#define PRIORITY_DELAY_TIMERB		0x60
+#define PRIORITY_ROBOT_PROCESS		0x80
+#define PRIORITY_LOW_POWER_MODE		0xE0
+
+#define INT_SW_TRIGGER_LPM			INT_I2C1
+#define INT_SW_TRIGGER_PROCESS		INT_I2C2
+
 //----------------Robot Init functions-------------------
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 
-void initRobotParameters();
+void initRobotProcess();
 //-----------------------------------Robot Int functions
+
+
+//----------------Math functions-------------------
+#define MATH_PI 				3.141592654
+#define MATH_PI_DIV_2			1.570796327
+#define MATH_PI_DIV_2_MUL_32768	51471.85404
+#define _180_DIV_PI				57.29577951
+#define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
+#define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
+
+int32_t calSin(float x);
+int32_t calCos(float x);
+int32_t calASin(float x);
+int32_t calACos(float x);
+//-----------------------------------Math functions
+
+
+//----------------Delay Timer functions-------------------
+#define DELAY_TIMER_CLOCK	SYSCTL_PERIPH_WTIMER0
+#define DELAY_TIMER_BASE	WTIMER0_BASE
+#define INT_DELAY_TIMERA	INT_WTIMER0A
+#define INT_DELAY_TIMERB	INT_WTIMER0B
+
+extern volatile bool g_bDelayTimerAFlag;
+extern volatile bool g_bDelayTimerBFlag;
+
+void initTimerDelay();
+void delayTimerA(uint32_t period, bool isSynchronous);
+void delayTimerB(uint32_t period, bool isSynchronous);
+void reloadDelayTimerA();
+void reloadDelayTimerB();
+//-----------------------------------Delay Timer functions
+
 
 //-----------------------LED functions-------------------------
 #define LED_CLOCK_PORT          SYSCTL_PERIPH_GPIOF
@@ -25,10 +78,34 @@ inline void toggleLED(uint8_t LEDpin);
 void signalUnhandleError();
 //------------------------------------------------LED functions
 
+
 //--------------------------PWM Defs---------------------------
 #define PWM_CLOCK_SELECT        SYSCTL_PWMDIV_16
 #define PWM_CLOCK_PRESCALE      16 // Must match with PWM_CLOCK_SELECT
 //-----------------------------------------------------PWM Defs
+
+
+//----------------------Speaker Functions------------------------
+#define SPEAKER_PORT_BASE               GPIO_PORTF_BASE
+#define SPEAKER_PORT_CLOCK              SYSCTL_PERIPH_GPIOF
+#define SPEAKER_PIN                     GPIO_PIN_0
+#define SPEAKER_PWM_CLOCK_BASE          SYSCTL_PERIPH_PWM1
+#define SPEAKER_PWM_FREQUENCY           8000                    // tan so phat
+#define SPEAKER_PWM_BASE                PWM1_BASE
+#define SPEAKER_PWM_CONFIG              GPIO_PF0_M1PWM4
+#define SPEAKER_PWM_GEN                 PWM_GEN_2
+#define SPEAKER_PWM_GEN_BIT				PWM_GEN_2_BIT
+#define SPEAKER_PWM_OUT                 PWM_OUT_4
+#define SPEAKER_PWM_OUT_BIT             PWM_OUT_4_BIT
+#define SPEAKER_TIMER_CLOCK             SYSCTL_PERIPH_TIMER1
+#define SPEAKER_TIMER_BASE              TIMER1_BASE
+#define SPEAKER_TIMER_FREQUENCY         4000                   // thoi gian phat
+#define SPEAKER_INT                     INT_TIMER1A
+
+inline void initSpeaker();
+inline void startSpeaker();
+//-----------------------------------------------Speaker functions
+
 
 //-----------------------Motor functions-----------------------
 #define MOTOR_PWM_CLOCK         SYSCTL_PERIPH_PWM0
@@ -71,6 +148,7 @@ inline void setMotorDirection(uint32_t motor, uint8_t direction);
 inline void testAllMotorModes();
 inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 //----------------------------------------------Motor functions
+
 
 //--------------------------------Ananlog functions-----------------------------------
 #define NUMBER_OF_SAMPLE    300
@@ -118,21 +196,17 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 #define RANDOM_GEN_INT                	INT_ADC1SS0
 
 extern uint16_t g_ui16BatteryVoltage;
-extern uint16_t g_ui16ADC0Result[];
-extern uint16_t g_ui16ADC1Result[];
-extern uint8_t g_ui8RandomBuffer[];
+extern uint16_t g_pui16ADC0Result[];
+extern uint16_t g_pui16ADC1Result[];
+extern uint8_t g_pui8RandomBuffer[];
 extern uint8_t g_ui8RandomNumber;
 
 inline void initPeripheralsForAnalogFunction(void);
 inline void startSamplingMicSignals();
 inline void startSamplingBatteryVoltage();
 inline void generateRandomByte();
-
-//inline void initDistanceSensingModules(void);
-//inline void groundAdjacentADCPins();
-//inline void initBatteryChannel();
-
 //-------------------------------------------------------------------Ananlog functions
+
 
 //----------------------------------------------TDOA functions----------------------------------------------
 #define FILTER_ORDER                    34
@@ -142,7 +216,7 @@ inline void generateRandomByte();
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 
 inline void initFilters(float32_t* FilterCoeffs);
-void filterADCsSignals();
+void runAlgorithmTDOA();
 
 float32_t getDistances(float32_t *myData, float32_t *peakEnvelope, float32_t *maxEnvelope);
 void find3LocalPeaks(float32_t *myData, float32_t *LocalPeaksStoragePointer);
@@ -156,26 +230,6 @@ void interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t User
 float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t interpolatePoint);
 //--------------------------------------------------------------------------------------------TDOA functions
 
-//----------------------Speaker Functions------------------------
-#define SPEAKER_PORT_BASE               GPIO_PORTF_BASE
-#define SPEAKER_PORT_CLOCK              SYSCTL_PERIPH_GPIOF
-#define SPEAKER_PIN                     GPIO_PIN_0
-#define SPEAKER_PWM_CLOCK_BASE          SYSCTL_PERIPH_PWM1
-#define SPEAKER_PWM_FREQUENCY           12000
-#define SPEAKER_PWM_BASE                PWM1_BASE
-#define SPEAKER_PWM_CONFIG              GPIO_PF0_M1PWM4
-#define SPEAKER_PWM_GEN                 PWM_GEN_2
-#define SPEAKER_PWM_GEN_BIT				PWM_GEN_2_BIT
-#define SPEAKER_PWM_OUT                 PWM_OUT_4
-#define SPEAKER_PWM_OUT_BIT             PWM_OUT_4_BIT
-#define SPEAKER_TIMER_CLOCK             SYSCTL_PERIPH_TIMER1
-#define SPEAKER_TIMER_BASE              TIMER1_BASE
-#define SPEAKER_TIMER_FREQUENCY         5000
-#define SPEAKER_INT                     INT_TIMER1A
-
-inline void initSpeaker();
-inline void startSpeaker();
-//-----------------------------------------------Speaker functions
 
 //----------------------RF24 Functions------------------------
 #define PC_TEST_RF_TRANSMISSION         0xC0
@@ -185,19 +239,23 @@ inline void startSpeaker();
 #define PC_CHANGE_MOTORS_SPEED          0xC4
 #define PC_TEST_RF_CARRIER_DETECTION    0xC5
 #define PC_SEND_TEST_DATA_TO_PC         0xC6
-#define PC_START_DISTANCE_SENSING       0xC7
 #define PC_START_SPEAKER                0xC8
 
 #define PC_SEND_DATA_ADC0_TO_PC         0xA0
 #define PC_SEND_DATA_ADC1_TO_PC         0xA1
-#define PC_SEND_BATT_VOLT_TO_PC		0xA3
+#define PC_SEND_BATT_VOLT_TO_PC			0xA3
 
-#define PC_SEND_STOP_MOTOR_LEFT		0xA4
-#define PC_SEND_STOP_MOTOR_RIGHT	0xA5
+#define PC_SEND_STOP_MOTOR_LEFT			0xA4
+#define PC_SEND_STOP_MOTOR_RIGHT		0xA5
+
+#define PC_SEND_MEASURE_DISTANCE		0xB0
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1
 #define PC_SEND_SET_ADDRESS_EEPROM      0xE2
+
+#define ROBOT_REQUEST_SAMPLING_MIC		0xD0
+#define ROBOT_CONFIRM_MEASURE_DISCTANCE	0xD1
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
@@ -209,6 +267,8 @@ inline void testRfTransmission();
 void sendDataToControlBoard(uint8_t * data);
 inline void testCarrierDetection();
 inline void sendTestData();
+void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length);
+
 //----------------------------------------------RF24 Functions
 
 
@@ -277,11 +337,13 @@ inline void wakeUpFormLPM();
 
 //----------------------------------------------Low Power Mode Functions
 
+
 //----------------------EEPROM Functions------------------------
 void initEEPROM();
 void writeToEEPROM();
 void readFormEEPROM();
 void setAddressEEPROM();
 //----------------------------------------------EEPROM Functions
+
 
 #endif /* MAIN_BOARD_DRIVERS_H */

@@ -28,14 +28,185 @@
 #include "CustomTivaDrivers.h"
 #include "MainBoardDriver.h"
 
+volatile bool g_bDelayTimerAFlag;
+volatile bool g_bDelayTimerBFlag;
+
+static uint32_t timerALastDelayPeriod;
+static uint32_t timerBLastDelayPeriod;
+
+void initTimerDelay()
+{
+	SysCtlPeripheralEnable(DELAY_TIMER_CLOCK);
+	TimerClockSourceSet(DELAY_TIMER_BASE, TIMER_CLOCK_SYSTEM);
+	TimerConfigure(DELAY_TIMER_BASE,
+	TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_ONE_SHOT | TIMER_CFG_B_ONE_SHOT);
+
+	TimerIntEnable(DELAY_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	TimerIntEnable(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+	IntPrioritySet(INT_DELAY_TIMERA, PRIORITY_DELAY_TIMERA);
+	IntPrioritySet(INT_DELAY_TIMERB, PRIORITY_DELAY_TIMERB);
+
+	IntEnable(INT_DELAY_TIMERA);
+	IntEnable(INT_DELAY_TIMERB);
+
+	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+}
+
+void delayTimerA(uint32_t period, bool isSynchronous)
+{
+	g_bDelayTimerAFlag = false;
+
+	timerALastDelayPeriod = SysCtlClockGet() / 1000 * period;
+
+	TimerLoadSet(DELAY_TIMER_BASE, TIMER_A, timerALastDelayPeriod);
+
+	TimerEnable(DELAY_TIMER_BASE, TIMER_A);
+
+	if (isSynchronous)
+		while (!g_bDelayTimerAFlag)
+			;
+}
+
+void reloadDelayTimerA()
+{
+	TimerLoadSet(DELAY_TIMER_BASE, TIMER_A, timerALastDelayPeriod);
+}
+
+void delayTimerB(uint32_t period, bool isSynchronous)
+{
+	g_bDelayTimerBFlag = false;
+
+	timerBLastDelayPeriod = SysCtlClockGet() / 1000 * period;
+
+	TimerLoadSet(DELAY_TIMER_BASE, TIMER_B, timerBLastDelayPeriod);
+
+	TimerEnable(DELAY_TIMER_BASE, TIMER_B);
+
+	if (isSynchronous)
+		while (!g_bDelayTimerBFlag)
+			;
+}
+
+void reloadDelayTimerB()
+{
+	TimerLoadSet(DELAY_TIMER_BASE, TIMER_B, timerBLastDelayPeriod);
+}
+
+//----------------Math functions-------------------
+int32_t calSin(float x)
+{
+
+	float tempX;
+	float angleX;
+	uint32_t angleIndex;
+	int8_t resultSigned;
+	uint8_t selectResult;
+	uint32_t resultIndex;
+	uint16_t pui16ReadBuffer[2] =
+	{ 0, 0 };
+
+	x *= _180_DIV_PI;
+
+	tempX = (x > 0) ? (x) : (360 + x);
+
+	angleX = (tempX > 360) ? (tempX - 360.0) : (tempX);
+
+	angleIndex = (int) (angleX * 2 + 0.5);
+
+	if (angleIndex < 180)
+	{
+		resultSigned = 1;
+		resultIndex = angleIndex;
+	}
+	else if (angleIndex < 360)
+	{
+		resultSigned = 1;
+		resultIndex = 360 - angleIndex;
+	}
+	else if (angleIndex < 540)
+	{
+		resultSigned = -1;
+		resultIndex = angleIndex - 360;
+	}
+	else
+	{
+		resultSigned = -1;
+		resultIndex = 720 - angleIndex;
+	}
+
+	selectResult = resultIndex & 0x01;
+
+	resultIndex &= 0xFFFFFFFE;
+	resultIndex <<= 1;
+	resultIndex += EPPROM_SINE_TABLE_ADDRESS;
+
+	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
+			sizeof(pui16ReadBuffer));
+
+	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
+}
+
+int32_t calCos(float x)
+{
+	return calSin(x + MATH_PI_DIV_2);
+}
+
+int32_t calASin(float x)
+{
+	int8_t resultSigned;
+	uint8_t selectResult;
+	uint32_t resultIndex;
+	uint16_t pui16ReadBuffer[2] =
+	{ 0, 0 };
+
+	if (x > 0)
+	{
+		resultSigned = 1;
+		resultIndex = (int) ((x * 180) + 0.25);
+	}
+	else
+	{
+		resultSigned = -1;
+		resultIndex = (int) (((-x) * 180) + 0.25);
+	}
+
+	selectResult = resultIndex & 0x01;
+
+	resultIndex &= 0xFFFFFFFE;
+	resultIndex <<= 1;
+	resultIndex += EPPROM_ARC_SINE_TABLE_ADDRESS;
+
+	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
+			sizeof(pui16ReadBuffer));
+
+	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
+}
+
+int32_t calACos(float x)
+{
+	return (MATH_PI_DIV_2_MUL_32768 - calASin(x));
+}
+//-----------------------------------Math functions
+
 //----------------Robot Init functions-------------------
 extern uint32_t g_ui32RobotID;
 
-void initRobotParameters()
+void initRobotProcess()
 {
+	//==============================================
+	// Get Robot ID form EEPROM
+	//==============================================
 	EEPROMRead(&g_ui32RobotID, EEPROM_ADDR_ROBOT_ID, sizeof(&g_ui32RobotID));
-}
 
+	//==============================================
+	// IMPORTANCE: Configure Software Interrupt
+	//==============================================
+	IntPrioritySet(INT_SW_TRIGGER_PROCESS, PRIORITY_ROBOT_PROCESS);
+
+	IntEnable(INT_SW_TRIGGER_PROCESS);
+}
 //-----------------------------------Robot Int functions
 
 //-----------------------LED functions-------------------------
@@ -337,7 +508,8 @@ static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 static uint8_t ui8ControlTable[1024];
 #endif
 
-inline void initPeripheralsForAnalogFunction(void) {
+inline void initPeripheralsForAnalogFunction(void)
+{
 
 	/*
 	 * Configure GPIO to analog type
@@ -366,14 +538,14 @@ inline void initPeripheralsForAnalogFunction(void) {
 	ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
 	ADC_TRIGGER_PROCESSOR, BATTERY_MEASURENMENT_PRIORITY);
 	ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
-			BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
 	ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 	//ADCIntClear(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 
 	ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
 	DISTANCE_SENSING_PRIORITY);
 	ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, 0,
-			ADC0_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	ADC0_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
 	ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC0_BASE, ADC_SEQUENCE_TYPE);
 
@@ -386,22 +558,30 @@ inline void initPeripheralsForAnalogFunction(void) {
 	ADCHardwareOversampleConfigure(ADC1_BASE, ADC_AVERAGING_FACTOR);
 
 	ADCSequenceConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			ADC_TRIGGER_PROCESSOR, RANDOM_GEN_PRIORITY);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 0, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 1, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 2, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 3, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 4, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 5, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 6, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, 7, RANDOM_GEN_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	ADC_TRIGGER_PROCESSOR, RANDOM_GEN_PRIORITY);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			0, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			1, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			2, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			3, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			4, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			5, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			6, RANDOM_GEN_CHANNEL);
+	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			7, RANDOM_GEN_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
 	ADCSequenceEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 
 	ADCSequenceConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
 	DISTANCE_SENSING_PRIORITY);
 	ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, 0,
-			ADC1_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	ADC1_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
 	ADCSequenceEnable(ADC1_BASE, ADC_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC1_BASE, ADC_SEQUENCE_TYPE);
 
@@ -432,7 +612,7 @@ inline void initPeripheralsForAnalogFunction(void) {
 	uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
 	uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-			(void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC0Result,
+			(void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_pui16ADC0Result,
 			NUMBER_OF_SAMPLE);
 	uDMAChannelEnable(ADC0_DMA_CHANNEL);
 
@@ -440,9 +620,11 @@ inline void initPeripheralsForAnalogFunction(void) {
 	uDMAChannelAttributeDisable(RANDOM_GEN_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
 	uDMAChannelControlSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
-			UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_8);
-	uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-			(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS), g_ui8RandomBuffer, 8);
+	UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_8);
+	uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
+	UDMA_MODE_BASIC,
+			(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS),
+			g_pui8RandomBuffer, 8);
 	uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
 
 	uDMAChannelAssign(DMA_ADC1_CHANNEL);
@@ -451,17 +633,17 @@ inline void initPeripheralsForAnalogFunction(void) {
 	uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
 	uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-			(void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC1Result,
+			(void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_pui16ADC1Result,
 			NUMBER_OF_SAMPLE);
 	uDMAChannelEnable(ADC1_DMA_CHANNEL);
 
 	/*
 	 * Configure Interrupts
 	 */
-	IntPrioritySet(ADC0_INT, 0x40);
-	IntPrioritySet(ADC1_INT, 0x40);
-	IntPrioritySet(ADC_BATT_INT, 0x00);
-	IntPrioritySet(RANDOM_GEN_INT, 0x00);
+	IntPrioritySet(ADC0_INT, PRIORITY_DMA_MIC1);
+	IntPrioritySet(ADC1_INT, PRIORITY_DMA_MIC2);
+	IntPrioritySet(ADC_BATT_INT, PRIORITY_DMA_BATT);
+	IntPrioritySet(RANDOM_GEN_INT, PRIORITY_DMA_RANDOM_GEN);
 
 	IntEnable(ADC0_INT);
 	IntEnable(ADC1_INT);
@@ -484,7 +666,7 @@ inline void startSamplingMicSignals()
 {
 	disableMOTOR();
 	countAdcDMAsStopped = 0;
-	ROM_SysCtlDelay(90000);
+	ROM_SysCtlDelay(DELAY_SAMPING_MIC);
 	TimerEnable(ADC_TIMER, TIMER_A);
 }
 inline void startSamplingBatteryVoltage()
@@ -492,7 +674,8 @@ inline void startSamplingBatteryVoltage()
 	disableMOTOR();
 	ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
-inline void generateRandomByte() {
+inline void generateRandomByte()
+{
 	g_ui8RandomNumber = 0;
 	ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 }
@@ -511,8 +694,8 @@ void ADC0IntHandler(void)
 		TimerDisable(ADC_TIMER, TIMER_A);
 		// Setup for a future request
 		uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
-				UDMA_MODE_BASIC, (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS),
-				g_ui16ADC0Result,
+		UDMA_MODE_BASIC, (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS),
+				g_pui16ADC0Result,
 				NUMBER_OF_SAMPLE);
 		uDMAChannelEnable(ADC0_DMA_CHANNEL);
 
@@ -535,8 +718,8 @@ void ADC1IntHandler(void)
 		TimerDisable(ADC_TIMER, TIMER_A);
 		// Setup for a future request
 		uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
-				UDMA_MODE_BASIC, (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS),
-				g_ui16ADC1Result,
+		UDMA_MODE_BASIC, (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS),
+				g_pui16ADC1Result,
 				NUMBER_OF_SAMPLE);
 		uDMAChannelEnable(ADC1_DMA_CHANNEL);
 
@@ -558,37 +741,43 @@ void BatterySequenceIntHandler(void)
 	{
 		// Setup for a future request
 		uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
-				UDMA_MODE_BASIC,
-				(void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
+		UDMA_MODE_BASIC, (void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
 				&g_ui16BatteryVoltage, 1);
 		uDMAChannelEnable(BATT_DMA_CHANNEL);
 		sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
 		enableMOTOR();
 	}
 }
-void RandomGeneratorIntHandler(void) {
+void RandomGeneratorIntHandler(void)
+{
 	uint32_t ui32Status;
 	uint32_t ui32Mode;
 
-	ui32Status = ADCIntStatus(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE, true);
+	ui32Status = ADCIntStatus(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+	true);
 	ADCIntClear(ADC_RANDOM_GEN_BASE, ui32Status);
 
 	ui32Mode = uDMAChannelModeGet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT);
 	if (ui32Mode == UDMA_MODE_STOP)
 	{
 		// Setup for a future request
-		uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-				(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS), g_ui8RandomBuffer, 8);
+		uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
+		UDMA_MODE_BASIC,
+				(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS),
+				g_pui8RandomBuffer, 8);
 		uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
 
 		int i;
-		for (i = 0; i < 8; i++) {
-			g_ui8RandomNumber |= ((g_ui8RandomBuffer[i] & 0x01) << i);
+		for (i = 0; i < 8; i++)
+		{
+			g_ui8RandomNumber |= ((g_pui8RandomBuffer[i] & 0x01) << i);
 		}
 
-		if (g_ui8RandomNumber == 0 || g_ui8RandomNumber == 0xFF) {
+		if (g_ui8RandomNumber == 0 || g_ui8RandomNumber == 0xFF)
+		{
 			g_ui8RandomNumber = 0;
-			ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
+			ADCProcessorTrigger(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE);
 		}
 	}
 }
@@ -605,157 +794,42 @@ void uDMAErrorHandler(void)
 	}
 }
 
-//void initADC(uint32_t adcClock, uint32_t adcBase, uint32_t adcChannel)
-//{
-//	SysCtlPeripheralEnable(adcClock);
-//
-//	// Hardware Faulterror happens if enable this command.
-//	// The reason is unknown but it only happens when
-//	// we step over this function in the debug mode (or let it run consecutively)
-//	// ADCSequenceDisable(adcBase, ADC_SEQUENCE_TYPE);
-//
-//	ADCHardwareOversampleConfigure(adcBase, ADC_AVERAGING_FACTOR);
-//	ADCSequenceConfigure(adcBase, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
-//	DISTANCE_SENSING_PRIORITY);
-//	ADCSequenceStepConfigure(adcBase, ADC_SEQUENCE_TYPE, 0,
-//			adcChannel | ADC_CTL_IE | ADC_CTL_END);
-//	// ADCDitherEnable(adcBase);
-//
-//	ADCSequenceEnable(adcBase, ADC_SEQUENCE_TYPE);
-//	ADCSequenceDMAEnable(adcBase, ADC_SEQUENCE_TYPE);
-//}
-//
-//inline void groundAdjacentADCPins()
-//{
-//	GPIOPinTypeGPIOOutput(ADC_PORT, ADC_ADJACENT_PINS);
-//	GPIOPinWrite(ADC_PORT, ADC_ADJACENT_PINS, 0);
-//}
-//
-//inline void initDistanceSensingModules(void)
-//{
-//	//=====================Init ADCs==========================
-//	SysCtlPeripheralEnable(ADC_PORT_CLOCK);
-//	GPIOPinTypeADC(ADC_PORT, ADC0_IN);
-//	GPIOPinTypeADC(ADC_PORT, ADC1_IN);
-//	initADC(SYSCTL_PERIPH_ADC0, ADC0_BASE, ADC0_CHANNEL);
-//	initADC(SYSCTL_PERIPH_ADC1, ADC1_BASE, ADC1_CHANNEL);
-//	groundAdjacentADCPins();
-//	//===============================================Init ADCs
-//
-//	//=====================uDMA configure=====================
-//	SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-//	uDMAEnable();
-//	uDMAControlBaseSet(ui8ControlTable);
-//
-//	uDMAChannelAssign(DMA_ADC0_CHANNEL);
-//	uDMAChannelAttributeDisable(ADC0_DMA_CHANNEL,
-//	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-//	uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
-//	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-//	uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-//			(void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC0Result,
-//			NUMBER_OF_SAMPLE);
-//
-//	uDMAChannelAssign(DMA_ADC1_CHANNEL);
-//	uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
-//	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-//	uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
-//	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-//	uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-//			(void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_ui16ADC1Result,
-//			NUMBER_OF_SAMPLE);
-//
-//	uDMAChannelEnable(ADC0_DMA_CHANNEL);
-//	uDMAChannelEnable(ADC1_DMA_CHANNEL);
-//	//==========================================uDMA configure
-//
-//	// Interrupts Configure
-//	IntPrioritySet(ADC0_INT, 0x40);
-//	IntPrioritySet(ADC1_INT, 0x40);
-//	IntEnable(ADC0_INT);
-//	IntEnable(ADC1_INT);
-//	IntEnable(INT_UDMAERR);
-//
-//	// ADC timer trigger configure
-//	SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
-//	TimerDisable(ADC_TIMER, TIMER_A);
-//	TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
-//	TimerLoadSet(ADC_TIMER, TIMER_A, (SysCtlClockGet() / SAMPLE_FREQUENCY));
-//	TimerControlTrigger(ADC_TIMER, TIMER_A, true);
-//}
-//
-//inline void initBatteryChannel()
-//{
-//	SysCtlPeripheralEnable(BATTERY_PORT_CLOCK);
-//	SysCtlDelay(2);
-//	GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
-//
-//	//=====================ADC configure=====================
-//	ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
-//	ADC_TRIGGER_PROCESSOR, BATTERY_MEASURENMENT_PRIORITY);
-//	ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
-//	BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-//	ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-//	ADCSequenceDMAEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-//	//==========================================ADC configure
-//
-//	//=====================uDMA configure=====================
-//	SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-//	uDMAEnable();
-//	uDMAControlBaseSet(ui8ControlTable);
-//
-//	uDMAChannelAssign(DMA_BATT_CHANNEL);
-//	uDMAChannelAttributeDisable(BATT_DMA_CHANNEL,
-//	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-//	uDMAChannelControlSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
-//	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_NONE | UDMA_ARB_1);
-//	uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-//			(void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
-//			&g_ui16BatteryVoltage, 1);
-//
-//	uDMAChannelEnable(BATT_DMA_CHANNEL);
-//	//==========================================uDMA configure
-//
-//	// Interrupts Configure
-//	IntEnable(ADC_BATT_INT);
-//	IntPrioritySet(ADC_BATT_INT, 0x00);
-//	IntEnable(INT_UDMAERR);
-//}
-
 //-------------------------------------------------------------------Ananlog functions
 
 //----------------------------------------------TDOA functions----------------------------------------------
-float32_t SamplesMicA[NUMBER_OF_SAMPLE];
-float32_t SamplesMicB[NUMBER_OF_SAMPLE];
-
 // Initialize two filter, input and output buffer pointers
+float32_t OutputMicA[NUMBER_OF_SAMPLE] = { 0 };
+float32_t OutputMicB[NUMBER_OF_SAMPLE] = { 0 };
+
+float32_t SamplesMicA[NUMBER_OF_SAMPLE] = { 0 };
+float32_t SamplesMicB[NUMBER_OF_SAMPLE] = { 0 };
+
 arm_fir_instance_f32 FilterA;
 arm_fir_instance_f32 FilterB;
-static float32_t OutputMicA[NUMBER_OF_SAMPLE];
-static float32_t OutputMicB[NUMBER_OF_SAMPLE];
 static float32_t pStateA[BLOCK_SIZE + FILTER_ORDER - 1] =
 { 0 };
 static float32_t pStateB[BLOCK_SIZE + FILTER_ORDER - 1] =
 { 0 };
 
-extern float32_t peakEnvelopeA;
-extern float32_t maxEnvelopeA;
-extern float32_t peakEnvelopeB;
-extern float32_t maxEnvelopeB;
-extern uint16_t g_pf32DistanceResultMic1[];
-extern uint16_t g_pf32DistanceResultMic2[];
+extern float32_t g_f32PeakEnvelopeA;
+extern float32_t g_f32MaxEnvelopeA;
+extern float32_t g_f32PeakEnvelopeB;
+extern float32_t g_f32MaxEnvelopeB;
 
 void initFilters(float32_t* FilterCoeffs)
 {
-
 	// Call FIR init function to initialize the instance structure.
 	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
 	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);
-
-	turnOffLED(LED_ALL);
 }
-void filterADCsSignals()
+void runAlgorithmTDOA()
 {
+//	float32_t OutputMicA[NUMBER_OF_SAMPLE] = { 0 };
+//	float32_t OutputMicB[NUMBER_OF_SAMPLE] = { 0 };
+//
+//	float32_t SamplesMicA[NUMBER_OF_SAMPLE] = { 0 };
+//	float32_t SamplesMicB[NUMBER_OF_SAMPLE] = { 0 };
+
 	int i;
 
 	while (countAdcDMAsStopped != 2)
@@ -764,8 +838,8 @@ void filterADCsSignals()
 	// Convert g_ui32ADC0/1Result to SamplesMicA/B
 	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
 	{
-		SamplesMicA[i] = g_ui16ADC0Result[i];
-		SamplesMicB[i] = g_ui16ADC1Result[i];
+		SamplesMicA[i] = g_pui16ADC0Result[i];
+		SamplesMicB[i] = g_pui16ADC1Result[i];
 	}
 
 	// Filter signals
@@ -786,10 +860,8 @@ void filterADCsSignals()
 		OutputMicB[i] = OutputMicB[i + START_SAMPLES_POSTITION];
 	}
 
-	getDistances(OutputMicA, &peakEnvelopeA, &maxEnvelopeA);
-	getDistances(OutputMicB, &peakEnvelopeB, &maxEnvelopeB);
-
-	//TODO: check max threshold and save to table
+	getDistances(OutputMicA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
+	getDistances(OutputMicB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
 }
 
 float32_t getDistances(float32_t *myData, float32_t *peakEnvelope,
@@ -1174,6 +1246,23 @@ void sendDataToControlBoard(uint8_t * data)
 	}
 }
 
+void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length)
+{
+	uint8_t addr[3];
+
+	RF24_TX_activate();
+
+	addr[2] = RF24_LOCAL_BOARDCAST_BYTE2;
+	addr[1] = RF24_LOCAL_BOARDCAST_BYTE1;
+	addr[0] = RF24_LOCAL_BOARDCAST_BYTE0;
+	RF24_TX_setAddress(addr);
+
+	RF24_TX_writePayloadNoAck(ui8Length, pData);
+
+	RF24_TX_pulseTransmit();
+
+}
+
 inline void testCarrierDetection()
 {
 	rfDelayLoop(DELAY_CYCLES_5MS);
@@ -1263,10 +1352,7 @@ inline void initLowPowerMode()
 	// Enable Peripherals in Sleep Mode.
 	//
 	SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
-	SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
-	SysCtlPeripheralSleepEnable(MOTOR_PWM_CLOCK);// keep PWM operate in Sleep Mode for Motor control.
-	SysCtlPeripheralSleepEnable(MOTOR_SLEEP_PIN_CLOCK); //TODO: use PWM out instead of GPIO
-	SysCtlPeripheralSleepEnable(RIGHT_MOTOR_PORT_CLOCK); //TODO: use PWM out instead of GPIO
+	SysCtlPeripheralSleepEnable(DELAY_TIMER_CLOCK);
 
 	//
 	// Set LDO to 1.15V in Sleep.
@@ -1294,7 +1380,7 @@ inline void initLowPowerMode()
 	// Enable Peripherals in Deep-Sleep Mode.
 	//
 	SysCtlPeripheralDeepSleepEnable(RF24_INT_PORT_CLOCK);// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
-	SysCtlPeripheralSleepEnable(RF24_SPI_CLOCK);
+	SysCtlPeripheralDeepSleepEnable(DELAY_TIMER_CLOCK);
 
 	//
 	// Set LDO to 0.9V in Deep-Sleep.
@@ -1312,9 +1398,12 @@ inline void initLowPowerMode()
 	//==============================================
 	SysCtlPeripheralClockGating(true);
 
-	IntPrioritySet(INT_I2C1_TM4C123, 0x20);
+	//==============================================
+	// IMPORTANCE: Configure Software Interrupt
+	//==============================================
+	IntPrioritySet(INT_SW_TRIGGER_LPM, PRIORITY_LOW_POWER_MODE);
 
-	IntEnable(INT_I2C1_TM4C123);
+	IntEnable(INT_SW_TRIGGER_LPM);
 
 	g_eCPUState = RUN_MODE;
 }
@@ -1346,9 +1435,9 @@ inline void gotoDeepSleepMode()
 inline void wakeUpFormLPM()
 {
 	SysCtlClockSet(
-			SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN
-					| SYSCTL_XTAL_16MHZ);
+	SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 	g_eCPUState = RUN_MODE;
+	SysCtlDelay(100000);
 }
 
 //----------------------------------Low Power Mode Functions

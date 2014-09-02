@@ -31,16 +31,6 @@
 #include "MainBoardDriver.h"
 
 //*****************************************************************************
-// System tick
-//*****************************************************************************
-#define SYSTICKS_PER_SECOND     1000
-volatile uint32_t g_ui32SysTickCount;
-void SysTickHandler(void)
-{
-	g_ui32SysTickCount++;
-}
-
-//*****************************************************************************
 // Robot ID
 //*****************************************************************************
 uint32_t g_ui32RobotID;
@@ -48,7 +38,10 @@ uint32_t g_ui32RobotID;
 //*****************************************************************************
 // The buffer to receive data from the RF module
 //*****************************************************************************
-uint8_t RF24_RX_buffer[32];
+volatile uint8_t RF24_RX_buffer[32] =
+{ 0 };
+volatile uint8_t RF24_TX_buffer[32] =
+{ 0 };
 
 //*****************************************************************************
 // Motors Speed
@@ -59,32 +52,45 @@ volatile uint8_t ui8RightMotorDutyCycles;
 //*****************************************************************************
 // The buffers for ADCs
 //*****************************************************************************
-uint16_t g_ui16ADC0Result[NUMBER_OF_SAMPLE];
-uint16_t g_ui16ADC1Result[NUMBER_OF_SAMPLE];
-uint8_t g_ui8RandomBuffer[8];
+uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE];
+uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE];
+
+uint8_t g_pui8RandomBuffer[8];
 uint8_t g_ui8RandomNumber;
+
 uint16_t g_ui16BatteryVoltage;
 
 uint32_t g_ui32EEPROMAdderss;
 
-float32_t peakEnvelopeA = 0;
-float32_t maxEnvelopeA = 0;
-float32_t peakEnvelopeB = 0;
-float32_t maxEnvelopeB = 0;
+float32_t g_f32PeakEnvelopeA = 0;
+float32_t g_f32MaxEnvelopeA = 0;
+float32_t g_f32PeakEnvelopeB = 0;
+float32_t g_f32MaxEnvelopeB = 0;
 
 float32_t* FilterCoeffs;
 
-#define MATH_PI 				3.141592654
-#define MATH_PI_DIV_2			1.570796327
-#define MATH_PI_DIV_2_MUL_32768	51471.85404
-#define _180_DIV_PI				57.29577951
-#define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
-#define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
+typedef enum
+{
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, LOCALIZATION
+} ProcessStateEnum;
 
-int32_t calSin(float x);
-int32_t calCos(float x);
-int32_t calASin(float x);
-int32_t calACos(float x);
+ProcessStateEnum g_eProcessState = IDLE;
+
+typedef struct tagRobotMeas
+{
+	float32_t distance;
+	uint32_t ID;
+} RobotMeasStruct;
+
+typedef struct tagOneHopMeas
+{
+	uint32_t firstHopID;
+	RobotMeasStruct neighbors[10];
+} OneHopMeasStruct;
+
+OneHopMeasStruct DisctanceTable[10];
+RobotMeasStruct Neighbors[10];
+uint8_t neighborsCounter = 0;
 
 int main(void)
 {
@@ -108,14 +114,9 @@ int main(void)
 	SysCtlClockSet(
 	SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 
-//	// Set the system tick to fire 1000 times per second.
-//	SysTickPeriodSet(SysCtlClockGet() / SYSTICKS_PER_SECOND);
-//	SysTickIntEnable();
-//    SysTickEnable();
-
 	initEEPROM();
 
-	initRobotParameters();
+	initRobotProcess();
 
 	initLED();
 
@@ -124,116 +125,20 @@ int main(void)
 	initRfModule();
 
 	initPeripheralsForAnalogFunction();
-	//initBatteryChannel();
-	//initDistanceSensingModules();
 
 	initSpeaker();
 
 	initLowPowerMode();
 
+	initTimerDelay();
+
+	initFilters(FilterCoeffs);
+
 	while (1)
 	{
-		generateRandomByte();
-		while(g_ui8RandomNumber == 0);
 		rfDelayLoop(DELAY_CYCLES_5MS * 25);
-		turnOnLED(LED_RED);
-		rfDelayLoop(DELAY_CYCLES_5MS * 25);
-		turnOffLED(LED_RED);
+		toggleLED(LED_RED);
 	}
-}
-
-int32_t calSin(float x)
-{
-
-	float tempX;
-	float angleX;
-	uint32_t angleIndex;
-	int8_t resultSigned;
-	uint8_t selectResult;
-	uint32_t resultIndex;
-	uint16_t pui16ReadBuffer[2] =
-	{ 0, 0 };
-
-	x *= _180_DIV_PI;
-
-	tempX = (x > 0) ? (x) : (360 + x);
-
-	angleX = (tempX > 360) ? (tempX - 360.0) : (tempX);
-
-	angleIndex = (int) (angleX * 2 + 0.5);
-
-	if (angleIndex < 180)
-	{
-		resultSigned = 1;
-		resultIndex = angleIndex;
-	}
-	else if (angleIndex < 360)
-	{
-		resultSigned = 1;
-		resultIndex = 360 - angleIndex;
-	}
-	else if (angleIndex < 540)
-	{
-		resultSigned = -1;
-		resultIndex = angleIndex - 360;
-	}
-	else
-	{
-		resultSigned = -1;
-		resultIndex = 720 - angleIndex;
-	}
-
-	selectResult = resultIndex & 0x01;
-
-	resultIndex &= 0xFFFFFFFE;
-	resultIndex <<= 1;
-	resultIndex += EPPROM_SINE_TABLE_ADDRESS;
-
-	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
-			sizeof(pui16ReadBuffer));
-
-	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
-}
-
-int32_t calCos(float x)
-{
-	return calSin(x + MATH_PI_DIV_2);
-}
-
-int32_t calASin(float x)
-{
-	int8_t resultSigned;
-	uint8_t selectResult;
-	uint32_t resultIndex;
-	uint16_t pui16ReadBuffer[2] =
-	{ 0, 0 };
-
-	if (x > 0)
-	{
-		resultSigned = 1;
-		resultIndex = (int) ((x * 180) + 0.25);
-	}
-	else
-	{
-		resultSigned = -1;
-		resultIndex = (int) (((-x) * 180) + 0.25);
-	}
-
-	selectResult = resultIndex & 0x01;
-
-	resultIndex &= 0xFFFFFFFE;
-	resultIndex <<= 1;
-	resultIndex += EPPROM_ARC_SINE_TABLE_ADDRESS;
-
-	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
-			sizeof(pui16ReadBuffer));
-
-	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
-}
-
-int32_t calACos(float x)
-{
-	return (MATH_PI_DIV_2_MUL_32768 - calASin(x));
 }
 
 inline void RF24_IntHandler()
@@ -267,12 +172,12 @@ inline void RF24_IntHandler()
 				{
 				case COMMAND_SLEEP:
 					g_eCPUState = SLEEP_MODE;
-					IntTrigger(INT_I2C1);
+					IntTrigger(INT_SW_TRIGGER_LPM);
 					break;
 
 				case COMMAND_DEEP_SLEEP:
 					g_eCPUState = DEEP_SLEEP_MODE;
-					IntTrigger(INT_I2C1);
+					IntTrigger(INT_SW_TRIGGER_LPM);
 					break;
 
 				case COMMAND_WAKE_UP:
@@ -285,7 +190,7 @@ inline void RF24_IntHandler()
 					break;
 
 				default:
-					IntTrigger(INT_I2C1);
+					IntTrigger(INT_SW_TRIGGER_LPM);
 					break;
 				}
 			}
@@ -310,7 +215,8 @@ inline void RF24_IntHandler()
 					break;
 
 				case PC_TEST_ALL_MOTOR_MODES:
-					testAllMotorModes();
+					// testAllMotorModes();
+					//TODO: modified to set random direction with random speed
 					break;
 
 				case PC_CHANGE_MOTORS_SPEED:
@@ -348,11 +254,11 @@ inline void RF24_IntHandler()
 					break;
 
 				case PC_SEND_DATA_ADC0_TO_PC:
-					sendDataToControlBoard((uint8_t *) g_ui16ADC0Result);
+					sendDataToControlBoard((uint8_t *) g_pui16ADC0Result);
 					break;
 
 				case PC_SEND_DATA_ADC1_TO_PC:
-					sendDataToControlBoard((uint8_t *) g_ui16ADC1Result);
+					sendDataToControlBoard((uint8_t *) g_pui16ADC1Result);
 					break;
 
 				case PC_SEND_BATT_VOLT_TO_PC:
@@ -375,22 +281,61 @@ inline void RF24_IntHandler()
 					startSamplingMicSignals();
 					break;
 
-				case PC_START_DISTANCE_SENSING:
+				case PC_START_SPEAKER:
+					ROM_SysCtlDelay(DELAY_START_SPEAKER);
+					startSpeaker();
 					break;
 
-				case PC_START_SPEAKER:
-					ROM_SysCtlDelay(100000); // RX testing only
-					startSpeaker();
+				case PC_SEND_MEASURE_DISTANCE:
+
+					turnOffLED(LED_ALL);
+
+					g_eProcessState = MEASURE_DISTANCE;
+
+					delayTimerA(5000, false); // Asychronous delay 5 second
+
+					IntTrigger(INT_SW_TRIGGER_PROCESS);
+
+					break;
+
+				case ROBOT_REQUEST_SAMPLING_MIC:
+					// DO NOT INSERT ANY CODE IN HERE!
+					startSamplingMicSignals();
+
+//					turnOnLED(LED_GREEN);
+//
+//					reloadDelayTimerA();
+//
+//					runAlgorithmTDOA();
+
+					//TODO: check threshold g_f32MaxEnvelopeA and g_f32MaxEnvelopeB make sure is valid neighbor
+
+					Neighbors[neighborsCounter].ID = (RF24_RX_buffer[1] << 24)
+							| (RF24_RX_buffer[2] << 16)
+							| (RF24_RX_buffer[3] << 8) | RF24_RX_buffer[4];
+
+//					Neighbors[neighborsCounter].distance = (g_f32PeakEnvelopeA
+//							+ g_f32PeakEnvelopeB) / 2;
+//
+//					neighborsCounter++;
+//					neighborsCounter = (neighborsCounter < 10) ? (neighborsCounter) : (0);
+//
+//					turnOffLED(LED_GREEN);
+
+					break;
+
+				case ROBOT_CONFIRM_MEASURE_DISCTANCE:
+					//TODO:
 					break;
 
 				case COMMAND_SLEEP:
 					g_eCPUState = SLEEP_MODE;
-					IntTrigger(INT_I2C1);
+					IntTrigger(INT_SW_TRIGGER_LPM);
 					break;
 
 				case COMMAND_DEEP_SLEEP:
 					g_eCPUState = DEEP_SLEEP_MODE;
-					IntTrigger(INT_I2C1);
+					IntTrigger(INT_SW_TRIGGER_LPM);
 					break;
 
 				case COMMAND_WAKE_UP:
@@ -418,7 +363,106 @@ inline void RF24_IntHandler()
 	}
 }
 
-void I2C1_IntHandler(void)
+void RobotProcessIntHandler(void)
+{
+	bool hasSentCommand = false;
+	uint16_t ui16RandomValue;
+
+	switch (g_eProcessState)
+	{
+	case MEASURE_DISTANCE:
+		do
+		{
+			if (!hasSentCommand)
+			{
+
+				turnOnLED(LED_BLUE);
+
+				generateRandomByte();
+
+				while (g_ui8RandomNumber == 0)
+					;
+				g_ui8RandomNumber =
+						(g_ui8RandomNumber < 100) ?
+								(g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+				ui16RandomValue = (g_ui32RobotID << 8) | g_ui8RandomNumber;
+
+				delayTimerB(ui16RandomValue, false);
+
+				while (!g_bDelayTimerBFlag)
+				{
+					if (Neighbors[neighborsCounter].ID != 0)
+					{
+						turnOnLED(LED_GREEN);
+
+						reloadDelayTimerA();
+
+						runAlgorithmTDOA();
+
+						//TODO: check threshold g_f32MaxEnvelopeA and g_f32MaxEnvelopeB make sure is valid neighbor
+
+						Neighbors[neighborsCounter].distance =
+								(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) / 2;
+
+						neighborsCounter++;
+						neighborsCounter =
+								(neighborsCounter < 10) ?
+										(neighborsCounter) : (0);
+
+						turnOffLED(LED_GREEN);
+					}
+				}
+
+				turnOffLED(LED_BLUE);
+
+				reloadDelayTimerA();
+
+				// delay timeout - send request
+
+				RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
+				RF24_TX_buffer[1] = g_ui32RobotID >> 24;
+				RF24_TX_buffer[2] = g_ui32RobotID >> 16;
+				RF24_TX_buffer[3] = g_ui32RobotID >> 8;
+				RF24_TX_buffer[4] = g_ui32RobotID;
+				broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
+				// DO NOT INSERT ANY CODE IN HERE!
+				ROM_SysCtlDelay(DELAY_START_SPEAKER);
+				startSpeaker();
+
+				RF24_RX_activate();
+
+				hasSentCommand = true;
+
+				//		//set TimerB 2s timeout, reset Timer everytime received RF data
+				//		delayTimerB(2000, true);
+				//
+				//		// send confirm if timeout
+				//		RF24_TX_buffer[0] = ROBOT_CONFIRM_MEASURE_DISCTANCE;
+				//		RF24_TX_buffer[1] = g_ui32RobotID >> 24;
+				//		RF24_TX_buffer[2] = g_ui32RobotID >> 16;
+				//		RF24_TX_buffer[3] = g_ui32RobotID >> 8;
+				//		RF24_TX_buffer[4] = g_ui32RobotID;
+				//		broadcastLocalNeighbor(RF24_TX_buffer, 5);
+			}
+		} while (!g_bDelayTimerAFlag);
+
+		//TODO: exchange table - State 2 start here
+		turnOnLED(LED_ALL);
+
+		break;
+
+	case EXCHANGE_TABLE:
+		break;
+
+	case LOCALIZATION:
+		break;
+
+	default:
+		break;
+	}
+}
+
+void LowPowerModeIntHandler(void)
 {
 	switch (g_eCPUState)
 	{
@@ -433,3 +477,14 @@ void I2C1_IntHandler(void)
 	}
 }
 
+void DelayTimerAIntHanler()
+{
+	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	g_bDelayTimerAFlag = true;
+}
+
+void DelayTimerBIntHanler()
+{
+	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+	g_bDelayTimerBFlag = true;
+}
