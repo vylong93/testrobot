@@ -72,7 +72,7 @@ inline void testAllMotorModes();
 inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 //----------------------------------------------Motor functions
 
-//----------------Distance Sensing functions-------------------
+//--------------------------------Ananlog functions-----------------------------------
 #define NUMBER_OF_SAMPLE    300
 #define SAMPLE_FREQUENCY    100000
 
@@ -96,16 +96,51 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 #define DMA_ADC1_CHANNEL       		UDMA_CH27_ADC1_3
 #define DISTANCE_SENSING_PRIORITY	0
 
+#define BATTERY_PORT_CLOCK				SYSCTL_PERIPH_GPIOD
+#define BATTERY_PORT					GPIO_PORTD_BASE
+#define BATTERY_IN						GPIO_PIN_1
+#define BATTERY_CHANNEL 				ADC_CTL_CH6
+#define BATTERY_MEASURENMENT_PRIORITY	1
+#define ADC_BATT_BASE					ADC0_BASE
+#define ADC_BATT_SEQUENCE_TYPE     	 	2	// IMPORTANCE note: make sure this sequence type NOT equal ADC_SEQUENCE_TYPE
+#define ADC_BATT_SEQUENCE_ADDRESS    	ADC_O_SSFIFO2
+#define	ADC_BATT_INT	 				INT_ADC0SS2
+#define BATT_DMA_CHANNEL       			UDMA_CHANNEL_ADC2
+#define DMA_BATT_CHANNEL        		UDMA_CH16_ADC0_2
+
+#define ADC_RANDOM_GEN_BASE			    ADC1_BASE
+#define ADC_RANDOM_GEN_SEQUENCE_TYPE	0
+#define RANDOM_GEN_PRIORITY				1
+#define RANDOM_GEN_CHANNEL				ADC1_CHANNEL
+#define RANDOM_GEN_SEQUENCE_ADDRESS		ADC_O_SSFIFO0
+#define RANDOM_GEN_DMA_CHANNEL			UDMA_SEC_CHANNEL_ADC10
+#define DMA_RANDOM_GEN_CHANNEL			UDMA_CH24_ADC1_0
+#define RANDOM_GEN_INT                	INT_ADC1SS0
+
+extern uint16_t g_ui16BatteryVoltage;
+extern uint16_t g_ui16ADC0Result[];
+extern uint16_t g_ui16ADC1Result[];
+extern uint8_t g_ui8RandomBuffer[];
+extern uint8_t g_ui8RandomNumber;
+
+inline void initPeripheralsForAnalogFunction(void);
+inline void startSamplingMicSignals();
+inline void startSamplingBatteryVoltage();
+inline void generateRandomByte();
+
+//inline void initDistanceSensingModules(void);
+//inline void groundAdjacentADCPins();
+//inline void initBatteryChannel();
+
+//-------------------------------------------------------------------Ananlog functions
+
+//----------------------------------------------TDOA functions----------------------------------------------
 #define FILTER_ORDER                    34
 #define BLOCK_SIZE                      10
 #define START_SAMPLES_POSTITION         40
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
-extern uint16_t g_ui16ADC0Result[NUMBER_OF_SAMPLE];
-extern uint16_t g_ui16ADC1Result[NUMBER_OF_SAMPLE];
 
-inline void initDistanceSensingModules(void);
-inline void startSamplingMicSignals();
 inline void initFilters(float32_t* FilterCoeffs);
 void filterADCsSignals();
 
@@ -119,6 +154,7 @@ void interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t User
                 float32_t UserMaxValue, float32_t const step, float32_t* ReturnPosition,
                 float32_t* ReturnValue);
 float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t interpolatePoint);
+//--------------------------------------------------------------------------------------------TDOA functions
 
 //----------------------Speaker Functions------------------------
 #define SPEAKER_PORT_BASE               GPIO_PORTF_BASE
@@ -141,29 +177,7 @@ inline void initSpeaker();
 inline void startSpeaker();
 //-----------------------------------------------Speaker functions
 
-//----------------------Battery Measurement Functions-------------
-#define BATTERY_PORT_CLOCK				SYSCTL_PERIPH_GPIOD
-#define BATTERY_PORT					GPIO_PORTD_BASE
-#define BATTERY_IN						GPIO_PIN_1
-#define BATTERY_CHANNEL 				ADC_CTL_CH6
-#define BATTERY_MEASURENMENT_PRIORITY	1
-#define ADC_BATT_BASE					ADC0_BASE
-#define ADC_BATT_SEQUENCE_TYPE     	 	2	// IMPORTANCE note: make sure this sequence type NOT equal ADC_SEQUENCE_TYPE
-#define ADC_BATT_SEQUENCE_ADDRESS    	ADC_O_SSFIFO2
-#define	ADC_BATT_INT	 				INT_ADC0SS2
-#define BATT_DMA_CHANNEL       			UDMA_CHANNEL_ADC2
-#define DMA_BATT_CHANNEL        		UDMA_CH16_ADC0_2
-
-extern uint16_t g_ui16BatteryVoltage;
-
-inline void initBatteryChannel();
-inline void startSamplingBatteryVoltage();
-//-----------------------------------Battery Measurement functions
-
-//-----------------------------------Distance Sensing functions
-
 //----------------------RF24 Functions------------------------
-//========Command definitions=========//
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
 #define PC_START_SAMPLING_MIC           0xC2
@@ -189,8 +203,6 @@ inline void startSamplingBatteryVoltage();
 #define COMMAND_SLEEP			0x02
 #define	COMMAND_DEEP_SLEEP		0x03
 #define	COMMAND_WAKE_UP			0x04
-
-//=================//Command definitions
 
 inline void initRfModule();
 inline void testRfTransmission();
@@ -265,9 +277,11 @@ inline void wakeUpFormLPM();
 
 //----------------------------------------------Low Power Mode Functions
 
+//----------------------EEPROM Functions------------------------
 void initEEPROM();
 void writeToEEPROM();
 void readFormEEPROM();
 void setAddressEEPROM();
+//----------------------------------------------EEPROM Functions
 
 #endif /* MAIN_BOARD_DRIVERS_H */
