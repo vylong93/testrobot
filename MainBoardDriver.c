@@ -201,6 +201,7 @@ int32_t calACos(float x)
 OneHopMeasStruct OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
 RobotMeasStruct NeighborsTable[NEIGHBOR_TABLE_LENGTH];
 uint8_t g_ui8ReadTablePosition;
+uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
 
 uint32_t g_ui32RobotID;
@@ -292,10 +293,12 @@ void getNeighborNeighborsTable() {
 
 	disableRF24Interrupt();
 
-	delayTimerB(DELAY_EXCHANGE_TABLE_STATE, false);
+	delayTimerB(DELAY_GET_TABLE_PERIOD, false);
 
 	while (!g_bDelayTimerBFlagAssert)
 	{
+		reloadDelayTimerA();
+
 		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
 		{
 			reloadDelayTimerB();
@@ -370,20 +373,41 @@ void getNeighborNeighborsTable() {
 
 void sendNeighborsTableToControlBoard()
 {
-	uint8_t buffer[8];
 	uint32_t tempDistance = NeighborsTable[g_ui8ReadTablePosition].distance * 32768;
 
-	buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
-	buffer[1] = NeighborsTable[g_ui8ReadTablePosition].ID >> 16;
-	buffer[2] = NeighborsTable[g_ui8ReadTablePosition].ID >> 8;
-	buffer[3] = NeighborsTable[g_ui8ReadTablePosition].ID;
+	RF24_TX_buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
+	RF24_TX_buffer[1] = NeighborsTable[g_ui8ReadTablePosition].ID >> 16;
+	RF24_TX_buffer[2] = NeighborsTable[g_ui8ReadTablePosition].ID >> 8;
+	RF24_TX_buffer[3] = NeighborsTable[g_ui8ReadTablePosition].ID;
 
-	buffer[4] = tempDistance >> 24;
-	buffer[5] = tempDistance >> 16;
-	buffer[6] = tempDistance >> 8;
-	buffer[7] = tempDistance;
+	RF24_TX_buffer[4] = tempDistance >> 24;
+	RF24_TX_buffer[5] = tempDistance >> 16;
+	RF24_TX_buffer[6] = tempDistance >> 8;
+	RF24_TX_buffer[7] = tempDistance;
 
-	sendDataToControlBoard(buffer);
+	sendDataToControlBoard(RF24_TX_buffer);
+}
+
+void sendOneHopNeighborsTableToControlBoard()
+{
+	uint32_t tempDistance = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance * 32768;
+
+	RF24_TX_buffer[0] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 24;
+	RF24_TX_buffer[1] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 16;
+	RF24_TX_buffer[2] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 8;
+	RF24_TX_buffer[3] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID;
+
+	RF24_TX_buffer[4] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 24;
+	RF24_TX_buffer[5] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 16;
+	RF24_TX_buffer[6] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 8;
+	RF24_TX_buffer[7] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID;
+
+	RF24_TX_buffer[8] = tempDistance >> 24;
+	RF24_TX_buffer[9] = tempDistance >> 16;
+	RF24_TX_buffer[10] = tempDistance >> 8;
+	RF24_TX_buffer[11] = tempDistance;
+
+	sendDataToControlBoard(RF24_TX_buffer);
 }
 //-----------------------------------Robot Int functions
 

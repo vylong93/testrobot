@@ -8,7 +8,7 @@
 
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
-#define DELAY_MEASURE_DISTANCE_STATE 2000 	// move to exchange table state timeout period
+#define DELAY_MEASURE_DISTANCE_STATE 1000 	// move to exchange table state timeout period
 #define DELAY_EXCHANGE_TABLE_STATE	 5000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 
@@ -45,7 +45,6 @@ typedef struct tagOneHopMeas
 #define PRIORITY_LOW_POWER_MODE		0xE0
 
 #define INT_SW_TRIGGER_LPM			INT_I2C1
-#define INT_SW_TRIGGER_PROCESS		INT_I2C2
 
 //----------------Robot Init functions-------------------
 #define EEPROM_ADDR_ROBOT_ID			0x0040
@@ -55,10 +54,10 @@ typedef enum
 	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, LOCALIZATION
 } ProcessStateEnum;
 
-
 void initRobotProcess();
 void checkAndResponeMyNeighborsTableToOneRobot();
 void sendNeighborsTableToControlBoard();
+void sendOneHopNeighborsTableToControlBoard();
 void getNeighborNeighborsTable();
 
 //-----------------------------------Robot Int functions
@@ -276,6 +275,7 @@ float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t i
 #define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
 #define PC_SEND_READ_ONEHOP_TABLE		0xA7
 #define PC_SEND_SET_TABLE_POSITION		0xA8
+#define PC_SEND_SET_ONE_HOP_POSITION	0xA9
 
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 
