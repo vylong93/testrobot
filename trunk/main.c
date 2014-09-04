@@ -50,6 +50,7 @@ extern bool g_bBypassThisState;
 extern RobotMeasStruct NeighborsTable[];
 extern OneHopMeasStruct OneHopNeighborsTable[];
 extern uint8_t g_ui8ReadTablePosition;
+extern uint8_t g_ui8ReadOneHopTablePosition;
 extern uint8_t g_ui8NeighborsCounter;
 
 extern uint8_t RF24_RX_buffer[];
@@ -208,8 +209,6 @@ void RobotProcess()
 		{
 			while (neighborsTablePointer < g_ui8NeighborsCounter)
 			{
-				reloadDelayTimerA();
-
 				generateRandomByte();
 
 				while (g_ui8RandomNumber == 0)
@@ -218,6 +217,7 @@ void RobotProcess()
 				ui8RandomRfChannel = ((g_ui8RandomNumber % 125) + 1) & 0x7F; // only allow channel range form 1 to 125
 
 				g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+
 				while(1)
 				{
 					reloadDelayTimerA();
@@ -231,8 +231,9 @@ void RobotProcess()
 
 					delayTimerB(ui16RandomValue, true); // maybe Received Request table command here!
 
-					while(!g_bDelayTimerBFlagAssert);	// this line make sure robot will delay after send neighbors table to another robot
+					while(!g_bDelayTimerBFlagAssert);	// this line make sure robot will re delay after send neighbors table to another robot
 
+					// delay timeout
 					RF24_TX_buffer[0] = ROBOT_REQUEST_NEIGHBORS_TABLE;
 					RF24_TX_buffer[1] = g_ui32RobotID >> 24;
 					RF24_TX_buffer[2] = g_ui32RobotID >> 16;
@@ -240,7 +241,6 @@ void RobotProcess()
 					RF24_TX_buffer[4] = g_ui32RobotID;
 					RF24_TX_buffer[5] = ui8RandomRfChannel;
 
-					// delay timeout
 					if (sendMessageToOneNeighbor(NeighborsTable[neighborsTablePointer].ID, RF24_TX_buffer, 6))
 					{
 						turnOffLED(LED_RED);
@@ -409,8 +409,12 @@ inline void RF24_IntHandler()
 						sendNeighborsTableToControlBoard();
 						break;
 
+					case PC_SEND_SET_ONE_HOP_POSITION:
+						g_ui8ReadOneHopTablePosition = RF24_RX_buffer[1];
+						break;
+
 					case PC_SEND_READ_ONEHOP_TABLE:
-						//TODO: sendDataToControlBoard((uint8_t *) OneHopMeasStruct DisctanceTable[10]);
+						sendOneHopNeighborsTableToControlBoard();
 						break;
 
 					case PC_TEST_RF_TRANSMISSION:
