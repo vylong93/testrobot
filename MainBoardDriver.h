@@ -6,7 +6,12 @@
 #define DELAY_START_SPEAKER	100000
 #define DELAY_SAMPING_MIC	 90000
 
-#define DELAY_MEASURE_DISTANCE_STATE 5000
+// These following definition use for 32-bit Timer delay, 1 stand for 1ms
+// so the range must between 1ms to 85s (85000ms)
+#define DELAY_MEASURE_DISTANCE_STATE 2000 	// move to exchange table state timeout period
+#define DELAY_EXCHANGE_TABLE_STATE	 5000	// move to next state timeout period
+#define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
+
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH 10
@@ -20,7 +25,7 @@ typedef struct tagRobotMeas
 typedef struct tagOneHopMeas
 {
 	uint32_t firstHopID;
-	RobotMeasStruct neighbors[10];
+	RobotMeasStruct neighbors[NEIGHBOR_TABLE_LENGTH];
 } OneHopMeasStruct;
 
 /*
@@ -45,10 +50,16 @@ typedef struct tagOneHopMeas
 //----------------Robot Init functions-------------------
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 
+typedef enum
+{
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, LOCALIZATION
+} ProcessStateEnum;
+
+
 void initRobotProcess();
-//void sendNeighborsTableToControlBoard();
+void checkAndResponeMyNeighborsTableToOneRobot();
 void sendNeighborsTableToControlBoard();
-void RobotProcess();
+void getNeighborNeighborsTable();
 
 //-----------------------------------Robot Int functions
 
@@ -73,9 +84,6 @@ int32_t calACos(float x);
 #define DELAY_TIMER_BASE	WTIMER0_BASE
 #define INT_DELAY_TIMERA	INT_WTIMER0A
 #define INT_DELAY_TIMERB	INT_WTIMER0B
-
-extern volatile bool g_bDelayTimerAFlag;
-extern volatile bool g_bDelayTimerBFlag;
 
 void initTimerDelay();
 void delayTimerA(uint32_t period, bool isSynchronous);
@@ -218,12 +226,6 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
 #define DMA_RANDOM_GEN_CHANNEL			UDMA_CH24_ADC1_0
 #define RANDOM_GEN_INT                	INT_ADC1SS0
 
-extern uint16_t g_ui16BatteryVoltage;
-extern uint16_t g_pui16ADC0Result[];
-extern uint16_t g_pui16ADC1Result[];
-extern uint8_t g_pui8RandomBuffer[];
-extern uint8_t g_ui8RandomNumber;
-
 inline void initPeripheralsForAnalogFunction(void);
 inline void startSamplingMicSignals();
 inline void startSamplingBatteryVoltage();
@@ -282,6 +284,10 @@ float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t i
 #define PC_SEND_SET_ADDRESS_EEPROM      0xE2
 
 #define ROBOT_REQUEST_SAMPLING_MIC		0xD0
+#define ROBOT_REQUEST_NEIGHBORS_TABLE 	0xD1
+
+#define ROBOT_RESPONSE_HELLO_NEIGHBOR		0xD2
+#define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 	0xD3
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
@@ -291,6 +297,7 @@ float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t i
 inline void initRfModule();
 inline void testRfTransmission();
 void sendDataToControlBoard(uint8_t * data);
+bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer, uint32_t length);
 inline void testCarrierDetection();
 inline void sendTestData();
 void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length);
@@ -305,8 +312,6 @@ typedef enum
   SLEEP_MODE,
   DEEP_SLEEP_MODE,
 } CpuStateEnum;
-
-extern CpuStateEnum  g_eCPUState;	// Low Power Mode State
 
 //-----------------------------------------------------------------------------
 //  void initLowPowerMode()

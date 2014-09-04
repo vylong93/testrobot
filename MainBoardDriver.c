@@ -28,8 +28,14 @@
 #include "CustomTivaDrivers.h"
 #include "MainBoardDriver.h"
 
-volatile bool g_bDelayTimerAFlag;
-volatile bool g_bDelayTimerBFlag;
+uint8_t RF24_RX_buffer[32] = { 0 };
+uint8_t RF24_TX_buffer[32] = { 0 };
+
+uint8_t g_ui8ReTransmitCounter; // set this variable to 0 to disable software reTransmit
+
+
+bool g_bDelayTimerAFlagAssert;
+bool g_bDelayTimerBFlagAssert;
 
 static uint32_t timerALastDelayPeriod;
 static uint32_t timerBLastDelayPeriod;
@@ -56,7 +62,7 @@ void initTimerDelay()
 
 void delayTimerA(uint32_t period, bool isSynchronous)
 {
-	g_bDelayTimerAFlag = false;
+	g_bDelayTimerAFlagAssert = false;
 
 	timerALastDelayPeriod = SysCtlClockGet() / 1000 * period;
 
@@ -65,7 +71,7 @@ void delayTimerA(uint32_t period, bool isSynchronous)
 	TimerEnable(DELAY_TIMER_BASE, TIMER_A);
 
 	if (isSynchronous)
-		while (!g_bDelayTimerAFlag)
+		while (!g_bDelayTimerAFlagAssert)
 			;
 }
 
@@ -76,7 +82,7 @@ void reloadDelayTimerA()
 
 void delayTimerB(uint32_t period, bool isSynchronous)
 {
-	g_bDelayTimerBFlag = false;
+	g_bDelayTimerBFlagAssert = false;
 
 	timerBLastDelayPeriod = SysCtlClockGet() / 1000 * period;
 
@@ -85,7 +91,7 @@ void delayTimerB(uint32_t period, bool isSynchronous)
 	TimerEnable(DELAY_TIMER_BASE, TIMER_B);
 
 	if (isSynchronous)
-		while (!g_bDelayTimerBFlag)
+		while (!g_bDelayTimerBFlagAssert)
 			;
 }
 
@@ -191,36 +197,194 @@ int32_t calACos(float x)
 //-----------------------------------Math functions
 
 //----------------Robot Init functions-------------------
-extern uint32_t g_ui32RobotID;
-extern RobotMeasStruct Neighbors[];
-extern OneHopMeasStruct DisctanceTable[];
-extern uint8_t g_ui8ReadTablePosition;
 
- void initRobotProcess()
+OneHopMeasStruct OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
+RobotMeasStruct NeighborsTable[NEIGHBOR_TABLE_LENGTH];
+uint8_t g_ui8ReadTablePosition;
+uint8_t g_ui8NeighborsCounter;
+
+uint32_t g_ui32RobotID;
+
+ProcessStateEnum g_eProcessState;
+
+bool g_bBypassThisState;
+
+void initRobotProcess()
 {
 	//==============================================
 	// Get Robot ID form EEPROM
 	//==============================================
 	EEPROMRead(&g_ui32RobotID, EEPROM_ADDR_ROBOT_ID, sizeof(&g_ui32RobotID));
 
+	g_eProcessState = IDLE;
 }
 
- void sendNeighborsTableToControlBoard() {
-	 uint8_t buffer[8];
-	 uint32_t tempDistance = Neighbors[g_ui8ReadTablePosition].distance * 32768;
+void checkAndResponeMyNeighborsTableToOneRobot()
+{
+	uint32_t neighborID = 0;
+	uint32_t responseLength = 0;
+	uint32_t tableSizeInByte = 0;
+	uint32_t randomRfChannel = 0;
 
-	 buffer[0] = Neighbors[g_ui8ReadTablePosition].ID >> 24;
-	 buffer[1] = Neighbors[g_ui8ReadTablePosition].ID >> 16;
-	 buffer[2] = Neighbors[g_ui8ReadTablePosition].ID >> 8;
-	 buffer[3] = Neighbors[g_ui8ReadTablePosition].ID;
+	neighborID = RF24_RX_buffer[1];
+	neighborID = (neighborID << 8) + RF24_RX_buffer[2];
+	neighborID = (neighborID << 8) + RF24_RX_buffer[3];
+	neighborID = (neighborID << 8) + RF24_RX_buffer[4];
 
-	 buffer[4] = tempDistance >> 24;
-	 buffer[5] = tempDistance >> 16;
-	 buffer[6] = tempDistance >> 8;
-	 buffer[7] = tempDistance;
+	randomRfChannel = RF24_RX_buffer[5];
 
-	 sendDataToControlBoard(buffer);
- }
+	rfDelayLoop(DELAY_CYCLES_1MS5);
+
+	RF24_setChannel(randomRfChannel);
+
+	turnOffLED(LED_RED);
+
+	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < NEIGHBOR_TABLE_LENGTH; g_ui8ReadTablePosition++)
+	{
+		if (NeighborsTable[g_ui8ReadTablePosition].ID == neighborID)
+		{
+			RF24_TX_buffer[0] = ROBOT_RESPONSE_HELLO_NEIGHBOR;
+
+			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
+			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
+			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
+			RF24_TX_buffer[4] = g_ui32RobotID;
+
+			tableSizeInByte = sizeof(NeighborsTable);
+
+			RF24_TX_buffer[5] = tableSizeInByte >> 24;
+			RF24_TX_buffer[6] = tableSizeInByte >> 16;
+			RF24_TX_buffer[7] = tableSizeInByte >> 8;
+			RF24_TX_buffer[8] = tableSizeInByte;
+
+			responseLength = 9;
+		    break;
+		}
+	}
+
+	if (RF24_TX_buffer[0] != ROBOT_RESPONSE_HELLO_NEIGHBOR)
+	{
+		RF24_TX_buffer[0] = ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR;
+		responseLength = 1;
+	}
+
+	if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, responseLength))
+	{
+		//ROM_SysCtlDelay(10000); // delay 600us
+		sendMessageToOneNeighbor(neighborID, (uint8_t*)NeighborsTable, tableSizeInByte);
+	}
+
+
+	RF24_RX_flush();
+	RF24_setChannel(0);
+
+	turnOnLED(LED_RED);
+}
+
+void getNeighborNeighborsTable() {
+	uint32_t neighborID = 0;
+	uint32_t dataLength = 0;
+	uint32_t length = 0;
+	uint32_t writeTablePosition = 0;
+	uint32_t pointer = 0;
+	uint8_t i = 0;
+	bool isReceivedData = false;
+
+	disableRF24Interrupt();
+
+	delayTimerB(DELAY_EXCHANGE_TABLE_STATE, false);
+
+	while (!g_bDelayTimerBFlagAssert)
+	{
+		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+		{
+			reloadDelayTimerB();
+
+			if (RF24_getIrqFlag(RF24_IRQ_RX))
+			{
+				length = RF24_RX_getPayloadWidth();
+
+				RF24_RX_getPayloadData(length, RF24_RX_buffer);
+
+				RF24_clearIrqFlag(RF24_IRQ_RX);
+
+				if (!isReceivedData)
+				{
+					if (RF24_RX_buffer[0] == ROBOT_RESPONSE_HELLO_NEIGHBOR && length == 9)
+					{
+						neighborID = RF24_RX_buffer[1];
+						neighborID = (neighborID << 8) | RF24_RX_buffer[2];
+						neighborID = (neighborID << 8) | RF24_RX_buffer[3];
+						neighborID = (neighborID << 8) | RF24_RX_buffer[4];
+
+						dataLength = RF24_RX_buffer[5];
+						dataLength = (dataLength << 8) | RF24_RX_buffer[6];
+						dataLength = (dataLength << 8) | RF24_RX_buffer[7];
+						dataLength = (dataLength << 8) | RF24_RX_buffer[8];
+
+						for(writeTablePosition = 0; writeTablePosition < ONEHOP_NEIGHBOR_TABLE_LENGTH; writeTablePosition++)
+						{
+							if (OneHopNeighborsTable[writeTablePosition].firstHopID == 0)
+							{
+								OneHopNeighborsTable[writeTablePosition].firstHopID = neighborID;
+								pointer = 0;
+								isReceivedData = true;
+								break;
+							}
+						}
+						if (writeTablePosition == ONEHOP_NEIGHBOR_TABLE_LENGTH)
+						{
+							//enableRF24Interrupt();
+							//return; // out of range, table haven't erased
+							break;
+						}
+					}
+					else // if (RF24_RX_buffer[0] == ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR)
+					{
+						//enableRF24Interrupt();
+						//return;
+						break;
+					}
+				}
+				else
+				{
+					for(i = 0; i < length; i++)
+					{
+						*(((uint8_t*)OneHopNeighborsTable[writeTablePosition].neighbors) + pointer) = RF24_RX_buffer[i];
+						pointer++;
+					}
+					if (dataLength > length)
+						dataLength = dataLength - length;
+					else
+					{
+						//enableRF24Interrupt();
+						//return;
+						break;
+					}
+				}
+			}
+		}
+	}
+	enableRF24Interrupt();
+}
+
+void sendNeighborsTableToControlBoard()
+{
+	uint8_t buffer[8];
+	uint32_t tempDistance = NeighborsTable[g_ui8ReadTablePosition].distance * 32768;
+
+	buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
+	buffer[1] = NeighborsTable[g_ui8ReadTablePosition].ID >> 16;
+	buffer[2] = NeighborsTable[g_ui8ReadTablePosition].ID >> 8;
+	buffer[3] = NeighborsTable[g_ui8ReadTablePosition].ID;
+
+	buffer[4] = tempDistance >> 24;
+	buffer[5] = tempDistance >> 16;
+	buffer[6] = tempDistance >> 8;
+	buffer[7] = tempDistance;
+
+	sendDataToControlBoard(buffer);
+}
 //-----------------------------------Robot Int functions
 
 //-----------------------LED functions-------------------------
@@ -251,7 +415,8 @@ inline void toggleLED(uint8_t LEDpin)
 
 void signalUnhandleError()
 {
-	while (1)
+	int i;
+	for (i = 0; i < 2; i++)
 	{
 		GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
 		SysCtlDelay(2000000);
@@ -328,179 +493,179 @@ inline void setMotorDirection(uint32_t motorPortBase, uint8_t direction)
 
 inline void testAllMotorModes()
 {
-	uint8_t motorDutyCycles;
-
-	enableMOTOR();
-	turnOnLED(LED_RED);
-
-	//=========================Test LEFT Motor=========================
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-
-	// speed up
-	turnOnLED(LED_GREEN);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_GREEN);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-
-	// speed up
-	turnOnLED(LED_BLUE);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_BLUE);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-	//==================================================Test LEFT Motor
-
-	//=========================Test RIGHT Motor=========================
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	// speed up
-	turnOnLED(LED_GREEN);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_GREEN);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-
-	// speed up
-	turnOnLED(LED_BLUE);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_BLUE);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-	//==================================================Test RIGHT Motor
-
-	//=========================Test BOTH Motors=========================
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-
-	// speed up
-	turnOnLED(LED_GREEN);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_GREEN);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-
-	// speed up
-	turnOnLED(LED_BLUE);
-	motorDutyCycles = 100;
-	while (motorDutyCycles > 0)
-	{
-		motorDutyCycles--;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-
-	// slow down
-	turnOffLED(LED_BLUE);
-	motorDutyCycles = 0;
-	while (motorDutyCycles < 100)
-	{
-		motorDutyCycles++;
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				motorDutyCycles * ui32PWMPeriod / 100);
-		SysCtlDelay(500000);
-	}
-	//==================================================Test BOTH Motors
-
-	disableMOTOR();
-	turnOffLED(LED_RED);
+//	uint8_t motorDutyCycles;
+//
+//	enableMOTOR();
+//	turnOnLED(LED_RED);
+//
+//	//=========================Test LEFT Motor=========================
+//	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+//
+//	// speed up
+//	turnOnLED(LED_GREEN);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_GREEN);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+//
+//	// speed up
+//	turnOnLED(LED_BLUE);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_BLUE);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//	//==================================================Test LEFT Motor
+//
+//	//=========================Test RIGHT Motor=========================
+//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+//
+//	// speed up
+//	turnOnLED(LED_GREEN);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_GREEN);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+//
+//	// speed up
+//	turnOnLED(LED_BLUE);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_BLUE);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//	//==================================================Test RIGHT Motor
+//
+//	//=========================Test BOTH Motors=========================
+//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+//	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+//
+//	// speed up
+//	turnOnLED(LED_GREEN);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_GREEN);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+//	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+//
+//	// speed up
+//	turnOnLED(LED_BLUE);
+//	motorDutyCycles = 100;
+//	while (motorDutyCycles > 0)
+//	{
+//		motorDutyCycles--;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//
+//	// slow down
+//	turnOffLED(LED_BLUE);
+//	motorDutyCycles = 0;
+//	while (motorDutyCycles < 100)
+//	{
+//		motorDutyCycles++;
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+//				motorDutyCycles * ui32PWMPeriod / 100);
+//		SysCtlDelay(500000);
+//	}
+//	//==================================================Test BOTH Motors
+//
+//	disableMOTOR();
+//	turnOffLED(LED_RED);
 }
 
 inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
@@ -514,6 +679,17 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
 static unsigned char countAdcDMAsStopped = 0;
 
 static uint32_t g_ui32uDMAErrCount = 0;
+
+//*****************************************************************************
+// The buffers for ADCs
+//*****************************************************************************
+uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE];
+uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE];
+
+uint8_t g_pui8RandomBuffer[8];
+uint8_t g_ui8RandomNumber = 0;
+
+uint16_t g_ui16BatteryVoltage;
 
 #ifdef gcc
 static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
@@ -813,11 +989,15 @@ void uDMAErrorHandler(void)
 
 //----------------------------------------------TDOA functions----------------------------------------------
 // Initialize two filter, input and output buffer pointers
-float32_t OutputMicA[NUMBER_OF_SAMPLE] = { 0 };
-float32_t OutputMicB[NUMBER_OF_SAMPLE] = { 0 };
+float32_t OutputMicA[NUMBER_OF_SAMPLE] =
+{ 0 };
+float32_t OutputMicB[NUMBER_OF_SAMPLE] =
+{ 0 };
 
-float32_t SamplesMicA[NUMBER_OF_SAMPLE] = { 0 };
-float32_t SamplesMicB[NUMBER_OF_SAMPLE] = { 0 };
+float32_t SamplesMicA[NUMBER_OF_SAMPLE] =
+{ 0 };
+float32_t SamplesMicB[NUMBER_OF_SAMPLE] =
+{ 0 };
 
 arm_fir_instance_f32 FilterA;
 arm_fir_instance_f32 FilterB;
@@ -826,10 +1006,10 @@ static float32_t pStateA[BLOCK_SIZE + FILTER_ORDER - 1] =
 static float32_t pStateB[BLOCK_SIZE + FILTER_ORDER - 1] =
 { 0 };
 
-extern float32_t g_f32PeakEnvelopeA;
-extern float32_t g_f32MaxEnvelopeA;
-extern float32_t g_f32PeakEnvelopeB;
-extern float32_t g_f32MaxEnvelopeB;
+float32_t g_f32PeakEnvelopeA;
+float32_t g_f32MaxEnvelopeA;
+float32_t g_f32PeakEnvelopeB;
+float32_t g_f32MaxEnvelopeB;
 
 void initFilters(float32_t* FilterCoeffs)
 {
@@ -1099,8 +1279,6 @@ void SpeakerTimerIntHandler(void)
 //-----------------------------------Speaker functions
 
 //----------------------RF24 Functions------------------------
-extern uint8_t RF24_RX_buffer[32];
-
 #define RF24_CONTOLBOARD_ADDR_BYTE2		0xC1
 #define RF24_CONTOLBOARD_ADDR_BYTE1		0xAC
 #define RF24_CONTOLBOARD_ADDR_BYTE0		0x02
@@ -1198,7 +1376,6 @@ void sendDataToControlBoard(uint8_t * data)
 	length = (length << 8) + RF24_RX_buffer[3];
 	length = (length << 8) + RF24_RX_buffer[4];
 
-	uint8_t buffer[32];
 	uint32_t pointer = 0;
 	uint32_t i;
 
@@ -1215,19 +1392,27 @@ void sendDataToControlBoard(uint8_t * data)
 	RF24_TX_activate();
 	RF24_RETRANS_setCount(RF24_RETRANS_COUNT15);
 	RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_4000u);
+
+	disableRF24Interrupt();
+
 	while (1)
 	{
 		rfDelayLoop(DELAY_CYCLES_1MS5);
 
-		for (i = 0; (i < length) && (i < 32); i++)
+		if (data != RF24_TX_buffer)
 		{
-			buffer[i] = *(data + pointer);
-			pointer++;
+			for (i = 0; (i < length) && (i < 32); i++)
+			{
+				RF24_TX_buffer[i] = *(data + pointer);
+				pointer++;
+			}
+		}
+		else
+		{
+			i = length;
 		}
 
-		RF24_TX_writePayloadAck(i, &buffer[0]);
-
-		disableRF24Interrupt();
+		RF24_TX_writePayloadAck(i, (uint8_t*)RF24_TX_buffer);
 
 		RF24_TX_pulseTransmit();
 
@@ -1268,6 +1453,98 @@ void sendDataToControlBoard(uint8_t * data)
 			enableRF24Interrupt();
 
 			return;
+		}
+	}
+}
+
+bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer, uint32_t length)
+{
+	uint8_t addr[3];
+
+	addr[2] = neighborID >> 16;
+	addr[1] = neighborID >> 8;
+	addr[0] = neighborID;
+	RF24_RX_setAddress(RF24_PIPE0, addr);
+	RF24_TX_setAddress(addr);
+
+	uint32_t pointer = 0;
+	uint32_t i;
+
+	RF24_RX_flush();
+	RF24_clearIrqFlag(RF24_IRQ_RX);
+	RF24_TX_activate();
+	RF24_RETRANS_setCount(RF24_RETRANS_COUNT15);
+	RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_2000u);
+
+	disableRF24Interrupt();
+
+	while (1)
+	{
+		rfDelayLoop(DELAY_CYCLES_1MS5);
+
+		if (messageBuffer != RF24_TX_buffer)
+		{
+			for (i = 0; (i < length) && (i < 32); i++)
+			{
+				RF24_TX_buffer[i] = *(messageBuffer + pointer);
+				pointer++;
+			}
+		}
+		else
+		{
+			i = length;
+		}
+
+		RF24_TX_writePayloadAck(i, RF24_TX_buffer);
+
+		RF24_TX_pulseTransmit();
+
+		while (1)
+		{
+			if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+			{
+				if (RF24_getIrqFlag(RF24_IRQ_TX))
+					break;
+				if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
+				{
+					RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
+
+					if (g_ui8ReTransmitCounter != 0) 	// software trigger reTransmit
+					{
+						g_ui8ReTransmitCounter++;
+					}
+
+					addr[2] = g_ui32RobotID >> 16;
+					addr[1] = g_ui32RobotID >> 8;
+					addr[0] = g_ui32RobotID;
+					RF24_RX_setAddress(RF24_PIPE0, addr);
+					RF24_RX_activate();
+
+					enableRF24Interrupt();
+
+					return false;
+				}
+				else
+				{
+					RF24_clearIrqFlag(RF24_IRQ_MASK);
+				}
+			}
+		}
+		RF24_clearIrqFlag(RF24_IRQ_TX);
+
+		if (length > 32)
+			length -= 32;
+		else
+		{
+			addr[2] = g_ui32RobotID >> 16;
+			addr[1] = g_ui32RobotID >> 8;
+			addr[0] = g_ui32RobotID;
+			RF24_RX_setAddress(RF24_PIPE0, addr);
+			RF24_RX_activate();
+
+			enableRF24Interrupt();
+
+			return true;
 		}
 	}
 }
@@ -1483,7 +1760,7 @@ inline void wakeUpFormLPM()
 //----------------------------------Low Power Mode Functions
 
 //----------------EEPROM functions-------------------
-extern uint32_t g_ui32EEPROMAdderss;
+uint32_t g_ui32EEPROMAdderss;
 
 void initEEPROM()
 {
