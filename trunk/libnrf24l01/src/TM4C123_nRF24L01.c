@@ -129,4 +129,12 @@ inline char getCEState()
   return CEState;
 }
 
+void disableRF24Interrupt() {
+    // Disable the interrupts.
+    IntDisable(RF24_INT);
+}
 
+void enableRF24Interrupt() {
+    // Enable the interrupts.
+    IntEnable(RF24_INT);
+}

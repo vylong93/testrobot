@@ -38,9 +38,9 @@ uint32_t g_ui32RobotID;
 //*****************************************************************************
 // The buffer to receive data from the RF module
 //*****************************************************************************
-volatile uint8_t RF24_RX_buffer[32] =
+uint8_t RF24_RX_buffer[32] =
 { 0 };
-volatile uint8_t RF24_TX_buffer[32] =
+uint8_t RF24_TX_buffer[32] =
 { 0 };
 
 //*****************************************************************************
@@ -56,7 +56,7 @@ uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE];
 uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE];
 
 uint8_t g_pui8RandomBuffer[8];
-uint8_t g_ui8RandomNumber;
+uint8_t g_ui8RandomNumber = 0;
 
 uint16_t g_ui16BatteryVoltage;
 
@@ -76,21 +76,13 @@ typedef enum
 
 ProcessStateEnum g_eProcessState = IDLE;
 
-typedef struct tagRobotMeas
-{
-	float32_t distance;
-	uint32_t ID;
-} RobotMeasStruct;
-
-typedef struct tagOneHopMeas
-{
-	uint32_t firstHopID;
-	RobotMeasStruct neighbors[10];
-} OneHopMeasStruct;
-
-OneHopMeasStruct DisctanceTable[10];
-RobotMeasStruct Neighbors[10];
+OneHopMeasStruct OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
+RobotMeasStruct Neighbors[NEIGHBOR_TABLE_LENGTH];
 uint8_t neighborsCounter = 0;
+
+bool g_bhasSentCommand = false;
+
+uint8_t g_ui8ReadTablePosition = 0;
 
 int main(void)
 {
@@ -136,8 +128,7 @@ int main(void)
 
 	while (1)
 	{
-		rfDelayLoop(DELAY_CYCLES_5MS * 25);
-		toggleLED(LED_RED);
+		RobotProcess();
 	}
 }
 
@@ -215,7 +206,6 @@ inline void RF24_IntHandler()
 					break;
 
 				case PC_TEST_ALL_MOTOR_MODES:
-					// testAllMotorModes();
 					//TODO: modified to set random direction with random speed
 					break;
 
@@ -286,15 +276,35 @@ inline void RF24_IntHandler()
 					startSpeaker();
 					break;
 
+				case PC_SEND_SET_TABLE_POSITION:
+					g_ui8ReadTablePosition = RF24_RX_buffer[1];
+					break;
+
+				case PC_SEND_READ_NEIGHBORS_TABLE:
+					sendNeighborsTableToControlBoard();
+					break;
+
+				case PC_SEND_READ_ONEHOP_TABLE:
+					//TODO: sendDataToControlBoard((uint8_t *) OneHopMeasStruct DisctanceTable[10]);
+					break;
+
 				case PC_SEND_MEASURE_DISTANCE:
 
 					turnOffLED(LED_ALL);
 
 					g_eProcessState = MEASURE_DISTANCE;
 
-					delayTimerA(5000, false); // Asychronous delay 5 second
+					g_bhasSentCommand = false;
 
-					IntTrigger(INT_SW_TRIGGER_PROCESS);
+					while (neighborsCounter != 0)
+					{
+						Neighbors[neighborsCounter].ID = 0;
+						Neighbors[neighborsCounter].distance = 0;
+
+						neighborsCounter--;
+					}
+
+					delayTimerA(DELAY_MEASURE_DISTANCE_STATE, false);
 
 					break;
 
@@ -302,30 +312,10 @@ inline void RF24_IntHandler()
 					// DO NOT INSERT ANY CODE IN HERE!
 					startSamplingMicSignals();
 
-//					turnOnLED(LED_GREEN);
-//
-//					reloadDelayTimerA();
-//
-//					runAlgorithmTDOA();
-
-					//TODO: check threshold g_f32MaxEnvelopeA and g_f32MaxEnvelopeB make sure is valid neighbor
-
 					Neighbors[neighborsCounter].ID = (RF24_RX_buffer[1] << 24)
 							| (RF24_RX_buffer[2] << 16)
 							| (RF24_RX_buffer[3] << 8) | RF24_RX_buffer[4];
 
-//					Neighbors[neighborsCounter].distance = (g_f32PeakEnvelopeA
-//							+ g_f32PeakEnvelopeB) / 2;
-//
-//					neighborsCounter++;
-//					neighborsCounter = (neighborsCounter < 10) ? (neighborsCounter) : (0);
-//
-//					turnOffLED(LED_GREEN);
-
-					break;
-
-				case ROBOT_CONFIRM_MEASURE_DISCTANCE:
-					//TODO:
 					break;
 
 				case COMMAND_SLEEP:
@@ -363,61 +353,64 @@ inline void RF24_IntHandler()
 	}
 }
 
-void RobotProcessIntHandler(void)
+void RobotProcess()
 {
-	bool hasSentCommand = false;
 	uint16_t ui16RandomValue;
 
 	switch (g_eProcessState)
 	{
 	case MEASURE_DISTANCE:
+		turnOnLED(LED_BLUE);
+
 		do
 		{
-			if (!hasSentCommand)
+			generateRandomByte();
+
+			while (g_ui8RandomNumber == 0)
+				;
+			g_ui8RandomNumber =
+					(g_ui8RandomNumber < 100) ?
+							(g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+			ui16RandomValue = (g_ui32RobotID << 8) | g_ui8RandomNumber;
+
+			delayTimerB(ui16RandomValue, false);
+
+			while (!g_bDelayTimerBFlag)
 			{
-
-				turnOnLED(LED_BLUE);
-
-				generateRandomByte();
-
-				while (g_ui8RandomNumber == 0)
-					;
-				g_ui8RandomNumber =
-						(g_ui8RandomNumber < 100) ?
-								(g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-				ui16RandomValue = (g_ui32RobotID << 8) | g_ui8RandomNumber;
-
-				delayTimerB(ui16RandomValue, false);
-
-				while (!g_bDelayTimerBFlag)
+				if (Neighbors[neighborsCounter].ID != 0)
 				{
-					if (Neighbors[neighborsCounter].ID != 0)
+					turnOnLED(LED_GREEN);
+
+					reloadDelayTimerA();
+
+					runAlgorithmTDOA();
+
+					if (g_f32MaxEnvelopeA < MAX_THRESHOLD
+							|| g_f32MaxEnvelopeB < MAX_THRESHOLD)
 					{
-						turnOnLED(LED_GREEN);
-
-						reloadDelayTimerA();
-
-						runAlgorithmTDOA();
-
-						//TODO: check threshold g_f32MaxEnvelopeA and g_f32MaxEnvelopeB make sure is valid neighbor
-
+						Neighbors[neighborsCounter].ID = 0;
+					}
+					else
+					{
 						Neighbors[neighborsCounter].distance =
 								(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) / 2;
 
 						neighborsCounter++;
+
+						//TODO: search the worth result and replace it by the current result if better
 						neighborsCounter =
-								(neighborsCounter < 10) ?
+								(neighborsCounter < NEIGHBOR_TABLE_LENGTH) ?
 										(neighborsCounter) : (0);
-
-						turnOffLED(LED_GREEN);
 					}
+					turnOffLED(LED_GREEN);
 				}
+			}
 
+			if (!g_bhasSentCommand)
+			{
 				turnOffLED(LED_BLUE);
 
 				reloadDelayTimerA();
-
-				// delay timeout - send request
 
 				RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
 				RF24_TX_buffer[1] = g_ui32RobotID >> 24;
@@ -431,23 +424,13 @@ void RobotProcessIntHandler(void)
 
 				RF24_RX_activate();
 
-				hasSentCommand = true;
-
-				//		//set TimerB 2s timeout, reset Timer everytime received RF data
-				//		delayTimerB(2000, true);
-				//
-				//		// send confirm if timeout
-				//		RF24_TX_buffer[0] = ROBOT_CONFIRM_MEASURE_DISCTANCE;
-				//		RF24_TX_buffer[1] = g_ui32RobotID >> 24;
-				//		RF24_TX_buffer[2] = g_ui32RobotID >> 16;
-				//		RF24_TX_buffer[3] = g_ui32RobotID >> 8;
-				//		RF24_TX_buffer[4] = g_ui32RobotID;
-				//		broadcastLocalNeighbor(RF24_TX_buffer, 5);
+				g_bhasSentCommand = true;
 			}
 		} while (!g_bDelayTimerAFlag);
 
 		//TODO: exchange table - State 2 start here
 		turnOnLED(LED_ALL);
+		g_eProcessState = IDLE;
 
 		break;
 
@@ -458,6 +441,8 @@ void RobotProcessIntHandler(void)
 		break;
 
 	default:
+		rfDelayLoop(DELAY_CYCLES_5MS * 25);
+		toggleLED(LED_RED);
 		break;
 	}
 }

@@ -65,7 +65,6 @@ extern void LowPowerModeIntHandler(void);
 extern void SpeakerTimerIntHandler(void);
 extern void BatterySequenceIntHandler(void);
 extern void RandomGeneratorIntHandler(void);
-extern void RobotProcessIntHandler(void);
 extern void DelayTimerAIntHanler(void);
 extern void DelayTimerBIntHanler(void);
 
@@ -164,7 +163,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    RobotProcessIntHandler,                      // I2C2 Master and Slave
+    IntDefaultHandler,                      // I2C2 Master and Slave
     IntDefaultHandler,                      // I2C3 Master and Slave
     IntDefaultHandler,                      // Timer 4 subtimer A
     IntDefaultHandler,                      // Timer 4 subtimer B
