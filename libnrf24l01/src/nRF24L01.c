@@ -19,12 +19,7 @@ void RF24_init(const RF24_InitTypeDef* InitRf24)
     setRfCSN();
     clearRfCE();
 
-    // Wait 100ms for RF transceiver to initialize.
-    unsigned char c = 20;
-    for (; c; c--)
-    {
-       rfDelayLoop(DELAY_CYCLES_5MS);
-    }
+    rfDelayLoop(DELAY_CYCLES_5MS);
 
     RF24_clearIrqFlag(RF24_IRQ_MASK);
 

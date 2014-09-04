@@ -6,18 +6,37 @@
 #define DELAY_START_SPEAKER	100000
 #define DELAY_SAMPING_MIC	 90000
 
+#define DELAY_MEASURE_DISTANCE_STATE 5000
+
+#define NEIGHBOR_TABLE_LENGTH 10
+#define ONEHOP_NEIGHBOR_TABLE_LENGTH 10
+
+typedef struct tagRobotMeas
+{
+	uint32_t ID;
+	float32_t distance;
+} RobotMeasStruct;
+
+typedef struct tagOneHopMeas
+{
+	uint32_t firstHopID;
+	RobotMeasStruct neighbors[10];
+} OneHopMeasStruct;
+
 /*
  * Priority level: 0x00 = 0x20 :: 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
  */
 
 //#define PRIORITY_RF24_IRQ			0x00 // CANNOT change this priority in here!
-#define PRIORITY_DMA_BATT			0x20
-#define PRIORITY_DMA_RANDOM_GEN		0x20
+#define PRIORITY_DMA_BATT			0x00
+
+#define PRIORITY_DMA_RANDOM_GEN		0x40
 #define PRIORITY_DMA_MIC1			0x40
 #define PRIORITY_DMA_MIC2			0x40
+
 #define PRIORITY_DELAY_TIMERA		0x60
 #define PRIORITY_DELAY_TIMERB		0x60
-#define PRIORITY_ROBOT_PROCESS		0x80
+
 #define PRIORITY_LOW_POWER_MODE		0xE0
 
 #define INT_SW_TRIGGER_LPM			INT_I2C1
@@ -27,6 +46,10 @@
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 
 void initRobotProcess();
+//void sendNeighborsTableToControlBoard();
+void sendNeighborsTableToControlBoard();
+void RobotProcess();
+
 //-----------------------------------Robot Int functions
 
 
@@ -214,6 +237,7 @@ inline void generateRandomByte();
 #define START_SAMPLES_POSTITION         40
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
+#define MAX_THRESHOLD					50
 
 inline void initFilters(float32_t* FilterCoeffs);
 void runAlgorithmTDOA();
@@ -247,6 +271,9 @@ float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t i
 
 #define PC_SEND_STOP_MOTOR_LEFT			0xA4
 #define PC_SEND_STOP_MOTOR_RIGHT		0xA5
+#define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
+#define PC_SEND_READ_ONEHOP_TABLE		0xA7
+#define PC_SEND_SET_TABLE_POSITION		0xA8
 
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 
@@ -255,7 +282,6 @@ float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t i
 #define PC_SEND_SET_ADDRESS_EEPROM      0xE2
 
 #define ROBOT_REQUEST_SAMPLING_MIC		0xD0
-#define ROBOT_CONFIRM_MEASURE_DISCTANCE	0xD1
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02

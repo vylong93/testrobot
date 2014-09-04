@@ -19,14 +19,12 @@
 #ifndef _TM4C123_NRF24L01_H
 #define _TM4C123_NRF24L01_H
 
-// Address Pipe 1
 #define RF24_GLOBAL_BOARDCAST_BYTE2	0xBE
 #define RF24_GLOBAL_BOARDCAST_BYTE1	0xAD
 #define RF24_GLOBAL_BOARDCAST_BYTE0	0xFF
 
-// Address Pipe 2 - only last address byte can be modified
-#define RF24_LOCAL_BOARDCAST_BYTE2	RF24_GLOBAL_BOARDCAST_BYTE2
-#define RF24_LOCAL_BOARDCAST_BYTE1	RF24_GLOBAL_BOARDCAST_BYTE1
+#define RF24_LOCAL_BOARDCAST_BYTE2	0xBE
+#define RF24_LOCAL_BOARDCAST_BYTE1	0xAD
 #define RF24_LOCAL_BOARDCAST_BYTE0	0x00
 
 // Settings for 50MHz System Clock
@@ -87,5 +85,9 @@ void rfDelayLoop (uint32_t delay);
 // Should use a private variable to store CE state then return it
 // through this function instead of reading pin value.
 char getCEState();
+
+void disableRF24Interrupt();
+
+void enableRF24Interrupt();
 
 #endif //_TM4C123_NRF24L01_H

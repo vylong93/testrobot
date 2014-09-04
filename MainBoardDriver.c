@@ -192,21 +192,35 @@ int32_t calACos(float x)
 
 //----------------Robot Init functions-------------------
 extern uint32_t g_ui32RobotID;
+extern RobotMeasStruct Neighbors[];
+extern OneHopMeasStruct DisctanceTable[];
+extern uint8_t g_ui8ReadTablePosition;
 
-void initRobotProcess()
+ void initRobotProcess()
 {
 	//==============================================
 	// Get Robot ID form EEPROM
 	//==============================================
 	EEPROMRead(&g_ui32RobotID, EEPROM_ADDR_ROBOT_ID, sizeof(&g_ui32RobotID));
 
-	//==============================================
-	// IMPORTANCE: Configure Software Interrupt
-	//==============================================
-	IntPrioritySet(INT_SW_TRIGGER_PROCESS, PRIORITY_ROBOT_PROCESS);
-
-	IntEnable(INT_SW_TRIGGER_PROCESS);
 }
+
+ void sendNeighborsTableToControlBoard() {
+	 uint8_t buffer[8];
+	 uint32_t tempDistance = Neighbors[g_ui8ReadTablePosition].distance * 32768;
+
+	 buffer[0] = Neighbors[g_ui8ReadTablePosition].ID >> 24;
+	 buffer[1] = Neighbors[g_ui8ReadTablePosition].ID >> 16;
+	 buffer[2] = Neighbors[g_ui8ReadTablePosition].ID >> 8;
+	 buffer[3] = Neighbors[g_ui8ReadTablePosition].ID;
+
+	 buffer[4] = tempDistance >> 24;
+	 buffer[5] = tempDistance >> 16;
+	 buffer[6] = tempDistance >> 8;
+	 buffer[7] = tempDistance;
+
+	 sendDataToControlBoard(buffer);
+ }
 //-----------------------------------Robot Int functions
 
 //-----------------------LED functions-------------------------
@@ -657,6 +671,7 @@ inline void initPeripheralsForAnalogFunction(void)
 	 */
 	SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
 	TimerDisable(ADC_TIMER, TIMER_A);
+	TimerClockSourceSet(ADC_TIMER, TIMER_CLOCK_SYSTEM);
 	TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
 	TimerLoadSet(ADC_TIMER, TIMER_A, (SysCtlClockGet() / SAMPLE_FREQUENCY));
 	TimerControlTrigger(ADC_TIMER, TIMER_A, true);
@@ -1203,12 +1218,17 @@ void sendDataToControlBoard(uint8_t * data)
 	while (1)
 	{
 		rfDelayLoop(DELAY_CYCLES_1MS5);
+
 		for (i = 0; (i < length) && (i < 32); i++)
 		{
 			buffer[i] = *(data + pointer);
 			pointer++;
 		}
+
 		RF24_TX_writePayloadAck(i, &buffer[0]);
+
+		disableRF24Interrupt();
+
 		RF24_TX_pulseTransmit();
 
 		while (1)
@@ -1225,6 +1245,9 @@ void sendDataToControlBoard(uint8_t * data)
 					addr[0] = g_ui32RobotID;
 					RF24_RX_setAddress(RF24_PIPE0, addr);
 					RF24_RX_activate();
+
+					enableRF24Interrupt();
+
 					return;
 				}
 			}
@@ -1241,6 +1264,9 @@ void sendDataToControlBoard(uint8_t * data)
 			RF24_RX_setAddress(RF24_PIPE0, addr);
 			RF24_RX_activate();
 			GPIOPinWrite(LED_PORT_BASE, LED_ALL, LED_RED);
+
+			enableRF24Interrupt();
+
 			return;
 		}
 	}
@@ -1259,8 +1285,22 @@ void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length)
 
 	RF24_TX_writePayloadNoAck(ui8Length, pData);
 
+	disableRF24Interrupt();
+
 	RF24_TX_pulseTransmit();
 
+	while (1)
+	{
+		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+		{
+			if (RF24_getIrqFlag(RF24_IRQ_TX))
+				break;
+		}
+	}
+
+	RF24_clearIrqFlag(RF24_IRQ_TX);
+
+	enableRF24Interrupt();
 }
 
 inline void testCarrierDetection()
