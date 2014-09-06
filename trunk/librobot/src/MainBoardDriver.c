@@ -241,6 +241,9 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 
 oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
 robotMeas_t NeighborsTable[NEIGHBOR_TABLE_LENGTH];
+location_t locs[LOCATIONS_TABLE_LENGTH];
+
+uint32_t g_ui8LocsCounter = 0;
 uint8_t g_ui8ReadTablePosition;
 uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
@@ -248,6 +251,8 @@ uint8_t g_ui8NeighborsCounter;
 uint32_t g_ui32RobotID;
 
 ProcessStateEnum g_eProcessState;
+
+extern location_t locs[];
 
 bool g_bBypassThisState;
 
@@ -430,6 +435,30 @@ void sendNeighborsTableToControlBoard()
 	sendDataToControlBoard(RF24_TX_buffer);
 }
 
+void sendLocationsTableToControlBoard()
+{
+	uint32_t temp;
+
+	RF24_TX_buffer[0] = locs[g_ui8ReadTablePosition].ID >> 24;
+	RF24_TX_buffer[1] = locs[g_ui8ReadTablePosition].ID >> 16;
+	RF24_TX_buffer[2] = locs[g_ui8ReadTablePosition].ID >> 8;
+	RF24_TX_buffer[3] = locs[g_ui8ReadTablePosition].ID;
+
+	temp = locs[g_ui8ReadTablePosition].vector.x * 32768;
+	RF24_TX_buffer[4] = temp >> 24;
+	RF24_TX_buffer[5] = temp >> 16;
+	RF24_TX_buffer[6] = temp >> 8;
+	RF24_TX_buffer[7] = temp;
+
+	temp = locs[g_ui8ReadTablePosition].vector.y * 32768;
+	RF24_TX_buffer[8] = temp >> 24;
+	RF24_TX_buffer[9] = temp >> 16;
+	RF24_TX_buffer[10] = temp >> 8;
+	RF24_TX_buffer[11] = temp;
+
+	sendDataToControlBoard(RF24_TX_buffer);
+}
+
 void sendOneHopNeighborsTableToControlBoard()
 {
 	RF24_TX_buffer[0] =
@@ -458,6 +487,7 @@ void sendOneHopNeighborsTableToControlBoard()
 
 	sendDataToControlBoard(RF24_TX_buffer);
 }
+
 //-----------------------------------Robot Int functions
 
 //-----------------------LED functions-------------------------

@@ -16,6 +16,7 @@
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
+#define LOCATIONS_TABLE_LENGTH	10
 
 typedef struct tagRobotMeas
 {
@@ -28,6 +29,16 @@ typedef struct tagOneHopMeas
 	uint32_t firstHopID;
 	robotMeas_t neighbors[NEIGHBOR_TABLE_LENGTH];
 } oneHopMeas_t;
+
+typedef struct tagVector {
+	float x;
+	float y;
+} vector2_t;
+
+typedef struct tagLocation {
+	uint32_t ID;
+	vector2_t vector;
+} location_t;
 
 /*
  * Priority level: 0x00 = 0x20 :: 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
@@ -58,6 +69,7 @@ typedef enum
 void initRobotProcess();
 void checkAndResponeMyNeighborsTableToOneRobot();
 void sendNeighborsTableToControlBoard();
+void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
 void getNeighborNeighborsTable();
 
@@ -264,6 +276,8 @@ inline void generateRandomByte();
 #define PC_SEND_READ_ONEHOP_TABLE		0xA7
 #define PC_SEND_SET_TABLE_POSITION		0xA8
 #define PC_SEND_SET_ONE_HOP_POSITION	0xA9
+
+#define PC_SEND_READ_LOCS_TABLE			0xE3
 
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 

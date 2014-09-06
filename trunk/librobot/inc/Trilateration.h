@@ -10,18 +10,6 @@
 
 #include "librobot/inc/MainBoardDriver.h"
 
-#define LOCATIONS_TABLE_LENGTH	10
-
-typedef struct tagVector {
-	float x;
-	float y;
-} vector2_t;
-
-typedef struct tagLocation {
-	uint32_t ID;
-	vector2_t vector;
-} location_t;
-
 void Tri_clearLocs();
 void Tri_addLocation(uint32_t ID, float x, float y);
 

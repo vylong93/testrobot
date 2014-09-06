@@ -107,63 +107,63 @@ int main(void)
 
 	TDOA_initFilters(FilterCoeffs);
 
-	// clear locs table
-	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < LOCATIONS_TABLE_LENGTH; g_ui8ReadTablePosition++)
-	{
-		locs[g_ui8ReadTablePosition].ID = 0;
-		locs[g_ui8ReadTablePosition].vector.x = 0;
-		locs[g_ui8ReadTablePosition].vector.y = 0;
-	}
-
-	// Table 1
-	NeighborsTable[0].ID = 0xBEAD01; NeighborsTable[0].distance = 30656;
-	NeighborsTable[1].ID = 0xBEAD02; NeighborsTable[1].distance = 43200;
-	NeighborsTable[2].ID = 0xBEAD03; NeighborsTable[2].distance = 30976;
-	NeighborsTable[3].ID = 0xBEAD04; NeighborsTable[3].distance = 42992;
-	NeighborsTable[4].ID = 0xBEAD05; NeighborsTable[4].distance = 37216;
-	g_ui8NeighborsCounter = 5;
-
-	// Table 2
-	OneHopNeighborsTable[0].firstHopID = 0xBEAD01;
-	OneHopNeighborsTable[0].neighbors[0].ID = 0xBEAD02; 	OneHopNeighborsTable[0].neighbors[0].distance = 30976;
-	OneHopNeighborsTable[0].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[0].neighbors[1].distance = 30928;
-	OneHopNeighborsTable[0].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[0].neighbors[2].distance = 41472;
-	OneHopNeighborsTable[0].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[0].neighbors[3].distance = 43296;
-	OneHopNeighborsTable[0].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[0].neighbors[4].distance = 32576;
-
-	OneHopNeighborsTable[1].firstHopID = 0xBEAD02;
-	OneHopNeighborsTable[1].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[1].neighbors[0].distance = 30064;
-	OneHopNeighborsTable[1].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[1].neighbors[1].distance = 32832;
-	OneHopNeighborsTable[1].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[1].neighbors[2].distance = 31392;
-	OneHopNeighborsTable[1].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[1].neighbors[3].distance = 43008;
-	OneHopNeighborsTable[1].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[1].neighbors[4].distance = 41376;
-
-	OneHopNeighborsTable[2].firstHopID = 0xBEAD03;
-	OneHopNeighborsTable[2].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[2].neighbors[0].distance = 28384;
-	OneHopNeighborsTable[2].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[2].neighbors[1].distance = 32400;
-	OneHopNeighborsTable[2].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[2].neighbors[2].distance = 29920;
-	OneHopNeighborsTable[2].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[2].neighbors[3].distance = 30736;
-	OneHopNeighborsTable[2].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[2].neighbors[4].distance = 30096;
-
-	OneHopNeighborsTable[3].firstHopID = 0xBEAD04;
-	OneHopNeighborsTable[3].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[3].neighbors[0].distance = 40944;
-	OneHopNeighborsTable[3].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[3].neighbors[1].distance = 29952;
-	OneHopNeighborsTable[3].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[3].neighbors[2].distance = 33120;
-	OneHopNeighborsTable[3].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[3].neighbors[3].distance = 33968;
-	OneHopNeighborsTable[3].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[3].neighbors[4].distance = 43568;
-
-	OneHopNeighborsTable[4].firstHopID = 0xBEAD05;
-	OneHopNeighborsTable[4].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[4].neighbors[0].distance = 40768;
-	OneHopNeighborsTable[4].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[4].neighbors[1].distance = 42272;
-	OneHopNeighborsTable[4].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[4].neighbors[2].distance = 28544;
-	OneHopNeighborsTable[4].neighbors[3].ID = 0xBEAD04; 	OneHopNeighborsTable[4].neighbors[3].distance = 30048;
-	OneHopNeighborsTable[4].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[4].neighbors[4].distance = 35520;
-
-	Tri_clearLocs();
-
-	Tri_addLocation(g_ui32RobotID, 0, 0);
-
-	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
+//	// clear locs table
+//	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < LOCATIONS_TABLE_LENGTH; g_ui8ReadTablePosition++)
+//	{
+//		locs[g_ui8ReadTablePosition].ID = 0;
+//		locs[g_ui8ReadTablePosition].vector.x = 0;
+//		locs[g_ui8ReadTablePosition].vector.y = 0;
+//	}
+//
+//	// Table 1
+//	NeighborsTable[0].ID = 0xBEAD01; NeighborsTable[0].distance = 30656;
+//	NeighborsTable[1].ID = 0xBEAD02; NeighborsTable[1].distance = 43200;
+//	NeighborsTable[2].ID = 0xBEAD03; NeighborsTable[2].distance = 30976;
+//	NeighborsTable[3].ID = 0xBEAD04; NeighborsTable[3].distance = 42992;
+//	NeighborsTable[4].ID = 0xBEAD05; NeighborsTable[4].distance = 37216;
+//	g_ui8NeighborsCounter = 5;
+//
+//	// Table 2
+//	OneHopNeighborsTable[0].firstHopID = 0xBEAD01;
+//	OneHopNeighborsTable[0].neighbors[0].ID = 0xBEAD02; 	OneHopNeighborsTable[0].neighbors[0].distance = 30976;
+//	OneHopNeighborsTable[0].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[0].neighbors[1].distance = 30928;
+//	OneHopNeighborsTable[0].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[0].neighbors[2].distance = 41472;
+//	OneHopNeighborsTable[0].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[0].neighbors[3].distance = 43296;
+//	OneHopNeighborsTable[0].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[0].neighbors[4].distance = 32576;
+//
+//	OneHopNeighborsTable[1].firstHopID = 0xBEAD02;
+//	OneHopNeighborsTable[1].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[1].neighbors[0].distance = 30064;
+//	OneHopNeighborsTable[1].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[1].neighbors[1].distance = 32832;
+//	OneHopNeighborsTable[1].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[1].neighbors[2].distance = 31392;
+//	OneHopNeighborsTable[1].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[1].neighbors[3].distance = 43008;
+//	OneHopNeighborsTable[1].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[1].neighbors[4].distance = 41376;
+//
+//	OneHopNeighborsTable[2].firstHopID = 0xBEAD03;
+//	OneHopNeighborsTable[2].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[2].neighbors[0].distance = 28384;
+//	OneHopNeighborsTable[2].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[2].neighbors[1].distance = 32400;
+//	OneHopNeighborsTable[2].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[2].neighbors[2].distance = 29920;
+//	OneHopNeighborsTable[2].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[2].neighbors[3].distance = 30736;
+//	OneHopNeighborsTable[2].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[2].neighbors[4].distance = 30096;
+//
+//	OneHopNeighborsTable[3].firstHopID = 0xBEAD04;
+//	OneHopNeighborsTable[3].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[3].neighbors[0].distance = 40944;
+//	OneHopNeighborsTable[3].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[3].neighbors[1].distance = 29952;
+//	OneHopNeighborsTable[3].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[3].neighbors[2].distance = 33120;
+//	OneHopNeighborsTable[3].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[3].neighbors[3].distance = 33968;
+//	OneHopNeighborsTable[3].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[3].neighbors[4].distance = 43568;
+//
+//	OneHopNeighborsTable[4].firstHopID = 0xBEAD05;
+//	OneHopNeighborsTable[4].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[4].neighbors[0].distance = 40768;
+//	OneHopNeighborsTable[4].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[4].neighbors[1].distance = 42272;
+//	OneHopNeighborsTable[4].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[4].neighbors[2].distance = 28544;
+//	OneHopNeighborsTable[4].neighbors[3].ID = 0xBEAD04; 	OneHopNeighborsTable[4].neighbors[3].distance = 30048;
+//	OneHopNeighborsTable[4].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[4].neighbors[4].distance = 35520;
+//
+//	Tri_clearLocs();
+//
+//	Tri_addLocation(g_ui32RobotID, 0, 0);
+//
+//	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
 
 	while (1)
 	{
@@ -475,6 +475,9 @@ inline void RF24_IntHandler()
 					case PC_SEND_READ_NEIGHBORS_TABLE:
 						sendNeighborsTableToControlBoard();
 						break;
+
+					case PC_SEND_READ_LOCS_TABLE:
+						sendLocationsTableToControlBoard();
 
 					case PC_SEND_SET_ONE_HOP_POSITION:
 						g_ui8ReadOneHopTablePosition = RF24_RX_buffer[1];
