@@ -27,8 +27,8 @@
 
 #include "libnrf24l01/inc/TM4C123_nRF24L01.h"
 #include "libnrf24l01/inc/nRF24L01.h"
-#include "CustomTivaDrivers.h"
-#include "MainBoardDriver.h"
+#include "librobot/inc/TDOA.h"
+#include "librobot/inc/Trilateration.h"
 
 float32_t* FilterCoeffs;
 
@@ -103,7 +103,7 @@ int main(void)
 
 	initTimerDelay();
 
-	initFilters(FilterCoeffs);
+	TDOA_initFilters(FilterCoeffs);
 
 	while (1)
 	{
@@ -148,7 +148,7 @@ void RobotProcess()
 
 					reloadDelayTimerA();
 
-					runAlgorithmTDOA();
+					TDOA_run();
 
 					if (g_f32MaxEnvelopeA < MAX_THRESHOLD
 							|| g_f32MaxEnvelopeB < MAX_THRESHOLD)
@@ -280,10 +280,11 @@ void RobotProcess()
 		turnOffLED(LED_GREEN);
 
 		g_eProcessState = IDLE;
-
+		// change to IDLE;
 		break;
 
 	case LOCALIZATION:
+		//TODO:
 		break;
 
 	default: // IDLE state
@@ -430,11 +431,11 @@ inline void RF24_IntHandler()
 						break;
 
 					case PC_TOGGLE_ALL_STATUS_LEDS:
-						GPIOPinToggle(LED_PORT_BASE, LED_ALL);
+						toggleLED(LED_ALL);
 						break;
 
 					case PC_TEST_ALL_MOTOR_MODES:
-						//TODO: modified to set random direction with random speed
+						randomMotorMode();
 						break;
 
 					case PC_CHANGE_MOTORS_SPEED:

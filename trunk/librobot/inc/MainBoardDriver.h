@@ -1,6 +1,7 @@
 #ifndef MAIN_BOARD_DRIVERS_H
 #define MAIN_BOARD_DRIVERS_H
 
+#include "libnrf24l01/inc/nRF24L01.h"
 #include "arm_math.h"
 
 #define DELAY_START_SPEAKER	100000
@@ -175,8 +176,10 @@ inline void initMotor();
 inline void enableMOTOR();
 inline void disableMOTOR();
 inline void setMotorDirection(uint32_t motor, uint8_t direction);
-inline void testAllMotorModes();
+inline void toggleMotorMode();
+inline void randomMotorMode();
 inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
+void setSpinSpeed(uint8_t speed, uint8_t direction, uint32_t delay);
 //----------------------------------------------Motor functions
 
 
@@ -230,30 +233,6 @@ inline void startSamplingMicSignals();
 inline void startSamplingBatteryVoltage();
 inline void generateRandomByte();
 //-------------------------------------------------------------------Ananlog functions
-
-
-//----------------------------------------------TDOA functions----------------------------------------------
-#define FILTER_ORDER                    34
-#define BLOCK_SIZE                      10
-#define START_SAMPLES_POSTITION         40
-#define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
-#define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
-#define MAX_THRESHOLD					50
-
-inline void initFilters(float32_t* FilterCoeffs);
-void runAlgorithmTDOA();
-
-float32_t getDistances(float32_t *myData, float32_t *peakEnvelope, float32_t *maxEnvelope);
-void find3LocalPeaks(float32_t *myData, float32_t *LocalPeaksStoragePointer);
-uint32_t reachBottom(float32_t *myData, uint32_t const PeakPosition,
-                uint32_t const PointerIncreaseNumber);
-uint32_t reachPeak(float32_t *myData, uint32_t const PeakPosition,
-                uint32_t const PointerIncreaseNumber);
-void interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t UserPosition,
-                float32_t UserMaxValue, float32_t const step, float32_t* ReturnPosition,
-                float32_t* ReturnValue);
-float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t interpolatePoint);
-//--------------------------------------------------------------------------------------------TDOA functions
 
 
 //----------------------RF24 Functions------------------------
