@@ -105,7 +105,7 @@ void reloadDelayTimerB()
 
 
 //----------------Math functions-------------------
-int32_t calSin(float x)
+float calSin(float x)
 {
 
 	float tempX;
@@ -155,15 +155,15 @@ int32_t calSin(float x)
 	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
 			sizeof(pui16ReadBuffer));
 
-	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
+	return (((resultSigned * pui16ReadBuffer[selectResult])) / 32768.0);
 }
 
-int32_t calCos(float x)
+float calCos(float x)
 {
 	return calSin(x + MATH_PI_DIV_2);
 }
 
-int32_t calASin(float x)
+float calASin(float x)
 {
 	int8_t resultSigned;
 	uint8_t selectResult;
@@ -191,20 +191,56 @@ int32_t calASin(float x)
 	EEPROMRead((uint32_t*) pui16ReadBuffer, resultIndex,
 			sizeof(pui16ReadBuffer));
 
-	return (int32_t) (resultSigned * (int32_t) pui16ReadBuffer[selectResult]);
+	return ((resultSigned * pui16ReadBuffer[selectResult]) / 32768.0);
 }
 
-int32_t calACos(float x)
+float calACos(float x)
 {
-	return (MATH_PI_DIV_2_MUL_32768 - calASin(x));
+	//return (MATH_PI_DIV_2_MUL_32768 - calASin(x));
+	return (MATH_PI_DIV_2 - calASin(x));
+//	float ASin = calASin(x);
+//	float result = MATH_PI_DIV_2 - ASin;
+//
+//	return (result);
 }
+
+float cosinesRuleForTriangles(float a, float b, float c)
+{
+	return (((a * a) + (b * b) - (c * c)) / (2 * a * b));
+}
+
+bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
+{
+	float cosA;
+	float cosB;
+	float cosC;
+
+	float fa = ((a / 256.0) - INTERCEPT) / SLOPE;
+	float fb = ((b / 256.0) - INTERCEPT) / SLOPE;
+	float fc = ((c / 256.0) - INTERCEPT) / SLOPE;
+
+	cosA = cosinesRuleForTriangles(fb, fc, fa);
+	if (cosA > COSINE_ANGLE_MIN)
+	 return false;
+
+	cosB = cosinesRuleForTriangles(fa, fc, fb);
+	if (cosB > COSINE_ANGLE_MIN)
+	 return false;
+
+	cosC = cosinesRuleForTriangles(fa, fb, fc);
+	if (cosC > COSINE_ANGLE_MIN)
+	 return false;
+
+	return true;
+}
+
 //-----------------------------------Math functions
 
 
 //----------------Robot Init functions-------------------
 
-OneHopMeasStruct OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
-RobotMeasStruct NeighborsTable[NEIGHBOR_TABLE_LENGTH];
+oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
+robotMeas_t NeighborsTable[NEIGHBOR_TABLE_LENGTH];
 uint8_t g_ui8ReadTablePosition;
 uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
@@ -351,15 +387,12 @@ void getNeighborNeighborsTable()
 						}
 						if (writeTablePosition == ONEHOP_NEIGHBOR_TABLE_LENGTH)
 						{
-							//enableRF24Interrupt();
-							//return; // out of range, table haven't erased
+							// out of range, table haven't erased
 							break;
 						}
 					}
 					else // if (RF24_RX_buffer[0] == ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR)
 					{
-						//enableRF24Interrupt();
-						//return;
 						break;
 					}
 				}
@@ -375,8 +408,6 @@ void getNeighborNeighborsTable()
 						dataLength = dataLength - length;
 					else
 					{
-						//enableRF24Interrupt();
-						//return;
 						break;
 					}
 				}
@@ -388,28 +419,19 @@ void getNeighborNeighborsTable()
 
 void sendNeighborsTableToControlBoard()
 {
-	uint32_t tempDistance = NeighborsTable[g_ui8ReadTablePosition].distance
-			* 32768;
-
 	RF24_TX_buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
 	RF24_TX_buffer[1] = NeighborsTable[g_ui8ReadTablePosition].ID >> 16;
 	RF24_TX_buffer[2] = NeighborsTable[g_ui8ReadTablePosition].ID >> 8;
 	RF24_TX_buffer[3] = NeighborsTable[g_ui8ReadTablePosition].ID;
 
-	RF24_TX_buffer[4] = tempDistance >> 24;
-	RF24_TX_buffer[5] = tempDistance >> 16;
-	RF24_TX_buffer[6] = tempDistance >> 8;
-	RF24_TX_buffer[7] = tempDistance;
+	RF24_TX_buffer[4] = NeighborsTable[g_ui8ReadTablePosition].distance >> 8;
+	RF24_TX_buffer[5] = NeighborsTable[g_ui8ReadTablePosition].distance;
 
 	sendDataToControlBoard(RF24_TX_buffer);
 }
 
 void sendOneHopNeighborsTableToControlBoard()
 {
-	uint32_t tempDistance =
-			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance
-					* 32768;
-
 	RF24_TX_buffer[0] =
 			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 24;
 	RF24_TX_buffer[1] =
@@ -431,10 +453,8 @@ void sendOneHopNeighborsTableToControlBoard()
 	RF24_TX_buffer[7] =
 			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID;
 
-	RF24_TX_buffer[8] = tempDistance >> 24;
-	RF24_TX_buffer[9] = tempDistance >> 16;
-	RF24_TX_buffer[10] = tempDistance >> 8;
-	RF24_TX_buffer[11] = tempDistance;
+	RF24_TX_buffer[8] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance >> 8;
+	RF24_TX_buffer[9] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance;
 
 	sendDataToControlBoard(RF24_TX_buffer);
 }

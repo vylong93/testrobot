@@ -37,7 +37,7 @@ extern float32_t g_f32MaxEnvelopeA;
 extern float32_t g_f32PeakEnvelopeB;
 extern float32_t g_f32MaxEnvelopeB;
 
-extern CpuStateEnum  g_eCPUState;	// Low Power Mode State
+extern CpuStateEnum  g_eCPUState;
 
 extern bool g_bDelayTimerAFlagAssert;
 extern bool g_bDelayTimerBFlagAssert;
@@ -47,11 +47,13 @@ extern uint32_t g_ui32RobotID;
 extern ProcessStateEnum g_eProcessState;
 extern bool g_bBypassThisState;
 
-extern RobotMeasStruct NeighborsTable[];
-extern OneHopMeasStruct OneHopNeighborsTable[];
+extern robotMeas_t NeighborsTable[];
+extern oneHopMeas_t OneHopNeighborsTable[];
 extern uint8_t g_ui8ReadTablePosition;
 extern uint8_t g_ui8ReadOneHopTablePosition;
 extern uint8_t g_ui8NeighborsCounter;
+
+extern location_t locs[];
 
 extern uint8_t RF24_RX_buffer[];
 extern uint8_t RF24_TX_buffer[];
@@ -77,7 +79,7 @@ int main(void)
 			0.0204126528, 0.0128101468, 0.0055870397, 0.0004931756,
 			-0.0029093551 };
 	FilterCoeffs = FilterCoeffsLocal;
-	// External Crystal 16MHz source for PLL (400MHz/2)/4 = 50MHz sysclk
+
 	FPULazyStackingEnable();
 	FPUEnable();
 
@@ -104,6 +106,64 @@ int main(void)
 	initTimerDelay();
 
 	TDOA_initFilters(FilterCoeffs);
+
+	// clear locs table
+	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < LOCATIONS_TABLE_LENGTH; g_ui8ReadTablePosition++)
+	{
+		locs[g_ui8ReadTablePosition].ID = 0;
+		locs[g_ui8ReadTablePosition].vector.x = 0;
+		locs[g_ui8ReadTablePosition].vector.y = 0;
+	}
+
+	// Table 1
+	NeighborsTable[0].ID = 0xBEAD01; NeighborsTable[0].distance = 30656;
+	NeighborsTable[1].ID = 0xBEAD02; NeighborsTable[1].distance = 43200;
+	NeighborsTable[2].ID = 0xBEAD03; NeighborsTable[2].distance = 30976;
+	NeighborsTable[3].ID = 0xBEAD04; NeighborsTable[3].distance = 42992;
+	NeighborsTable[4].ID = 0xBEAD05; NeighborsTable[4].distance = 37216;
+	g_ui8NeighborsCounter = 5;
+
+	// Table 2
+	OneHopNeighborsTable[0].firstHopID = 0xBEAD01;
+	OneHopNeighborsTable[0].neighbors[0].ID = 0xBEAD02; 	OneHopNeighborsTable[0].neighbors[0].distance = 30976;
+	OneHopNeighborsTable[0].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[0].neighbors[1].distance = 30928;
+	OneHopNeighborsTable[0].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[0].neighbors[2].distance = 41472;
+	OneHopNeighborsTable[0].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[0].neighbors[3].distance = 43296;
+	OneHopNeighborsTable[0].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[0].neighbors[4].distance = 32576;
+
+	OneHopNeighborsTable[1].firstHopID = 0xBEAD02;
+	OneHopNeighborsTable[1].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[1].neighbors[0].distance = 30064;
+	OneHopNeighborsTable[1].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[1].neighbors[1].distance = 32832;
+	OneHopNeighborsTable[1].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[1].neighbors[2].distance = 31392;
+	OneHopNeighborsTable[1].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[1].neighbors[3].distance = 43008;
+	OneHopNeighborsTable[1].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[1].neighbors[4].distance = 41376;
+
+	OneHopNeighborsTable[2].firstHopID = 0xBEAD03;
+	OneHopNeighborsTable[2].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[2].neighbors[0].distance = 28384;
+	OneHopNeighborsTable[2].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[2].neighbors[1].distance = 32400;
+	OneHopNeighborsTable[2].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[2].neighbors[2].distance = 29920;
+	OneHopNeighborsTable[2].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[2].neighbors[3].distance = 30736;
+	OneHopNeighborsTable[2].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[2].neighbors[4].distance = 30096;
+
+	OneHopNeighborsTable[3].firstHopID = 0xBEAD04;
+	OneHopNeighborsTable[3].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[3].neighbors[0].distance = 40944;
+	OneHopNeighborsTable[3].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[3].neighbors[1].distance = 29952;
+	OneHopNeighborsTable[3].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[3].neighbors[2].distance = 33120;
+	OneHopNeighborsTable[3].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[3].neighbors[3].distance = 33968;
+	OneHopNeighborsTable[3].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[3].neighbors[4].distance = 43568;
+
+	OneHopNeighborsTable[4].firstHopID = 0xBEAD05;
+	OneHopNeighborsTable[4].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[4].neighbors[0].distance = 40768;
+	OneHopNeighborsTable[4].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[4].neighbors[1].distance = 42272;
+	OneHopNeighborsTable[4].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[4].neighbors[2].distance = 28544;
+	OneHopNeighborsTable[4].neighbors[3].ID = 0xBEAD04; 	OneHopNeighborsTable[4].neighbors[3].distance = 30048;
+	OneHopNeighborsTable[4].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[4].neighbors[4].distance = 35520;
+
+	Tri_clearLocs();
+
+	Tri_addLocation(g_ui32RobotID, 0, 0);
+
+	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
 
 	while (1)
 	{
@@ -158,14 +218,14 @@ void RobotProcess()
 					else
 					{
 						NeighborsTable[g_ui8NeighborsCounter].distance =
-								(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) / 2;
+								(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) * 128; //  (sum / 2) * 256
 
 						g_ui8NeighborsCounter++;
 
 						//TODO: search the worth result and replace it by the current result if better
 						g_ui8NeighborsCounter =
 								(g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH) ?
-										(g_ui8NeighborsCounter) : (0);
+										(g_ui8NeighborsCounter) : (NEIGHBOR_TABLE_LENGTH);
 					}
 					turnOffLED(LED_GREEN);
 				}
@@ -214,7 +274,7 @@ void RobotProcess()
 				while (g_ui8RandomNumber == 0)
 					;
 
-				ui8RandomRfChannel = ((g_ui8RandomNumber % 125) + 1) & 0x7F; // only allow channel range form 1 to 125
+				ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
 
 				g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
 
@@ -279,12 +339,20 @@ void RobotProcess()
 
 		turnOffLED(LED_GREEN);
 
-		g_eProcessState = IDLE;
-		// change to IDLE;
+		g_eProcessState = LOCALIZATION;
+
 		break;
 
 	case LOCALIZATION:
-		//TODO:
+
+		Tri_clearLocs();
+
+		Tri_addLocation(g_ui32RobotID, 0, 0);
+
+		Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
+
+		g_eProcessState = IDLE;
+
 		break;
 
 	default: // IDLE state
@@ -390,13 +458,11 @@ inline void RF24_IntHandler()
 						for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < NEIGHBOR_TABLE_LENGTH; g_ui8ReadTablePosition++)
 						{
 							NeighborsTable[g_ui8ReadTablePosition].ID = 0;
-							NeighborsTable[g_ui8ReadTablePosition].distance = 0;
-						}
-
-						for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < ONEHOP_NEIGHBOR_TABLE_LENGTH; g_ui8ReadTablePosition++)
-						{
+//							NeighborsTable[g_ui8ReadTablePosition].distance = 0;
 							OneHopNeighborsTable[g_ui8ReadTablePosition].firstHopID = 0;
 						}
+
+						Tri_clearLocs();
 
 						g_ui8NeighborsCounter = 0;
 
