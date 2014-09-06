@@ -25,14 +25,17 @@
 
 #include "libnrf24l01/inc/TM4C123_nRF24L01.h"
 #include "libnrf24l01/inc/nRF24L01.h"
-#include "CustomTivaDrivers.h"
-#include "MainBoardDriver.h"
+#include "librobot/inc/MainBoardDriver.h"
 
-uint8_t RF24_RX_buffer[32] = { 0 };
-uint8_t RF24_TX_buffer[32] = { 0 };
+uint8_t RF24_RX_buffer[32] =
+{ 0 };
+uint8_t RF24_TX_buffer[32] =
+{ 0 };
+
+uint8_t g_pui8RandomBuffer[8];
+uint8_t g_ui8RandomNumber = 0;
 
 uint8_t g_ui8ReTransmitCounter; // set this variable to 0 to disable software reTransmit
-
 
 bool g_bDelayTimerAFlagAssert;
 bool g_bDelayTimerBFlagAssert;
@@ -99,6 +102,7 @@ void reloadDelayTimerB()
 {
 	TimerLoadSet(DELAY_TIMER_BASE, TIMER_B, timerBLastDelayPeriod);
 }
+
 
 //----------------Math functions-------------------
 int32_t calSin(float x)
@@ -196,6 +200,7 @@ int32_t calACos(float x)
 }
 //-----------------------------------Math functions
 
+
 //----------------Robot Init functions-------------------
 
 OneHopMeasStruct OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
@@ -240,7 +245,9 @@ void checkAndResponeMyNeighborsTableToOneRobot()
 
 	turnOffLED(LED_RED);
 
-	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < NEIGHBOR_TABLE_LENGTH; g_ui8ReadTablePosition++)
+	for (g_ui8ReadTablePosition = 0;
+			g_ui8ReadTablePosition < NEIGHBOR_TABLE_LENGTH;
+			g_ui8ReadTablePosition++)
 	{
 		if (NeighborsTable[g_ui8ReadTablePosition].ID == neighborID)
 		{
@@ -259,7 +266,7 @@ void checkAndResponeMyNeighborsTableToOneRobot()
 			RF24_TX_buffer[8] = tableSizeInByte;
 
 			responseLength = 9;
-		    break;
+			break;
 		}
 	}
 
@@ -272,9 +279,9 @@ void checkAndResponeMyNeighborsTableToOneRobot()
 	if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, responseLength))
 	{
 		//ROM_SysCtlDelay(10000); // delay 600us
-		sendMessageToOneNeighbor(neighborID, (uint8_t*)NeighborsTable, tableSizeInByte);
+		sendMessageToOneNeighbor(neighborID, (uint8_t*) NeighborsTable,
+				tableSizeInByte);
 	}
-
 
 	RF24_RX_flush();
 	RF24_setChannel(0);
@@ -282,7 +289,8 @@ void checkAndResponeMyNeighborsTableToOneRobot()
 	turnOnLED(LED_RED);
 }
 
-void getNeighborNeighborsTable() {
+void getNeighborNeighborsTable()
+{
 	uint32_t neighborID = 0;
 	uint32_t dataLength = 0;
 	uint32_t length = 0;
@@ -313,7 +321,8 @@ void getNeighborNeighborsTable() {
 
 				if (!isReceivedData)
 				{
-					if (RF24_RX_buffer[0] == ROBOT_RESPONSE_HELLO_NEIGHBOR && length == 9)
+					if (RF24_RX_buffer[0] == ROBOT_RESPONSE_HELLO_NEIGHBOR
+							&& length == 9)
 					{
 						neighborID = RF24_RX_buffer[1];
 						neighborID = (neighborID << 8) | RF24_RX_buffer[2];
@@ -325,11 +334,16 @@ void getNeighborNeighborsTable() {
 						dataLength = (dataLength << 8) | RF24_RX_buffer[7];
 						dataLength = (dataLength << 8) | RF24_RX_buffer[8];
 
-						for(writeTablePosition = 0; writeTablePosition < ONEHOP_NEIGHBOR_TABLE_LENGTH; writeTablePosition++)
+						for (writeTablePosition = 0;
+								writeTablePosition
+										< ONEHOP_NEIGHBOR_TABLE_LENGTH;
+								writeTablePosition++)
 						{
-							if (OneHopNeighborsTable[writeTablePosition].firstHopID == 0)
+							if (OneHopNeighborsTable[writeTablePosition].firstHopID
+									== 0)
 							{
-								OneHopNeighborsTable[writeTablePosition].firstHopID = neighborID;
+								OneHopNeighborsTable[writeTablePosition].firstHopID =
+										neighborID;
 								pointer = 0;
 								isReceivedData = true;
 								break;
@@ -351,9 +365,10 @@ void getNeighborNeighborsTable() {
 				}
 				else
 				{
-					for(i = 0; i < length; i++)
+					for (i = 0; i < length; i++)
 					{
-						*(((uint8_t*)OneHopNeighborsTable[writeTablePosition].neighbors) + pointer) = RF24_RX_buffer[i];
+						*(((uint8_t*) OneHopNeighborsTable[writeTablePosition].neighbors)
+								+ pointer) = RF24_RX_buffer[i];
 						pointer++;
 					}
 					if (dataLength > length)
@@ -373,7 +388,8 @@ void getNeighborNeighborsTable() {
 
 void sendNeighborsTableToControlBoard()
 {
-	uint32_t tempDistance = NeighborsTable[g_ui8ReadTablePosition].distance * 32768;
+	uint32_t tempDistance = NeighborsTable[g_ui8ReadTablePosition].distance
+			* 32768;
 
 	RF24_TX_buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
 	RF24_TX_buffer[1] = NeighborsTable[g_ui8ReadTablePosition].ID >> 16;
@@ -390,17 +406,30 @@ void sendNeighborsTableToControlBoard()
 
 void sendOneHopNeighborsTableToControlBoard()
 {
-	uint32_t tempDistance = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance * 32768;
+	uint32_t tempDistance =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance
+					* 32768;
 
-	RF24_TX_buffer[0] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 24;
-	RF24_TX_buffer[1] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 16;
-	RF24_TX_buffer[2] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 8;
-	RF24_TX_buffer[3] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID;
+	RF24_TX_buffer[0] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 24;
+	RF24_TX_buffer[1] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 16;
+	RF24_TX_buffer[2] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID >> 8;
+	RF24_TX_buffer[3] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].firstHopID;
 
-	RF24_TX_buffer[4] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 24;
-	RF24_TX_buffer[5] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 16;
-	RF24_TX_buffer[6] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID >> 8;
-	RF24_TX_buffer[7] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID;
+	RF24_TX_buffer[4] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID
+					>> 24;
+	RF24_TX_buffer[5] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID
+					>> 16;
+	RF24_TX_buffer[6] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID
+					>> 8;
+	RF24_TX_buffer[7] =
+			OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].ID;
 
 	RF24_TX_buffer[8] = tempDistance >> 24;
 	RF24_TX_buffer[9] = tempDistance >> 16;
@@ -515,181 +544,78 @@ inline void setMotorDirection(uint32_t motorPortBase, uint8_t direction)
 		GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
 }
 
-inline void testAllMotorModes()
+inline void randomMotorMode()
 {
-//	uint8_t motorDutyCycles;
-//
-//	enableMOTOR();
-//	turnOnLED(LED_RED);
-//
-//	//=========================Test LEFT Motor=========================
-//	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-//
-//	// speed up
-//	turnOnLED(LED_GREEN);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
+//	while(bMotorRandomMode)
 //	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
+//		disableMOTOR();
+//
+//		PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+//		PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+//
+//		generateRandomByte();
+//		while(g_ui8RandomNumber != 0);
+//
+//		setMotorDirection(LEFT_MOTOR_PORT_BASE, g_ui8RandomNumber & 0x01);
+//		setMotorDirection(RIGHT_MOTOR_PORT_BASE, (g_ui8RandomNumber >> 1) & 0x01);
+//
+//		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, ((g_ui8RandomNumber << 3) & 0xE0) + 40);
+//		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, (g_ui8RandomNumber & 0xE0) + 40);
+//
+//		PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+//		PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+//
+//		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+//		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
+//
+//		enableMOTOR();
+//
+//		toggleLED(LED_GREEN);
+//
+//		delayTimerB(g_ui8RandomNumber + 2000, true);
+
+	setSpinSpeed(68, 1, 3000);
+	setSpinSpeed(68, 0, 3000);
+	setSpinSpeed(68, 1, 3000);
+	setSpinSpeed(68, 0, 3000);
 //	}
-//
-//	// slow down
-//	turnOffLED(LED_GREEN);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-//
-//	// speed up
-//	turnOnLED(LED_BLUE);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	// slow down
-//	turnOffLED(LED_BLUE);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
-//	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//	//==================================================Test LEFT Motor
-//
-//	//=========================Test RIGHT Motor=========================
-//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-//
-//	// speed up
-//	turnOnLED(LED_GREEN);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
-//	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	// slow down
-//	turnOffLED(LED_GREEN);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-//
-//	// speed up
-//	turnOnLED(LED_BLUE);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	// slow down
-//	turnOffLED(LED_BLUE);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
-//	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//	//==================================================Test RIGHT Motor
-//
-//	//=========================Test BOTH Motors=========================
-//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-//	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-//
-//	// speed up
-//	turnOnLED(LED_GREEN);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
-//	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	// slow down
-//	turnOffLED(LED_GREEN);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-//	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-//	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-//	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-//
-//	// speed up
-//	turnOnLED(LED_BLUE);
-//	motorDutyCycles = 100;
-//	while (motorDutyCycles > 0)
-//	{
-//		motorDutyCycles--;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//
-//	// slow down
-//	turnOffLED(LED_BLUE);
-//	motorDutyCycles = 0;
-//	while (motorDutyCycles < 100)
-//	{
-//		motorDutyCycles++;
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-//				motorDutyCycles * ui32PWMPeriod / 100);
-//		SysCtlDelay(500000);
-//	}
-//	//==================================================Test BOTH Motors
-//
-//	disableMOTOR();
-//	turnOffLED(LED_RED);
+}
+
+void setSpinSpeed(uint8_t speed, uint8_t direction, uint32_t delay)
+{
+
+	disableMOTOR();
+
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	if (direction & 0x01)
+	{
+		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction);
+		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - speed);
+		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1);
+		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, speed);
+	}
+	else
+	{
+		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction);
+		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, speed);
+		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1);
+		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - speed);
+	}
+
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
+	true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
+	true);
+	enableMOTOR();
+
+	toggleLED(LED_GREEN);
+	ROM_SysCtlDelay((SysCtlClockGet() / 1000) * (delay / 3));
+	disableMOTOR();
 }
 
 inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
@@ -700,7 +626,7 @@ inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
 //----------------------------------------------Motor functions
 
 //--------------------------------Ananlog functions-----------------------------------
-static unsigned char countAdcDMAsStopped = 0;
+unsigned char countAdcDMAsStopped = 0;
 
 static uint32_t g_ui32uDMAErrCount = 0;
 
@@ -709,9 +635,6 @@ static uint32_t g_ui32uDMAErrCount = 0;
 //*****************************************************************************
 uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE];
 uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE];
-
-uint8_t g_pui8RandomBuffer[8];
-uint8_t g_ui8RandomNumber = 0;
 
 uint16_t g_ui16BatteryVoltage;
 
@@ -1011,240 +934,6 @@ void uDMAErrorHandler(void)
 
 //-------------------------------------------------------------------Ananlog functions
 
-//----------------------------------------------TDOA functions----------------------------------------------
-// Initialize two filter, input and output buffer pointers
-float32_t OutputMicA[NUMBER_OF_SAMPLE] =
-{ 0 };
-float32_t OutputMicB[NUMBER_OF_SAMPLE] =
-{ 0 };
-
-float32_t SamplesMicA[NUMBER_OF_SAMPLE] =
-{ 0 };
-float32_t SamplesMicB[NUMBER_OF_SAMPLE] =
-{ 0 };
-
-arm_fir_instance_f32 FilterA;
-arm_fir_instance_f32 FilterB;
-static float32_t pStateA[BLOCK_SIZE + FILTER_ORDER - 1] =
-{ 0 };
-static float32_t pStateB[BLOCK_SIZE + FILTER_ORDER - 1] =
-{ 0 };
-
-float32_t g_f32PeakEnvelopeA;
-float32_t g_f32MaxEnvelopeA;
-float32_t g_f32PeakEnvelopeB;
-float32_t g_f32MaxEnvelopeB;
-
-void initFilters(float32_t* FilterCoeffs)
-{
-	// Call FIR init function to initialize the instance structure.
-	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
-	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);
-}
-void runAlgorithmTDOA()
-{
-//	float32_t OutputMicA[NUMBER_OF_SAMPLE] = { 0 };
-//	float32_t OutputMicB[NUMBER_OF_SAMPLE] = { 0 };
-//
-//	float32_t SamplesMicA[NUMBER_OF_SAMPLE] = { 0 };
-//	float32_t SamplesMicB[NUMBER_OF_SAMPLE] = { 0 };
-
-	int i;
-
-	while (countAdcDMAsStopped != 2)
-		;
-
-	// Convert g_ui32ADC0/1Result to SamplesMicA/B
-	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
-	{
-		SamplesMicA[i] = g_pui16ADC0Result[i];
-		SamplesMicB[i] = g_pui16ADC1Result[i];
-	}
-
-	// Filter signals
-	for (i = 0; i < NUM_BLOCKS; i++)
-	{
-		arm_fir_f32(&FilterA, SamplesMicA + (i * BLOCK_SIZE),
-				OutputMicA + (i * BLOCK_SIZE),
-				BLOCK_SIZE);
-		arm_fir_f32(&FilterB, SamplesMicB + (i * BLOCK_SIZE),
-				OutputMicB + (i * BLOCK_SIZE),
-				BLOCK_SIZE);
-	}
-
-	// Drop some invalid samples at the begin output buffer
-	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
-	{
-		OutputMicA[i] = OutputMicA[i + START_SAMPLES_POSTITION];
-		OutputMicB[i] = OutputMicB[i + START_SAMPLES_POSTITION];
-	}
-
-	getDistances(OutputMicA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
-	getDistances(OutputMicB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
-}
-
-float32_t getDistances(float32_t *myData, float32_t *peakEnvelope,
-		float32_t *maxEnvelope)
-{
-	float32_t step = +0.125f;
-	float32_t localPeaksPosition[3] =
-	{ 0 };
-	float32_t localMaxValue[3] =
-	{ 0 };
-
-	find3LocalPeaks(myData, localPeaksPosition);
-	if (localPeaksPosition[0] != 0 && localPeaksPosition[1] != 0
-			&& localPeaksPosition[2] != 0)
-	{
-		float32_t PositionsArray[3] =
-		{ 0 };
-		float32_t ValuesArray[3] =
-		{ 0 };
-		int i;
-		for (i = 0; i < 3; i++)
-		{
-			PositionsArray[0] = localPeaksPosition[i] - 1;
-			PositionsArray[1] = localPeaksPosition[i];
-			PositionsArray[2] = localPeaksPosition[i] + 1;
-			ValuesArray[0] = *(myData + (uint32_t) PositionsArray[0]);
-			ValuesArray[1] = *(myData + (uint32_t) PositionsArray[1]);
-			ValuesArray[2] = *(myData + (uint32_t) PositionsArray[2]);
-			localMaxValue[i] = *(myData + (uint32_t) localPeaksPosition[i]);
-			interPeak(PositionsArray, ValuesArray, localPeaksPosition[i],
-					localMaxValue[i], step, &localPeaksPosition[i],
-					&localMaxValue[i]);
-		}
-		interPeak(localPeaksPosition, localMaxValue, localPeaksPosition[1],
-				localMaxValue[1], step, peakEnvelope, maxEnvelope);
-	}
-	else
-		return 0;       //signal error
-
-	// return (0.379 * (*peakEnvelope + START_SAMPLES_POSTITION) - 8.734676667);
-	return 1;
-}
-void find3LocalPeaks(float32_t *myData, float32_t* LocalPeaksStoragePointer)
-{
-	uint32_t SamplePosition = 0;
-	uint32_t maxSamplePosition = 0;
-	int i;
-	for (i = START_SAMPLES_POSTITION; i < NUM_DATAS; i++)
-	{
-		if (*(myData + i) > *(myData + maxSamplePosition))
-		{
-			maxSamplePosition = i;
-		}
-	}
-	LocalPeaksStoragePointer[1] = maxSamplePosition;
-	SamplePosition = reachBottom(myData, LocalPeaksStoragePointer[1], -1);
-	if (SamplePosition != 0)
-	{
-		LocalPeaksStoragePointer[0] = reachPeak(myData, SamplePosition, -1);
-	}
-	SamplePosition = reachBottom(myData, LocalPeaksStoragePointer[1], 1);
-	if (SamplePosition != 0)
-	{
-		LocalPeaksStoragePointer[2] = reachPeak(myData, SamplePosition, 1);
-	}
-}
-uint32_t reachBottom(float32_t *myData, uint32_t const PeakPosition,
-		uint32_t const PointerIncreaseNumber)
-{
-	uint32_t SamplePosition = PeakPosition;
-	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
-	{
-		if (*(myData + SamplePosition)
-				< *(myData + SamplePosition + PointerIncreaseNumber))
-		{
-			return SamplePosition;
-		}
-		else
-		{
-			SamplePosition += PointerIncreaseNumber;
-		}
-	}
-	SamplePosition = 0;
-	return 0;
-}
-uint32_t reachPeak(float32_t *myData, uint32_t const PeakPosition,
-		uint32_t const PointerIncreaseNumber)
-{
-	uint32_t SamplePosition = PeakPosition;
-	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
-	{
-		if (*(myData + SamplePosition)
-				> *(myData + SamplePosition + PointerIncreaseNumber))
-		{
-			return SamplePosition;
-		}
-		else
-		{
-			SamplePosition += PointerIncreaseNumber;
-		}
-	}
-	SamplePosition = 0;
-	return 0;
-}
-void interPeak(float32_t* PositionsArray, float32_t* ValuesArray,
-		float32_t UserPosition, float32_t UserMaxValue, float32_t const step,
-		float32_t* ReturnPosition, float32_t* ReturnValue)
-{
-	float32_t realLocalPeak = UserPosition;
-	float32_t realLocalMax = UserMaxValue;
-	float32_t samplePosition = realLocalPeak - step;
-	float32_t interpolateValue = larange(PositionsArray, ValuesArray,
-			samplePosition);
-	float32_t PointerDirection = 0;
-	if (interpolateValue > UserMaxValue)
-	{
-		PointerDirection = -1;
-		realLocalPeak = samplePosition;
-		realLocalMax = interpolateValue;
-	}
-	else
-	{
-		PointerDirection = 1;
-	}
-	int flag = 1;
-	while (flag)
-	{
-		samplePosition = realLocalPeak + step * PointerDirection;
-		interpolateValue = larange(PositionsArray, ValuesArray, samplePosition);
-		if (interpolateValue >= realLocalMax)
-		{
-			realLocalMax = interpolateValue;
-			realLocalPeak = samplePosition;
-		}
-		else
-		{
-			*ReturnPosition = realLocalPeak;
-			*ReturnValue = realLocalMax;
-			flag = 0;
-		}
-	}
-}
-float32_t larange(float32_t *PositionsArray, float32_t *ValuesArray,
-		float32_t interpolatePoint)
-{
-	float32_t result = 0;
-	int i, j;
-	float32_t temp;
-
-	for (j = 0; j < 3; j++)
-	{
-		temp = 1;
-		for (i = 0; i < 3; i++)
-		{
-			if (i != j)
-				temp = (interpolatePoint - (*(PositionsArray + i))) * temp
-						/ ((*(PositionsArray + j)) - (*(PositionsArray + i)));
-		}
-		result = result + (*(ValuesArray + j) * temp);
-	}
-
-	return result;
-}
-//--------------------------------------------------------------------------------------------TDOA functions
 
 //----------------Speaker functions-------------------
 inline void initSpeaker()
@@ -1436,7 +1125,7 @@ void sendDataToControlBoard(uint8_t * data)
 			i = length;
 		}
 
-		RF24_TX_writePayloadAck(i, (uint8_t*)RF24_TX_buffer);
+		RF24_TX_writePayloadAck(i, (uint8_t*) RF24_TX_buffer);
 
 		RF24_TX_pulseTransmit();
 
@@ -1481,7 +1170,8 @@ void sendDataToControlBoard(uint8_t * data)
 	}
 }
 
-bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer, uint32_t length)
+bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
+		uint32_t length)
 {
 	uint8_t addr[3];
 
@@ -1533,7 +1223,7 @@ bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer, uint
 				{
 					RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
 
-					if (g_ui8ReTransmitCounter != 0) 	// software trigger reTransmit
+					if (g_ui8ReTransmitCounter != 0) // software trigger reTransmit
 					{
 						g_ui8ReTransmitCounter++;
 					}
