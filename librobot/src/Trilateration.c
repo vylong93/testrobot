@@ -10,9 +10,9 @@
 extern uint32_t g_ui32RobotID;
 extern uint8_t g_ui8NeighborsCounter;
 
-location_t locs[LOCATIONS_TABLE_LENGTH];
+extern location_t locs[];
 
-uint32_t g_ui8LocsCounter = 0;
+extern uint32_t g_ui8LocsCounter;
 
 void Tri_clearLocs()
 {
