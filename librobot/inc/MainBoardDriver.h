@@ -10,24 +10,24 @@
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
 #define DELAY_MEASURE_DISTANCE_STATE 1000 	// move to exchange table state timeout period
-#define DELAY_EXCHANGE_TABLE_STATE	 5000	// move to next state timeout period
+#define DELAY_EXCHANGE_TABLE_STATE	 6000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 
 
 #define NEIGHBOR_TABLE_LENGTH 10
-#define ONEHOP_NEIGHBOR_TABLE_LENGTH 10
+#define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
 
 typedef struct tagRobotMeas
 {
 	uint32_t ID;
-	float32_t distance;
-} RobotMeasStruct;
+	uint16_t distance; // <8.8>
+} robotMeas_t;
 
 typedef struct tagOneHopMeas
 {
 	uint32_t firstHopID;
-	RobotMeasStruct neighbors[NEIGHBOR_TABLE_LENGTH];
-} OneHopMeasStruct;
+	robotMeas_t neighbors[NEIGHBOR_TABLE_LENGTH];
+} oneHopMeas_t;
 
 /*
  * Priority level: 0x00 = 0x20 :: 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
@@ -65,6 +65,7 @@ void getNeighborNeighborsTable();
 
 
 //----------------Math functions-------------------
+#define MATH_PI_MUL_2			6.283185307
 #define MATH_PI 				3.141592654
 #define MATH_PI_DIV_2			1.570796327
 #define MATH_PI_DIV_2_MUL_32768	51471.85404
@@ -72,10 +73,18 @@ void getNeighborNeighborsTable();
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
 #define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
 
-int32_t calSin(float x);
-int32_t calCos(float x);
-int32_t calASin(float x);
-int32_t calACos(float x);
+#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
+#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
+
+#define INTERCEPT 63.6207
+#define SLOPE 2.7455
+
+float calSin(float x);
+float calCos(float x);
+float calASin(float x);
+float calACos(float x);
+float cosinesRuleForTriangles(float a, float b, float c);
+bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c);
 //-----------------------------------Math functions
 
 
