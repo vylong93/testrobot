@@ -85,8 +85,11 @@ void getNeighborNeighborsTable();
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
 #define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
 
-#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
-#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
+//#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
+//#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
+
+#define ANGLE_MIN_IN_RAD	0.2	// ~ 8.594366927 degree
+#define COSINE_ANGLE_MIN	0.9800665778 // cos(ANGLE_MIN_IN_RAD)
 
 #define INTERCEPT 63.6207
 #define SLOPE 2.7455

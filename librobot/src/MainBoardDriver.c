@@ -437,7 +437,7 @@ void sendNeighborsTableToControlBoard()
 
 void sendLocationsTableToControlBoard()
 {
-	uint32_t temp;
+	int32_t temp;
 
 	RF24_TX_buffer[0] = locs[g_ui8ReadTablePosition].ID >> 24;
 	RF24_TX_buffer[1] = locs[g_ui8ReadTablePosition].ID >> 16;
