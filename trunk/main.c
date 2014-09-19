@@ -107,68 +107,20 @@ int main(void)
 
 	TDOA_initFilters(FilterCoeffs);
 
-//	// clear locs table
-//	for(g_ui8ReadTablePosition = 0; g_ui8ReadTablePosition < LOCATIONS_TABLE_LENGTH; g_ui8ReadTablePosition++)
-//	{
-//		locs[g_ui8ReadTablePosition].ID = 0;
-//		locs[g_ui8ReadTablePosition].vector.x = 0;
-//		locs[g_ui8ReadTablePosition].vector.y = 0;
-//	}
-//
-//	// Table 1
-//	NeighborsTable[0].ID = 0xBEAD01; NeighborsTable[0].distance = 30656;
-//	NeighborsTable[1].ID = 0xBEAD02; NeighborsTable[1].distance = 43200;
-//	NeighborsTable[2].ID = 0xBEAD03; NeighborsTable[2].distance = 30976;
-//	NeighborsTable[3].ID = 0xBEAD04; NeighborsTable[3].distance = 42992;
-//	NeighborsTable[4].ID = 0xBEAD05; NeighborsTable[4].distance = 37216;
-//	g_ui8NeighborsCounter = 5;
-//
-//	// Table 2
-//	OneHopNeighborsTable[0].firstHopID = 0xBEAD01;
-//	OneHopNeighborsTable[0].neighbors[0].ID = 0xBEAD02; 	OneHopNeighborsTable[0].neighbors[0].distance = 30976;
-//	OneHopNeighborsTable[0].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[0].neighbors[1].distance = 30928;
-//	OneHopNeighborsTable[0].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[0].neighbors[2].distance = 41472;
-//	OneHopNeighborsTable[0].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[0].neighbors[3].distance = 43296;
-//	OneHopNeighborsTable[0].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[0].neighbors[4].distance = 32576;
-//
-//	OneHopNeighborsTable[1].firstHopID = 0xBEAD02;
-//	OneHopNeighborsTable[1].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[1].neighbors[0].distance = 30064;
-//	OneHopNeighborsTable[1].neighbors[1].ID = 0xBEAD03; 	OneHopNeighborsTable[1].neighbors[1].distance = 32832;
-//	OneHopNeighborsTable[1].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[1].neighbors[2].distance = 31392;
-//	OneHopNeighborsTable[1].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[1].neighbors[3].distance = 43008;
-//	OneHopNeighborsTable[1].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[1].neighbors[4].distance = 41376;
-//
-//	OneHopNeighborsTable[2].firstHopID = 0xBEAD03;
-//	OneHopNeighborsTable[2].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[2].neighbors[0].distance = 28384;
-//	OneHopNeighborsTable[2].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[2].neighbors[1].distance = 32400;
-//	OneHopNeighborsTable[2].neighbors[2].ID = 0xBEAD04; 	OneHopNeighborsTable[2].neighbors[2].distance = 29920;
-//	OneHopNeighborsTable[2].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[2].neighbors[3].distance = 30736;
-//	OneHopNeighborsTable[2].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[2].neighbors[4].distance = 30096;
-//
-//	OneHopNeighborsTable[3].firstHopID = 0xBEAD04;
-//	OneHopNeighborsTable[3].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[3].neighbors[0].distance = 40944;
-//	OneHopNeighborsTable[3].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[3].neighbors[1].distance = 29952;
-//	OneHopNeighborsTable[3].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[3].neighbors[2].distance = 33120;
-//	OneHopNeighborsTable[3].neighbors[3].ID = 0xBEAD05; 	OneHopNeighborsTable[3].neighbors[3].distance = 33968;
-//	OneHopNeighborsTable[3].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[3].neighbors[4].distance = 43568;
-//
-//	OneHopNeighborsTable[4].firstHopID = 0xBEAD05;
-//	OneHopNeighborsTable[4].neighbors[0].ID = 0xBEAD01; 	OneHopNeighborsTable[4].neighbors[0].distance = 40768;
-//	OneHopNeighborsTable[4].neighbors[1].ID = 0xBEAD02; 	OneHopNeighborsTable[4].neighbors[1].distance = 42272;
-//	OneHopNeighborsTable[4].neighbors[2].ID = 0xBEAD03; 	OneHopNeighborsTable[4].neighbors[2].distance = 28544;
-//	OneHopNeighborsTable[4].neighbors[3].ID = 0xBEAD04; 	OneHopNeighborsTable[4].neighbors[3].distance = 30048;
-//	OneHopNeighborsTable[4].neighbors[4].ID = 0xBEAD06; 	OneHopNeighborsTable[4].neighbors[4].distance = 35520;
-//
-//	Tri_clearLocs();
-//
-//	Tri_addLocation(g_ui32RobotID, 0, 0);
-//
-//	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
-
 	while (1)
 	{
 		RobotProcess();
 	}
+}
+
+float vsqrtf(float op1)
+{
+ if(op1 <= 0.f)
+  return 0.f;
+
+ float result;
+ __ASM volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+ return (result);
 }
 
 void RobotProcess()
@@ -176,6 +128,8 @@ void RobotProcess()
 	uint16_t ui16RandomValue;
 	uint8_t ui8RandomRfChannel;
 	uint8_t neighborsTablePointer;
+	float32_t f32_inputValue;
+	float32_t f32_outputValue;
 
 	switch (g_eProcessState)
 	{
@@ -217,8 +171,22 @@ void RobotProcess()
 					}
 					else
 					{
-						NeighborsTable[g_ui8NeighborsCounter].distance =
-								(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) * 128; //  (sum / 2) * 256
+						// Long Dang, Sep 16, 2014 ===========================================
+
+						//	NeighborsTable[g_ui8NeighborsCounter].distance =
+						//		(g_f32PeakEnvelopeA + g_f32PeakEnvelopeB) * 128; //  (sum / 2) * 256
+
+						g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - INTERCEPT) / SLOPE;
+						g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - INTERCEPT) / SLOPE;
+						f32_inputValue = (((g_f32PeakEnvelopeA*g_f32PeakEnvelopeA + g_f32PeakEnvelopeB*g_f32PeakEnvelopeB) / 2.0) -
+																 (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536; // * 256^2
+//						q31_inputValue = (q31_t)(f32_inputValue + 0.5);
+//						arm_sqrt_q31(q31_inputValue, &q31_outputValue);
+
+						f32_outputValue = vsqrtf(f32_inputValue);
+
+						NeighborsTable[g_ui8NeighborsCounter].distance = (uint16_t)(f32_outputValue + 0.5);
+						// =========================================== Long Dang, Sep 16, 2014
 
 						g_ui8NeighborsCounter++;
 
@@ -593,6 +561,42 @@ inline void RF24_IntHandler()
 					case COMMAND_RESET:
 						HWREG(NVIC_APINT) = (NVIC_APINT_VECTKEY |
 						NVIC_APINT_SYSRESETREQ);
+						break;
+
+					case SMART_PHONE_COMMAND:
+						switch (RF24_RX_buffer[1])
+						{
+						case SP_SEND_STOP_TWO_MOTOR:
+							PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+							PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+
+							setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+							setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+
+							PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+							PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+							break;
+
+						case SP_SEND_FORWAR:
+							goStraight();
+							break;
+
+						case SP_SEND_SPIN_CLOCKWISE:
+							spinClockwise();
+							break;
+
+						case SP_SEND_SPIN_COUNTERCLOCKWISE:
+							spinCounterclockwise();
+							break;
+
+						case SP_SEND_RESERVED:
+							goBackward();
+							break;
+
+						default:
+							signalUnhandleError();
+							break;
+						}
 						break;
 
 					default:
