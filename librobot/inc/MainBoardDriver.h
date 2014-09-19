@@ -4,6 +4,9 @@
 #include "libnrf24l01/inc/nRF24L01.h"
 #include "arm_math.h"
 
+#define DISTANCE_BETWEEN_TWO_MICS		5.0
+#define DISTANCE_BETWEEN_TWO_MICS_SQR	25.0
+
 #define DELAY_START_SPEAKER	100000
 #define DELAY_SAMPING_MIC	 90000
 
@@ -60,6 +63,7 @@ typedef struct tagLocation {
 
 //----------------Robot Init functions-------------------
 #define EEPROM_ADDR_ROBOT_ID			0x0040
+#define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
 
 typedef enum
 {
@@ -85,14 +89,20 @@ void getNeighborNeighborsTable();
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
 #define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
 
-//#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
-//#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
+#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
+#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
 
-#define ANGLE_MIN_IN_RAD	0.2	// ~ 8.594366927 degree
-#define COSINE_ANGLE_MIN	0.9800665778 // cos(ANGLE_MIN_IN_RAD)
+//#define ANGLE_MIN_IN_RAD	0.1047197551 // ~ 6 degree
+//#define COSINE_ANGLE_MIN	0.9945218954 // cos(ANGLE_MIN_IN_RAD)
 
-#define INTERCEPT 63.6207
-#define SLOPE 2.7455
+//#define INTERCEPT 	63.6207f
+//#define SLOPE 		2.7455f
+//#define INTERCEPT 	78.5855f
+//#define SLOPE 		2.72f
+
+#define INTERCEPT 	69.6207f
+#define SLOPE 		2.72f
+
 
 float calSin(float x);
 float calCos(float x);
@@ -281,7 +291,6 @@ inline void generateRandomByte();
 #define PC_SEND_SET_ONE_HOP_POSITION	0xA9
 
 #define PC_SEND_READ_LOCS_TABLE			0xE3
-
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 
 #define PC_SEND_READ_EEPROM             0xE0
@@ -298,6 +307,13 @@ inline void generateRandomByte();
 #define COMMAND_SLEEP			0x02
 #define	COMMAND_DEEP_SLEEP		0x03
 #define	COMMAND_WAKE_UP			0x04
+
+#define SMART_PHONE_COMMAND				0xF0
+#define SP_SEND_STOP_TWO_MOTOR			0xF1
+#define SP_SEND_FORWAR					0xF2
+#define SP_SEND_SPIN_CLOCKWISE			0xF3
+#define SP_SEND_SPIN_COUNTERCLOCKWISE	0xF4
+#define SP_SEND_RESERVED				0xF5
 
 inline void initRfModule();
 inline void testRfTransmission();
@@ -380,6 +396,15 @@ void writeToEEPROM();
 void readFormEEPROM();
 void setAddressEEPROM();
 //----------------------------------------------EEPROM Functions
+
+
+//----------------Smart-phone Control functions-------------------
+void goStraight();
+void spinClockwise();
+void spinCounterclockwise();
+void goBackward();
+//-----------------------------------Smart-phone Control functions
+
 
 
 #endif /* MAIN_BOARD_DRIVERS_H */

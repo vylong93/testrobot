@@ -215,9 +215,15 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 	float cosB;
 	float cosC;
 
-	float fa = ((a / 256.0) - INTERCEPT) / SLOPE;
-	float fb = ((b / 256.0) - INTERCEPT) / SLOPE;
-	float fc = ((c / 256.0) - INTERCEPT) / SLOPE;
+	// Long Dang, Sep 16, 2014 ======================
+//	float fa = ((a / 256.0) - INTERCEPT) / SLOPE;
+//	float fb = ((b / 256.0) - INTERCEPT) / SLOPE;
+//	float fc = ((c / 256.0) - INTERCEPT) / SLOPE;
+
+	float fa = a / 256.0f;
+	float fb = b / 256.0f;
+	float fc = c / 256.0f;
+	//====================== Long Dang, Sep 16, 2014
 
 	cosA = cosinesRuleForTriangles(fb, fc, fa);
 	if (cosA > COSINE_ANGLE_MIN)
@@ -624,47 +630,46 @@ inline void randomMotorMode()
 //
 //		delayTimerB(g_ui8RandomNumber + 2000, true);
 
-	setSpinSpeed(68, 1, 3000);
-	setSpinSpeed(68, 0, 3000);
-	setSpinSpeed(68, 1, 3000);
-	setSpinSpeed(68, 0, 3000);
+	setSpinSpeed(65, 1, 3000);
+	setSpinSpeed(65, 0, 3000);
+	setSpinSpeed(65, 1, 3000);
+	setSpinSpeed(65, 0, 3000);
 //	}
 }
 
 void setSpinSpeed(uint8_t speed, uint8_t direction, uint32_t delay)
 {
-
 	disableMOTOR();
 
 	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-	if (direction & 0x01)
+	if (direction & 0x01)	// REVERSE 1
 	{
 		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction);
 		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - speed);
+
 		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1);
 		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, speed);
 	}
-	else
+	else	//FORWARD 0
 	{
-		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction);
+		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction); // direction = 0
 		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, speed);
-		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1);
+
+		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1); // direction = 1
 		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - speed);
 	}
 
 	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-	true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-	true);
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
 	enableMOTOR();
 
-	toggleLED(LED_GREEN);
 	ROM_SysCtlDelay((SysCtlClockGet() / 1000) * (delay / 3));
+
 	disableMOTOR();
 }
 
@@ -1592,3 +1597,139 @@ void setAddressEEPROM()
 	turnOffLED(LED_GREEN);
 }
 //-----------------------------------EEPROM functions
+
+//----------------Smart-phone Control functions-------------------
+void goStraight()
+{
+	uint32_t pui32Read[1];
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = *pui32Read;
+	i8Motor2Speed = (*pui32Read) >> 8;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	disableMOTOR();
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, i8Motor1Speed);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, i8Motor2Speed);
+
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
+	true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
+	true);
+	enableMOTOR();
+}
+
+void spinClockwise()
+{
+	uint32_t pui32Read[1];
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = *pui32Read;
+	i8Motor2Speed = (*pui32Read) >> 8;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	disableMOTOR();
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - i8Motor1Speed);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
+	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, i8Motor2Speed);
+
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
+	true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
+	true);
+	enableMOTOR();
+}
+
+void spinCounterclockwise()
+{
+	uint32_t pui32Read[1];
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = *pui32Read;
+	i8Motor2Speed = (*pui32Read) >> 8;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	disableMOTOR();
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
+	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, i8Motor1Speed);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - i8Motor2Speed);
+
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
+	true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
+	true);
+	enableMOTOR();
+}
+
+void goBackward()
+{
+	uint32_t pui32Read[1];
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = *pui32Read;
+	i8Motor2Speed = (*pui32Read) >> 8;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	disableMOTOR();
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
+	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - i8Motor1Speed);
+	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
+	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - i8Motor2Speed);
+
+	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
+	true);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
+	true);
+	enableMOTOR();
+}
+
+//-----------------------------------Smart-phone Control functions
+
