@@ -209,6 +209,13 @@ float cosinesRuleForTriangles(float a, float b, float c)
 	return (((a * a) + (b * b) - (c * c)) / (2 * a * b));
 }
 
+bool isTriangle(float a, float b, float c)
+{
+	if (((a + b) > c) && ((b + c) > a) && ((a + c) > b))
+		return true;
+	return false;
+}
+
 bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 {
 	float cosA;
@@ -224,6 +231,9 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 	float fb = b / 256.0f;
 	float fc = c / 256.0f;
 	//====================== Long Dang, Sep 16, 2014
+
+	if (!isTriangle(fa, fb, fc))
+		return false;
 
 	cosA = cosinesRuleForTriangles(fb, fc, fa);
 	if (cosA > COSINE_ANGLE_MIN)
@@ -248,8 +258,16 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
 robotMeas_t NeighborsTable[NEIGHBOR_TABLE_LENGTH];
 location_t locs[LOCATIONS_TABLE_LENGTH];
+location_t oriLocs[LOCATIONS_TABLE_LENGTH];
 
-uint32_t g_ui8LocsCounter = 0;
+uint32_t g_ui8LocsCounter;
+uint32_t g_ui8OriLocsCounter;
+
+uint32_t g_ui32OriginID;
+uint32_t g_ui32RotationHopID;
+uint8_t g_ui8Hopth;
+uint8_t g_ui8OriginNumberOfNeighbors;
+
 uint8_t g_ui8ReadTablePosition;
 uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
@@ -261,6 +279,7 @@ ProcessStateEnum g_eProcessState;
 extern location_t locs[];
 
 bool g_bBypassThisState;
+uint8_t g_ui8ReBroadcastCounter;
 
 void initRobotProcess()
 {
@@ -492,6 +511,55 @@ void sendOneHopNeighborsTableToControlBoard()
 	RF24_TX_buffer[9] = OneHopNeighborsTable[g_ui8ReadOneHopTablePosition].neighbors[g_ui8ReadTablePosition].distance;
 
 	sendDataToControlBoard(RF24_TX_buffer);
+}
+
+void updateOrRejectNetworkOrigin(uint8_t RxData[])
+{
+	//RxData:: <Update Network Origin COMMAND> <thisOriginID> <thisOriginNumberOfNeighbors> <thisHopth>
+	uint32_t ui32OriginNodeID;
+	uint8_t ui8OriginNumberOfNeighbors;
+	uint8_t ui8Hopth;
+
+	ui32OriginNodeID = (RxData[1] << 24) | (RxData[2] << 16) | (RxData[3] << 8) | RxData[4];
+
+	if (ui32OriginNodeID == g_ui32RobotID)
+		return;
+
+	ui8OriginNumberOfNeighbors = RxData[5];
+	ui8Hopth = RxData[6];
+
+	if (isNeedRotateCoordinate(ui8OriginNumberOfNeighbors, ui32OriginNodeID))
+	{
+		g_ui8Hopth = ui8Hopth + 1;
+
+		g_ui32OriginID = ui32OriginNodeID;
+
+		g_ui8OriginNumberOfNeighbors = ui8OriginNumberOfNeighbors;
+
+		g_ui8ReBroadcastCounter = 0;
+
+		g_bBypassThisState = false;
+	}
+}
+
+bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID)
+{
+	if ((g_ui32OriginID != originID))
+	{
+		if (g_ui8OriginNumberOfNeighbors == originNumberOfNeighbors)
+		{
+			if (originID <  g_ui32OriginID)
+				g_ui32OriginID = originID;
+
+			return true;
+		}
+		else if (g_ui8OriginNumberOfNeighbors < originNumberOfNeighbors)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //-----------------------------------Robot Int functions
@@ -1320,6 +1388,8 @@ bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
 
 void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length)
 {
+	// WARNING!: must call RF24_RX_activate() to switch back RX mode after this function servered
+
 	uint8_t addr[3];
 
 	RF24_TX_activate();
@@ -1503,6 +1573,8 @@ inline void gotoSleepMode()
 	//
 	SysCtlClockSet(SYSCTL_OSC_INT | SYSCTL_USE_OSC | SYSCTL_MAIN_OSC_DIS);
 
+	disableMOTOR();
+
 	turnOffLED(LED_ALL);
 	turnOnLED(LED_GREEN);
 
@@ -1513,6 +1585,8 @@ inline void gotoSleepMode()
 
 inline void gotoDeepSleepMode()
 {
+	disableMOTOR();
+
 	turnOffLED(LED_ALL);
 
 	SysCtlDeepSleep();

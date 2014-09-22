@@ -13,9 +13,10 @@
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
 #define DELAY_MEASURE_DISTANCE_STATE 1000 	// move to exchange table state timeout period
-#define DELAY_EXCHANGE_TABLE_STATE	 6000	// move to next state timeout period
+#define DELAY_EXCHANGE_TABLE_STATE	 2000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
-
+#define DELAY_ROTATE_NETWORK		 6000
+#define DELAY_REBROADCAST			 3000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -65,9 +66,11 @@ typedef struct tagLocation {
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 #define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
 
+#define REBROADCAST_TIMES	3
+
 typedef enum
 {
-	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, LOCALIZATION
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, ROTATE_NETWORK
 } ProcessStateEnum;
 
 void initRobotProcess();
@@ -76,6 +79,8 @@ void sendNeighborsTableToControlBoard();
 void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
 void getNeighborNeighborsTable();
+void updateOrRejectNetworkOrigin(uint8_t RxData[]);
+bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
 
 //-----------------------------------Robot Int functions
 
@@ -89,14 +94,18 @@ void getNeighborNeighborsTable();
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
 #define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200  // Block 5
 
-#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
-#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
+//#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
+//#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
 
-//#define ANGLE_MIN_IN_RAD	0.1047197551 // ~ 6 degree
-//#define COSINE_ANGLE_MIN	0.9945218954 // cos(ANGLE_MIN_IN_RAD)
+#define ANGLE_MIN_IN_RAD	0.1047197551 // ~ 6 degree
+#define COSINE_ANGLE_MIN	0.9945218954 // cos(ANGLE_MIN_IN_RAD)
+
+//#define ANGLE_MIN_IN_RAD	0.1745329252 // ~ 10 degree
+//#define COSINE_ANGLE_MIN	0.9999953604 // cos(ANGLE_MIN_IN_RAD)
 
 //#define INTERCEPT 	63.6207f
 //#define SLOPE 		2.7455f
+
 //#define INTERCEPT 	78.5855f
 //#define SLOPE 		2.72f
 
@@ -109,6 +118,7 @@ float calCos(float x);
 float calASin(float x);
 float calACos(float x);
 float cosinesRuleForTriangles(float a, float b, float c);
+bool isTriangle(float a, float b, float c);
 bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c);
 //-----------------------------------Math functions
 
@@ -302,6 +312,8 @@ inline void generateRandomByte();
 
 #define ROBOT_RESPONSE_HELLO_NEIGHBOR		0xD2
 #define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 	0xD3
+
+#define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN	0xD4
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
