@@ -35,7 +35,7 @@ uint8_t RF24_TX_buffer[32] =
 uint8_t g_pui8RandomBuffer[8];
 uint8_t g_ui8RandomNumber = 0;
 
-uint8_t g_ui8ReTransmitCounter; // set this variable to 0 to disable software reTransmit
+uint8_t g_ui8ReTransmitCounter; //NOTE: set this variable to 0 to disable software reTransmit
 
 bool g_bDelayTimerAFlagAssert;
 bool g_bDelayTimerBFlagAssert;
@@ -258,10 +258,8 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
 robotMeas_t NeighborsTable[NEIGHBOR_TABLE_LENGTH];
 location_t locs[LOCATIONS_TABLE_LENGTH];
-location_t oriLocs[LOCATIONS_TABLE_LENGTH];
 
 uint32_t g_ui8LocsCounter;
-uint32_t g_ui8OriLocsCounter;
 
 uint32_t g_ui32OriginID;
 uint32_t g_ui32RotationHopID;
@@ -273,6 +271,7 @@ uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
 
 uint32_t g_ui32RobotID;
+bool g_bIsNetworkRotated;
 
 ProcessStateEnum g_eProcessState;
 
@@ -324,7 +323,8 @@ void checkAndResponeMyNeighborsTableToOneRobot()
 			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
 			RF24_TX_buffer[4] = g_ui32RobotID;
 
-			tableSizeInByte = sizeof(NeighborsTable);
+			//tableSizeInByte = sizeof(NeighborsTable); //TODO: optimize size
+			tableSizeInByte = sizeof(robotMeas_t) * g_ui8NeighborsCounter;
 
 			RF24_TX_buffer[5] = tableSizeInByte >> 24;
 			RF24_TX_buffer[6] = tableSizeInByte >> 16;
@@ -560,6 +560,70 @@ bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID)
 	}
 
 	return false;
+}
+
+void getHopOriginTableAndRotate(uint8_t RxData[])
+{
+	location_t oriLocs[LOCATIONS_TABLE_LENGTH];
+	uint8_t oriLocsCounter;
+
+	uint32_t dataLength;
+	uint32_t length;
+	uint32_t pointer;
+	uint8_t i;
+
+	g_ui32RotationHopID = (RxData[1] << 24) | (RxData[2] << 16) | (RxData[3] << 8) | RxData[4];
+
+	dataLength = (RxData[5] << 24) | (RxData[6] << 16) | (RxData[7] << 8) | RxData[8];
+
+	oriLocsCounter = dataLength / sizeof(location_t);
+
+	disableRF24Interrupt();
+
+	RF24_clearIrqFlag(RF24_IRQ_RX);
+
+	GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
+
+	pointer = 0;
+
+	while (1)
+	{
+		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+		{
+			if (RF24_getIrqFlag(RF24_IRQ_RX))
+			{
+				length = RF24_RX_getPayloadWidth();
+
+				RF24_RX_getPayloadData(length, RF24_RX_buffer);
+
+				RF24_clearIrqFlag(RF24_IRQ_RX);
+
+				for (i = 0; i < length; i++)
+				{
+					*( ((uint8_t*)oriLocs) + pointer ) = RF24_RX_buffer[i];
+					pointer++;
+				}
+				if (dataLength > length)
+					dataLength = dataLength - length;
+				else
+					break;
+			}
+		}
+	}
+
+	if(!g_bIsNetworkRotated)
+	{
+		//TODO: rotate Locs table
+		// use: oriLocs, oriLocsCounter; locs, g_ui8LocsCounter
+
+		g_bIsNetworkRotated = true;
+	}
+	else
+	{
+		// Do nothing!
+	}
+
+	enableRF24Interrupt();
 }
 
 //-----------------------------------Robot Int functions
@@ -1314,6 +1378,9 @@ bool sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
 	RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_2000u);
 
 	disableRF24Interrupt();
+
+	RF24_clearIrqFlag(RF24_IRQ_RX);
+	GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
 
 	while (1)
 	{

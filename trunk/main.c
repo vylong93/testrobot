@@ -44,6 +44,8 @@ extern bool g_bDelayTimerBFlagAssert;
 
 extern uint32_t g_ui32RobotID;
 
+extern bool g_bIsNetworkRotated;
+
 extern ProcessStateEnum g_eProcessState;
 extern bool g_bBypassThisState;
 extern uint8_t g_ui8ReBroadcastCounter;
@@ -58,7 +60,6 @@ extern location_t locs[];
 extern location_t oriLocs[];
 
 extern uint8_t g_ui8LocsCounter;
-extern uint8_t g_ui8OriLocsCounter;
 
 extern uint32_t g_ui32OriginID;
 extern uint32_t g_ui32RotationHopID;
@@ -76,7 +77,8 @@ extern uint16_t g_pui16ADC1Result[];
 void RobotProcess();
 void StateOne_MeasureDistance();
 void StateTwo_ExchangeTableAndCalculateLocsTable();
-void StateThree_RotateNetworkOrigin();
+void StateThree_VoteOrigin();
+void StateFour_RotateNetwork();
 
 int main(void)
 {
@@ -276,7 +278,8 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 								(g_ui8RandomNumber + 100) :
 								(g_ui8RandomNumber);
 				g_ui8RandomNumber <<= 1;
-				ui16RandomValue = (g_ui32RobotID << 9) | g_ui8RandomNumber;
+//				ui16RandomValue = (g_ui32RobotID << 9) | g_ui8RandomNumber;
+				ui16RandomValue = g_ui8RandomNumber;
 
 				delayTimerB(ui16RandomValue, true); // maybe Received Request table command here!
 
@@ -336,10 +339,10 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 
 	turnOffLED(LED_BLUE);
 
-	g_eProcessState = ROTATE_NETWORK;
+	g_eProcessState = VOTE_ORIGIN;
 }
 
-void StateThree_RotateNetworkOrigin()
+void StateThree_VoteOrigin()
 {
 	uint16_t ui16RandomValue;
 
@@ -348,8 +351,6 @@ void StateThree_RotateNetworkOrigin()
 	g_ui8OriginNumberOfNeighbors =  g_ui8LocsCounter;
 	g_ui8Hopth = 0;
 	g_ui32RotationHopID = g_ui32RobotID;
-
-	Tri_clearLocs(oriLocs, &g_ui8OriLocsCounter);
 
 	g_ui8ReBroadcastCounter = 0;
 
@@ -412,9 +413,73 @@ void StateThree_RotateNetworkOrigin()
 	else
 		turnOffLED(LED_RED);
 
-	while(1);
+	g_eProcessState = ROTATE_NETWORK;
+}
 
-	g_eProcessState = IDLE; //TODO: next state
+void StateFour_RotateNetwork()
+{
+	uint32_t tableSizeInByte;
+	uint32_t neighborID;
+	int8_t i;
+
+	if (g_ui32RobotID == g_ui32OriginID)
+	{
+		// I'am Original
+		g_bIsNetworkRotated = true;
+	}
+	else
+	{
+		g_bIsNetworkRotated = false;
+	}
+
+	// waiting request and rotate
+	while(!g_bIsNetworkRotated);
+
+	g_ui8ReTransmitCounter = 0; // disable software trigger retransmit
+
+	tableSizeInByte = sizeof(location_t) * g_ui8LocsCounter;
+
+	i = 0;
+	while (i < g_ui8LocsCounter)
+	{
+		generateRandomByte();
+		while (g_ui8RandomNumber == 0)
+			;
+		g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+		delayTimerB(g_ui8RandomNumber, true);
+
+		neighborID = locs[i].ID;
+
+		if (neighborID == g_ui32RotationHopID || neighborID == g_ui32RobotID)
+		{
+			i++;
+			continue;
+		}
+
+		// send rotate network command and locs size
+		RF24_TX_buffer[0] = ROBOT_REQUEST_ROTATE_NETWORK;
+
+		RF24_TX_buffer[1] = g_ui32RobotID >> 24;
+		RF24_TX_buffer[2] = g_ui32RobotID >> 16;
+		RF24_TX_buffer[3] = g_ui32RobotID >> 8;
+		RF24_TX_buffer[4] = g_ui32RobotID;
+
+		RF24_TX_buffer[5] = tableSizeInByte >> 24;
+		RF24_TX_buffer[6] = tableSizeInByte >> 16;
+		RF24_TX_buffer[7] = tableSizeInByte >> 8;
+		RF24_TX_buffer[8] = tableSizeInByte;
+
+		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 9))
+		{
+			SysCtlDelay(10000); // delay 600us
+			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
+			i++;
+		}
+	}
+
+	// Rotate coordination DONE!!!
+
+	g_eProcessState = IDLE;
 }
 
 void RobotProcess()
@@ -429,8 +494,12 @@ void RobotProcess()
 		StateTwo_ExchangeTableAndCalculateLocsTable();
 		break;
 
+	case VOTE_ORIGIN:
+		StateThree_VoteOrigin();
+		break;
+
 	case ROTATE_NETWORK:
-		StateThree_RotateNetworkOrigin();
+		StateFour_RotateNetwork();
 		break;
 
 	default: // IDLE state
@@ -515,45 +584,27 @@ inline void RF24_IntHandler()
 					}
 					break;
 
-//				case EXCHANGE_TABLE:
-//					if (RF24_RX_buffer[0] == ROBOT_REQUEST_NEIGHBORS_TABLE)
-//					{
-//						reloadDelayTimerA();
-//						checkAndResponeMyNeighborsTableToOneRobot();
-//						delayTimerB(g_ui8RandomNumber, false);
-//					}
-//					else
-//					{
-//					}
-//					break;
-//
-//				case ROTATE_NETWORK:
-//					if (RF24_RX_buffer[0] == ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN)
-//					{
-//						reloadDelayTimerA();
-//						updateOrRejectNetworkOrigin(RF24_RX_buffer);
-//						delayTimerB(g_ui8RandomNumber, false);
-//					}
-//					else
-//					{
-//					}
-//					break;
-
 				default: // IDLE state
 					switch (RF24_RX_buffer[0])
 					{
+					// EXCHANGE_TABLE state
 					case ROBOT_REQUEST_NEIGHBORS_TABLE:
 						reloadDelayTimerA();
 						checkAndResponeMyNeighborsTableToOneRobot();
 						delayTimerB(g_ui8RandomNumber, false);
 						break;
 
+					// VOTE_ORIGIN state
 					case ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN:
 						turnOnLED(LED_RED);
 						reloadDelayTimerA();
 						updateOrRejectNetworkOrigin(RF24_RX_buffer);
 						delayTimerB(g_ui8RandomNumber, false);
 						turnOffLED(LED_RED);
+						break;
+
+					case ROBOT_REQUEST_ROTATE_NETWORK:
+						getHopOriginTableAndRotate(RF24_RX_buffer);
 						break;
 
 					case PC_SEND_MEASURE_DISTANCE:
