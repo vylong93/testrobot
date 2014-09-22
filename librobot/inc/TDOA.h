@@ -16,6 +16,7 @@
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 #define MAX_THRESHOLD					50
+#define MAX_SAMPLE_POSITION				215
 
 inline void TDOA_initFilters(float32_t* FilterCoeffs);
 

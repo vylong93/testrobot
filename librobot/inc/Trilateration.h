@@ -10,7 +10,7 @@
 
 #include "librobot/inc/MainBoardDriver.h"
 
-void Tri_clearLocs();
+void Tri_clearLocs(location_t locsTable[], uint8_t *length);
 void Tri_addLocation(uint32_t ID, float x, float y);
 
 void Tri_findLocs(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable);
@@ -33,6 +33,6 @@ uint16_t Tri_tryToGetNeighborsDistance(robotMeas_t* pNeighborsTable, uint32_t ch
 uint16_t Tri_tryToGetDistance(oneHopMeas_t* pOneHopTable, uint32_t firstHopID, uint32_t checkingID);
 
 vector2_t Tri_trilaterateFromSixEdgeAndAngleOffset(float edgeIQ, float edgeIP, float edgeIJ, float edgeQJ, float edgePJ, float edgePQ, float angleOffset);
-bool Tri_isOnNegativeYaxis(float cosAlpha, float cosBeta, float cosTheta);
+int8_t Tri_findSignedYaxis(float cosAlpha, float cosBeta, float cosTheta);
 
 #endif /* TRILATERATION_H_ */
