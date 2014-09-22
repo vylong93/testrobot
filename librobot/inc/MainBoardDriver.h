@@ -15,8 +15,8 @@
 #define DELAY_MEASURE_DISTANCE_STATE 1000 	// move to exchange table state timeout period
 #define DELAY_EXCHANGE_TABLE_STATE	 2000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
-#define DELAY_ROTATE_NETWORK		 6000
-#define DELAY_REBROADCAST			 3000
+#define DELAY_ROTATE_NETWORK		 4000
+#define DELAY_REBROADCAST			 2000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -66,11 +66,11 @@ typedef struct tagLocation {
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 #define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
 
-#define REBROADCAST_TIMES	3
+#define REBROADCAST_TIMES	5
 
 typedef enum
 {
-	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, ROTATE_NETWORK
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK
 } ProcessStateEnum;
 
 void initRobotProcess();
@@ -81,6 +81,7 @@ void sendOneHopNeighborsTableToControlBoard();
 void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
+void getHopOriginTableAndRotate(uint8_t RxData[]);
 
 //-----------------------------------Robot Int functions
 
@@ -313,7 +314,8 @@ inline void generateRandomByte();
 #define ROBOT_RESPONSE_HELLO_NEIGHBOR		0xD2
 #define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 	0xD3
 
-#define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN	0xD4
+#define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN		0xD4
+#define ROBOT_REQUEST_ROTATE_NETWORK			0xD5
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
