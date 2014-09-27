@@ -43,6 +43,7 @@ extern bool g_bDelayTimerAFlagAssert;
 extern bool g_bDelayTimerBFlagAssert;
 
 extern uint32_t g_ui32RobotID;
+extern vector2_t g_vector;
 
 extern bool g_bIsNetworkRotated;
 
@@ -78,7 +79,10 @@ void RobotProcess();
 void StateOne_MeasureDistance();
 void StateTwo_ExchangeTableAndCalculateLocsTable();
 void StateThree_VoteOrigin();
-void StateFour_RotateNetwork();
+void StateFour_RequestRotateNetwork();
+
+extern float g_f32Intercept;
+extern float g_f32Slope;
 
 int main(void)
 {
@@ -128,17 +132,6 @@ int main(void)
 	}
 }
 
-float vsqrtf(float op1)
-{
-	if (op1 <= 0.f)
-		return 0.f;
-
-	float result;
-	__ASM
-	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
-	return (result);
-}
-
 void StateOne_MeasureDistance()
 {
 	uint16_t ui16RandomValue;
@@ -149,7 +142,7 @@ void StateOne_MeasureDistance()
 
 	g_bBypassThisState = false;
 
-	delayTimerA(DELAY_MEASURE_DISTANCE_STATE, false);
+	delayTimerA(DELAY_MEASURE_DISTANCE_STATE*4, false);
 
 	while (!g_bDelayTimerAFlagAssert)
 	{
@@ -185,10 +178,16 @@ void StateOne_MeasureDistance()
 				{
 					// Long Dang, Sep 16, 2014 ===========================================
 
-					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - INTERCEPT)
-							/ SLOPE;
-					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - INTERCEPT)
-							/ SLOPE;
+//					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - INTERCEPT)
+//							/ SLOPE;
+//					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - INTERCEPT)
+//							/ SLOPE;
+
+					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - g_f32Intercept)
+							/ g_f32Slope;
+					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - g_f32Intercept)
+							/ g_f32Slope;
+
 					f32_inputValue =
 							(((g_f32PeakEnvelopeA * g_f32PeakEnvelopeA
 									+ g_f32PeakEnvelopeB
@@ -277,9 +276,8 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 						(g_ui8RandomNumber < 100) ?
 								(g_ui8RandomNumber + 100) :
 								(g_ui8RandomNumber);
-				g_ui8RandomNumber <<= 1;
-//				ui16RandomValue = (g_ui32RobotID << 9) | g_ui8RandomNumber;
-				ui16RandomValue = g_ui8RandomNumber;
+				ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
+				//ui16RandomValue = g_ui8RandomNumber << 4;
 
 				delayTimerB(ui16RandomValue, true); // maybe Received Request table command here!
 
@@ -344,14 +342,15 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 
 void StateThree_VoteOrigin()
 {
-	uint16_t ui16RandomValue;
+//	uint16_t ui16RandomValue;
 
-	// set This As Origin Node
-	g_ui32OriginID = g_ui32RobotID;
-	g_ui8OriginNumberOfNeighbors =  g_ui8LocsCounter;
-	g_ui8Hopth = 0;
-	g_ui32RotationHopID = g_ui32RobotID;
-
+	if(g_ui32OriginID == g_ui32RobotID)
+	{
+		// set This As Origin Node
+		g_ui8OriginNumberOfNeighbors =  g_ui8LocsCounter;
+		g_ui8Hopth = 0;
+		g_ui32RotationHopID = g_ui32RobotID;
+	}
 	g_ui8ReBroadcastCounter = 0;
 
 	g_bBypassThisState = false;
@@ -365,12 +364,14 @@ void StateThree_VoteOrigin()
 		generateRandomByte();
 		while (g_ui8RandomNumber == 0)
 			;
-		ui16RandomValue = DELAY_REBROADCAST + g_ui8RandomNumber;
+//		ui16RandomValue = DELAY_REBROADCAST + g_ui8RandomNumber;
 
-		delayTimerB(ui16RandomValue, true);	// maybe Received Request update network origin command here!
+//		delayTimerB(ui16RandomValue, true);	// maybe Received Request update network origin command here!
+//
+//		while (!g_bDelayTimerBFlagAssert)
+//			; // this line make sure robot will re delay after handle request update network origin command
 
-		while (!g_bDelayTimerBFlagAssert)
-			; // this line make sure robot will re delay after handle request update network origin command
+		ROM_SysCtlDelay(33333333); // remove
 
 		// delay timeout
 		if (!g_bBypassThisState)
@@ -416,21 +417,24 @@ void StateThree_VoteOrigin()
 	g_eProcessState = ROTATE_NETWORK;
 }
 
-void StateFour_RotateNetwork()
+void StateFour_RequestRotateNetwork()
 {
 	uint32_t tableSizeInByte;
 	uint32_t neighborID;
 	int8_t i;
+	int32_t tempValue;
 
 	if (g_ui32RobotID == g_ui32OriginID)
 	{
 		// I'am Original
 		g_bIsNetworkRotated = true;
+		g_vector.x = 0;
+		g_vector.y = 0;
 	}
-	else
-	{
-		g_bIsNetworkRotated = false;
-	}
+//	else
+//	{
+//		g_bIsNetworkRotated = false;
+//	}
 
 	// waiting request and rotate
 	while(!g_bIsNetworkRotated);
@@ -446,7 +450,7 @@ void StateFour_RotateNetwork()
 		while (g_ui8RandomNumber == 0)
 			;
 		g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-		delayTimerB(g_ui8RandomNumber, true);
+		delayTimerB(g_ui8RandomNumber + 1000, true);
 
 		neighborID = locs[i].ID;
 
@@ -469,7 +473,19 @@ void StateFour_RotateNetwork()
 		RF24_TX_buffer[7] = tableSizeInByte >> 8;
 		RF24_TX_buffer[8] = tableSizeInByte;
 
-		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 9))
+		tempValue = (int8_t)(g_vector.x * 65536.0);
+		RF24_TX_buffer[9] = tempValue >> 24;
+		RF24_TX_buffer[10] = tempValue >> 16;
+		RF24_TX_buffer[11] = tempValue >> 8;
+		RF24_TX_buffer[12] = tempValue;
+
+		tempValue = (int8_t)(g_vector.y * 65536.0);
+		RF24_TX_buffer[13] = tempValue >> 24;
+		RF24_TX_buffer[14] = tempValue >> 16;
+		RF24_TX_buffer[15] = tempValue >> 8;
+		RF24_TX_buffer[16] = tempValue;
+
+		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 17))
 		{
 			SysCtlDelay(10000); // delay 600us
 			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
@@ -477,7 +493,7 @@ void StateFour_RotateNetwork()
 		}
 	}
 
-	// Rotate coordination DONE!!!
+	// Coordinates rotated!!!
 
 	g_eProcessState = IDLE;
 }
@@ -487,6 +503,12 @@ void RobotProcess()
 	switch (g_eProcessState)
 	{
 	case MEASURE_DISTANCE:
+		// set this as origin
+		g_ui32OriginID = g_ui32RobotID;
+
+		//init variables
+		g_bIsNetworkRotated = false;
+
 		StateOne_MeasureDistance();
 		break;
 
@@ -499,11 +521,12 @@ void RobotProcess()
 		break;
 
 	case ROTATE_NETWORK:
-		StateFour_RotateNetwork();
+		StateFour_RequestRotateNetwork();
 		break;
 
 	default: // IDLE state
-		rfDelayLoop(DELAY_CYCLES_5MS * 25);
+//		rfDelayLoop(DELAY_CYCLES_5MS * 25);
+		delayTimerB(1000, true);
 		toggleLED(LED_RED);
 		break;
 	}
@@ -599,12 +622,16 @@ inline void RF24_IntHandler()
 						turnOnLED(LED_RED);
 						reloadDelayTimerA();
 						updateOrRejectNetworkOrigin(RF24_RX_buffer);
-						delayTimerB(g_ui8RandomNumber, false);
+						//delayTimerB(g_ui8RandomNumber, false); // remove
 						turnOffLED(LED_RED);
 						break;
 
 					case ROBOT_REQUEST_ROTATE_NETWORK:
 						getHopOriginTableAndRotate(RF24_RX_buffer);
+						break;
+
+					case PC_SEND_READ_VECTOR:
+						sendVectorToControlBoard();
 						break;
 
 					case PC_SEND_MEASURE_DISTANCE:
@@ -619,8 +646,7 @@ inline void RF24_IntHandler()
 						{
 							NeighborsTable[g_ui8ReadTablePosition].ID = 0;
 //							NeighborsTable[g_ui8ReadTablePosition].distance = 0;
-							OneHopNeighborsTable[g_ui8ReadTablePosition].firstHopID =
-									0;
+							OneHopNeighborsTable[g_ui8ReadTablePosition].firstHopID = 0;
 						}
 
 						Tri_clearLocs(locs, &g_ui8LocsCounter);
@@ -789,13 +815,13 @@ inline void RF24_IntHandler()
 							break;
 
 						default:
-							signalUnhandleError();
+							//signalUnhandleError();
 							break;
 						}
 						break;
 
 					default:
-						signalUnhandleError();
+						//signalUnhandleError();
 						break;
 					}
 					break;
