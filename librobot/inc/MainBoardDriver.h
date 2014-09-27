@@ -7,8 +7,8 @@
 #define DISTANCE_BETWEEN_TWO_MICS		5.0
 #define DISTANCE_BETWEEN_TWO_MICS_SQR	25.0
 
-#define DELAY_START_SPEAKER	100000
-#define DELAY_SAMPING_MIC	 90000
+#define DELAY_START_SPEAKER	1000
+#define DELAY_SAMPING_MIC	1
 
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
@@ -66,6 +66,9 @@ typedef struct tagLocation {
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 #define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
 
+#define EEPROM_INTERCEPT				0x0048
+#define EEPROM_SLOPE					0x004C
+
 #define REBROADCAST_TIMES	5
 
 typedef enum
@@ -75,6 +78,7 @@ typedef enum
 
 void initRobotProcess();
 void checkAndResponeMyNeighborsTableToOneRobot();
+void sendVectorToControlBoard();
 void sendNeighborsTableToControlBoard();
 void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
@@ -82,6 +86,11 @@ void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
 void getHopOriginTableAndRotate(uint8_t RxData[]);
+bool isLocationTableContainID(uint32_t id, location_t table[], uint8_t length);
+uint32_t tryToGetCommonNeighborID(location_t firstTable[], uint8_t firstTableLength, location_t secondTable[], uint8_t secondTableLength);
+float getAngleFromTable(uint32_t id, location_t table[], uint8_t length);
+void rotateLocationTable(float angle, bool mirror, location_t table[], uint8_t length);
+void calculateRealVector(vector2_t vector, location_t table[], uint8_t length);
 
 //-----------------------------------Robot Int functions
 
@@ -114,6 +123,8 @@ void getHopOriginTableAndRotate(uint8_t RxData[]);
 #define SLOPE 		2.72f
 
 
+
+float vsqrtf(float op1);
 float calSin(float x);
 float calCos(float x);
 float calASin(float x);
@@ -303,6 +314,7 @@ inline void generateRandomByte();
 
 #define PC_SEND_READ_LOCS_TABLE			0xE3
 #define PC_SEND_MEASURE_DISTANCE		0xB0
+#define PC_SEND_READ_VECTOR				0xB1
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1

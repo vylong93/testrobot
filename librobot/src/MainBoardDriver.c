@@ -105,6 +105,17 @@ void reloadDelayTimerB()
 
 
 //----------------Math functions-------------------
+float vsqrtf(float op1)
+{
+	if (op1 <= 0.f)
+		return 0.f;
+
+	float result;
+	__ASM
+	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+	return (result);
+}
+
 float calSin(float x)
 {
 
@@ -121,7 +132,10 @@ float calSin(float x)
 
 	tempX = (x > 0) ? (x) : (360 + x);
 
-	angleX = (tempX > 360) ? (tempX - 360.0) : (tempX);
+	// angleX = (tempX > 360) ? (tempX - 360.0) : (tempX);
+	angleX = tempX;
+	while(angleX > 360)
+		angleX -= 360.0;
 
 	angleIndex = (int) (angleX * 2 + 0.5);
 
@@ -271,6 +285,7 @@ uint8_t g_ui8ReadOneHopTablePosition;
 uint8_t g_ui8NeighborsCounter;
 
 uint32_t g_ui32RobotID;
+vector2_t g_vector;
 bool g_bIsNetworkRotated;
 
 ProcessStateEnum g_eProcessState;
@@ -280,14 +295,35 @@ extern location_t locs[];
 bool g_bBypassThisState;
 uint8_t g_ui8ReBroadcastCounter;
 
+float g_f32Intercept = 8.5619f;
+float g_f32Slope = 3.046f;
+
 void initRobotProcess()
 {
 	//==============================================
 	// Get Robot ID form EEPROM
 	//==============================================
 	EEPROMRead(&g_ui32RobotID, EEPROM_ADDR_ROBOT_ID, sizeof(&g_ui32RobotID));
-
+	g_vector.x = 0;
+	g_vector.y = 0;
 	g_eProcessState = IDLE;
+
+	uint32_t temp;
+
+	EEPROMRead(&temp, EEPROM_INTERCEPT, sizeof(&temp));
+	g_f32Intercept = temp / 65536.0;
+
+	EEPROMRead(&temp, EEPROM_SLOPE, sizeof(&temp));
+	g_f32Slope = temp / 65536.0;
+
+	if (g_f32Intercept == 0xFFFFFFFF || g_f32Slope == 0xFFFFFFFF)
+	{
+		while(1);
+		g_f32Intercept = 8.5619f;
+		g_f32Slope = 3.046f;
+	}
+
+
 }
 
 void checkAndResponeMyNeighborsTableToOneRobot()
@@ -447,6 +483,24 @@ void getNeighborNeighborsTable()
 	enableRF24Interrupt();
 }
 
+void sendVectorToControlBoard()
+{
+	int32_t temp;
+	temp = g_vector.x * 65536.0;
+	RF24_TX_buffer[0] = temp >> 24;
+	RF24_TX_buffer[1] = temp >> 16;
+	RF24_TX_buffer[2] = temp >> 8;
+	RF24_TX_buffer[3] = temp;
+
+	temp = g_vector.y * 65536.0;
+	RF24_TX_buffer[4] = temp >> 24;
+	RF24_TX_buffer[5] = temp >> 16;
+	RF24_TX_buffer[6] = temp >> 8;
+	RF24_TX_buffer[7] = temp;
+
+	sendDataToControlBoard(RF24_TX_buffer);
+}
+
 void sendNeighborsTableToControlBoard()
 {
 	RF24_TX_buffer[0] = NeighborsTable[g_ui8ReadTablePosition].ID >> 24;
@@ -522,7 +576,7 @@ void updateOrRejectNetworkOrigin(uint8_t RxData[])
 
 	ui32OriginNodeID = (RxData[1] << 24) | (RxData[2] << 16) | (RxData[3] << 8) | RxData[4];
 
-	if (ui32OriginNodeID == g_ui32RobotID)
+	if (ui32OriginNodeID == g_ui32OriginID)
 		return;
 
 	ui8OriginNumberOfNeighbors = RxData[5];
@@ -535,28 +589,25 @@ void updateOrRejectNetworkOrigin(uint8_t RxData[])
 		g_ui32OriginID = ui32OriginNodeID;
 
 		g_ui8OriginNumberOfNeighbors = ui8OriginNumberOfNeighbors;
-
-		g_ui8ReBroadcastCounter = 0;
-
-		g_bBypassThisState = false;
 	}
+
+	g_ui8ReBroadcastCounter = 0;
+
+	g_bBypassThisState = false;
 }
 
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID)
 {
-	if ((g_ui32OriginID != originID))
+	if (g_ui8OriginNumberOfNeighbors == originNumberOfNeighbors)
 	{
-		if (g_ui8OriginNumberOfNeighbors == originNumberOfNeighbors)
-		{
-			if (originID <  g_ui32OriginID)
-				g_ui32OriginID = originID;
+		if (originID <  g_ui32OriginID)
+			g_ui32OriginID = originID;
 
-			return true;
-		}
-		else if (g_ui8OriginNumberOfNeighbors < originNumberOfNeighbors)
-		{
-			return true;
-		}
+		return true;
+	}
+	else if (g_ui8OriginNumberOfNeighbors < originNumberOfNeighbors)
+	{
+		return true;
 	}
 
 	return false;
@@ -571,10 +622,29 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 	uint32_t length;
 	uint32_t pointer;
 	uint8_t i;
+	uint32_t robotJ_ID;
+
+	vector2_t RotationHopVector;
+
+	float alphaJ;
+	float alphaK;
+	float betaJ;
+	float betaI;
+	float alphaJK;
+	float betaJI;
+	bool isNeedMirroring;
+	float correctionAngle;
+	int8_t tempValue;
 
 	g_ui32RotationHopID = (RxData[1] << 24) | (RxData[2] << 16) | (RxData[3] << 8) | RxData[4];
 
 	dataLength = (RxData[5] << 24) | (RxData[6] << 16) | (RxData[7] << 8) | RxData[8];
+
+	tempValue = (RxData[9] << 24) | (RxData[10] << 16) | (RxData[11] << 8) | RxData[12];
+	RotationHopVector.x = (float) (tempValue / 65535.0);
+
+	tempValue = (RxData[13] << 24) | (RxData[14] << 16) | (RxData[15] << 8) | RxData[16];
+	RotationHopVector.y = (float) (tempValue / 65535.0);
 
 	oriLocsCounter = dataLength / sizeof(location_t);
 
@@ -613,10 +683,47 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 
 	if(!g_bIsNetworkRotated)
 	{
-		//TODO: rotate Locs table
-		// use: oriLocs, oriLocsCounter; locs, g_ui8LocsCounter
+		if(isLocationTableContainID(g_ui32RobotID, oriLocs, oriLocsCounter)
+				&& isLocationTableContainID(g_ui32RotationHopID, locs, g_ui8LocsCounter))
+		{
+			robotJ_ID = 0;
 
-		g_bIsNetworkRotated = true;
+			robotJ_ID = tryToGetCommonNeighborID(locs, g_ui8LocsCounter, oriLocs, oriLocsCounter);
+			if (robotJ_ID != 0)
+			{
+				alphaJ = getAngleFromTable(robotJ_ID, oriLocs, oriLocsCounter);
+				alphaK = getAngleFromTable(g_ui32RobotID, oriLocs, oriLocsCounter);
+
+				alphaJK = alphaJ - alphaK;
+				alphaJK = (alphaJK < 0) ? (360 + alphaJK) : (alphaJK);
+
+				betaJ = getAngleFromTable(robotJ_ID, locs, g_ui8LocsCounter);
+				betaI = getAngleFromTable(g_ui32RotationHopID, locs, g_ui8LocsCounter);
+
+				betaJI = betaJ - betaI;
+				betaJI = (betaJI < 0) ? (360 + betaJI) : (betaJI);
+
+				if ((alphaJK < MATH_PI && betaJI > MATH_PI)
+						|| (alphaJK > MATH_PI && betaJI < MATH_PI))
+				{
+					isNeedMirroring = false;
+					correctionAngle = betaI - alphaK + MATH_PI;
+				}
+
+				if ((alphaJK < MATH_PI && betaJI < MATH_PI)
+						|| (alphaJK > MATH_PI && betaJI > MATH_PI))
+				{
+					isNeedMirroring = true;
+					correctionAngle = betaI + alphaK;
+				}
+
+				rotateLocationTable(correctionAngle, isNeedMirroring, locs, g_ui8LocsCounter);
+
+				calculateRealVector(RotationHopVector, oriLocs, oriLocsCounter);
+
+				g_bIsNetworkRotated = true;
+			}
+		}
 	}
 	else
 	{
@@ -625,6 +732,96 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 
 	enableRF24Interrupt();
 }
+
+void calculateRealVector(vector2_t vector, location_t table[], uint8_t length)
+{
+	uint8_t i;
+	for(i = 0; i < length; i++)
+	{
+		if (table[i].ID == g_ui32RobotID)
+			break;
+	}
+	g_vector.x = vector.x + table[i].vector.x;
+	g_vector.y = vector.y + table[i].vector.y;
+}
+
+bool isLocationTableContainID(uint32_t id, location_t table[], uint8_t length)
+{
+	uint8_t i;
+	for(i = 0; i < length; i++)
+	{
+		if (table[i].ID == id)
+			return true;
+	}
+	return false;
+}
+
+uint32_t tryToGetCommonNeighborID(location_t firstTable[], uint8_t firstTableLength, location_t secondTable[], uint8_t secondTableLength)
+{
+	uint8_t firstPointer;
+	uint8_t secondPointer;
+
+	uint32_t selectID;
+
+	for(firstPointer = 0; firstPointer < firstTableLength; firstPointer++)
+	{
+		selectID = firstTable[firstPointer].ID;
+
+		for(secondPointer = 0; secondPointer < secondTableLength; secondPointer++)
+		{
+			if (selectID == secondTable[secondPointer].ID
+			    && selectID != g_ui32RobotID
+				&& selectID != g_ui32RotationHopID)
+			{
+				return selectID;
+			}
+		}
+	}
+	return 0;
+}
+
+float getAngleFromTable(uint32_t id, location_t table[], uint8_t length)
+{
+	// WARNING! id must existed in table[]
+	uint8_t i;
+	float distance;
+
+	for(i = 0; i < length; i++)
+	{
+		if(table[i].ID == id)
+		{
+			distance = vsqrtf(table[i].vector.x * table[i].vector.x
+					+ table[i].vector.y * table[i].vector.y);
+
+			return calASin(table[i].vector.y / distance);
+		}
+	}
+
+	return 0;
+}
+
+void rotateLocationTable(float angle, bool mirrorXaxis, location_t table[], uint8_t length)
+{
+	uint8_t i;
+	float x;
+	float y;
+	float angleOffset;
+
+	angleOffset = MATH_PI_MUL_2 - angle;
+
+	for(i = 0; i < length; i++)
+	{
+		x = table[i].vector.x;
+		y = table[i].vector.y;
+
+		table[i].vector.x = x * calCos(angleOffset) - y * calSin(angleOffset);
+		table[i].vector.y = x * calSin(angleOffset) + y * calCos(angleOffset);
+
+		if (mirrorXaxis)
+			table[i].vector.x *= -1;
+	}
+}
+
 
 //-----------------------------------Robot Int functions
 

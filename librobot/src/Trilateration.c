@@ -533,13 +533,13 @@ int8_t Tri_findSignedYaxis(float Alpha, float Beta, float Theta)
 	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
 			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
 		return (1);
-
-	temp = Alpha + Theta;
-	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
-			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
+//
+//	temp = Alpha + Theta;
+//	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
+//			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
 		return (-1);
 
-	return (0);
+//	return (0);
 }
 
 uint16_t Tri_tryToGetNeighborsDistance(robotMeas_t* pNeighborsTable,
