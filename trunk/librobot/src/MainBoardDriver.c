@@ -871,8 +871,16 @@ void signalUnhandleError()
 //-----------------------Motor functions-----------------------
 static uint32_t ui32PWMPeriod;
 
+uint32_t g_ui32Motor1RunTimes;
+uint32_t g_ui32Motor2RunTimes;
+
+RobotRunStateEnum g_eRunningStatus;
+
 inline void initMotor()
 {
+	g_eRunningStatus = M_STOP;
+
+	// Initilize PWM generator module 0
 	SysCtlPWMClockSet(PWM_CLOCK_SELECT);
 	SysCtlDelay(2);
 	SysCtlPeripheralEnable(MOTOR_PWM_CLOCK);
@@ -880,31 +888,97 @@ inline void initMotor()
 	uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
 	ui32PWMPeriod = (pwmClock / MOTOR_PWM_FREQUENCY);
 
+	// Configure GPIO pin to control Motor driver IC
 	SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
 	SysCtlDelay(2);
 	GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
 
+//	// Left motor (1) pin configure
+//	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
+//	SysCtlDelay(2);
+//	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+//	GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG);
+//	GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+//
+//	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+//	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
+//	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
+//	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+//
+//	// Right motor (2) pin configure
+//	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
+//	SysCtlDelay(2);
+//	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+//	GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG);
+//	GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+//
+//	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN); // M0PWM3
+//	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
+//	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
+//	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+
+	// Left motor (1) pin configure
 	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
 	SysCtlDelay(2);
-	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
-	GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG);
-	GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
 
-	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
-	SysCtlDelay(2);
-	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
-	GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG);
-	GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
+	GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 
+	// left - M0PWM4
+	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2, 0);
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
+	// left - M0PWM5
 	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
 	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
 	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
 	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
 
-	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN); // M0PWM3
+	// Right motor (2) pin configure
+	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
+	SysCtlDelay(2);
+
+	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
+	GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+
+	// right - M0PWM2
+	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2, 0);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	// right - M0PWM3
+	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
 	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
 	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
 	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+
+	initMotorTimers();
+}
+
+inline void initMotorTimers()
+{
+	g_ui32Motor1RunTimes = 70; // const
+	g_ui32Motor2RunTimes = 68; // const
+
+   SysCtlPeripheralEnable(MOTOR_TIMER_CLOCK);
+   TimerClockSourceSet(MOTOR_TIMER_BASE, TIMER_CLOCK_SYSTEM);
+   TimerConfigure(MOTOR_TIMER_BASE,
+   TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_ONE_SHOT | TIMER_CFG_B_ONE_SHOT);
+
+   TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+   TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+   IntPrioritySet(INT_MOTOR_TIMERA, PRIORITY_MOTOR_TIMERA);
+   IntPrioritySet(INT_MOTOR_TIMERB, PRIORITY_MOTOR_TIMERB);
+
+   IntEnable(INT_MOTOR_TIMERA);
+   IntEnable(INT_MOTOR_TIMERB);
+
+   TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+   TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 }
 
 inline void enableMOTOR()
@@ -921,92 +995,117 @@ inline void disableMOTOR()
 			0x00;
 }
 
-inline void setMotorDirection(uint32_t motorPortBase, uint8_t direction)
+void setMotorLeftDirectionAndSpeed(uint8_t direction, uint8_t speed)
 {
 	if (direction == FORWARD)
-		GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, 0);
+	{
+		// left - E5
+		GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+		GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1, LEFT_MOTOR_IN1);
+
+		// left - M0PWM4
+		GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+		GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG2);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2,
+				(speed * ui32PWMPeriod) / 100);
+
+		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
+	}
 	else if (direction == REVERSE)
-		GPIOPinWrite(motorPortBase, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
+	{
+		// left - M0PWM5
+		GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+		GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG1);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
+				(speed * ui32PWMPeriod) / 100);
+
+		// left - E4
+		GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+		GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
+
+		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
+	}
 }
 
-inline void randomMotorMode()
+void setMotorRightDirectionAndSpeed(uint8_t direction, uint8_t speed)
 {
-//	while(bMotorRandomMode)
-//	{
-//		disableMOTOR();
-//
-//		PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-//		PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-//
-//		generateRandomByte();
-//		while(g_ui8RandomNumber != 0);
-//
-//		setMotorDirection(LEFT_MOTOR_PORT_BASE, g_ui8RandomNumber & 0x01);
-//		setMotorDirection(RIGHT_MOTOR_PORT_BASE, (g_ui8RandomNumber >> 1) & 0x01);
-//
-//		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, ((g_ui8RandomNumber << 3) & 0xE0) + 40);
-//		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, (g_ui8RandomNumber & 0xE0) + 40);
-//
-//		PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-//		PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-//
-//		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-//		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
-//
-//		enableMOTOR();
-//
-//		toggleLED(LED_GREEN);
-//
-//		delayTimerB(g_ui8RandomNumber + 2000, true);
+	if (direction == FORWARD)
+	{
+		// right - B5
+		GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+		GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1, RIGHT_MOTOR_IN1);
 
-	setSpinSpeed(65, 1, 3000);
-	setSpinSpeed(65, 0, 3000);
-	setSpinSpeed(65, 1, 3000);
-	setSpinSpeed(65, 0, 3000);
-//	}
+		// right - M0PWM2
+		GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+		GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG2);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2,
+				(speed * ui32PWMPeriod) / 100);
+
+		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, true);
+	}
+	else if (direction == REVERSE)
+	{
+		// right - M0PWM3
+		GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+		GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG1);
+		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
+				(speed * ui32PWMPeriod) / 100);
+
+		// right - B4
+		GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+		GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2, RIGHT_MOTOR_IN2);
+
+		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
+		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	}
 }
 
-void setSpinSpeed(uint8_t speed, uint8_t direction, uint32_t delay)
+void configureMotors(uint8_t leftDir, uint8_t leftDutyCycle, uint8_t rightDir, uint8_t rightDutyCycle)
 {
 	disableMOTOR();
 
 	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-	if (direction & 0x01)	// REVERSE 1
-	{
-		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction);
-		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - speed);
-
-		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1);
-		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, speed);
-	}
-	else	//FORWARD 0
-	{
-		setMotorDirection(LEFT_MOTOR_PORT_BASE, direction); // direction = 0
-		setMotorSpeed(LEFT_MOTOR_PWM_OUT1, speed);
-
-		setMotorDirection(RIGHT_MOTOR_PORT_BASE, direction ^ 1); // direction = 1
-		setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - speed);
-	}
+	setMotorLeftDirectionAndSpeed(leftDir, leftDutyCycle);
+	setMotorRightDirectionAndSpeed(rightDir, rightDutyCycle);
 
 	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
 	enableMOTOR();
+}
 
-	ROM_SysCtlDelay((SysCtlClockGet() / 1000) * (delay / 3));
+void stopMotorLeft()
+{
+	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
+	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
+	GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
 
+}
+
+void stopMotorRight()
+{
+	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
+	GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+
+}
+
+void stopMotors()
+{
+	stopMotorLeft();
+	stopMotorRight();
 	disableMOTOR();
 }
 
-inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed)
-{
-	PWMPulseWidthSet(MOTOR_PWM_BASE, motorPortOut,
-			(speed * ui32PWMPeriod) / 100);
-}
 //----------------------------------------------Motor functions
 
 //--------------------------------Ananlog functions-----------------------------------
@@ -1937,136 +2036,63 @@ void setAddressEEPROM()
 //-----------------------------------EEPROM functions
 
 //----------------Smart-phone Control functions-------------------
+bool tryToGetMotorsParameterInEEPROM(int8_t *pi8Motor1Speed, int8_t *pi8Motor2Speed)
+{
+	uint32_t pui32Read[1];
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	*pi8Motor1Speed = *pui32Read;
+	*pi8Motor2Speed = (*pui32Read) >> 8;
+
+	if(*pi8Motor1Speed < 0 || *pi8Motor1Speed > 99 || *pi8Motor2Speed < 0 || *pi8Motor2Speed > 99)
+		return false;
+
+	return true;
+}
+
 void goStraight()
 {
-	uint32_t pui32Read[1];
 	int8_t i8Motor1Speed;
 	int8_t i8Motor2Speed;
 
-	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
-
-	i8Motor1Speed = *pui32Read;
-	i8Motor2Speed = (*pui32Read) >> 8;
-
-	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
-		return;
-
-	disableMOTOR();
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, i8Motor1Speed);
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, i8Motor2Speed);
-
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-	true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-	true);
-	enableMOTOR();
-}
-
-void spinClockwise()
-{
-	uint32_t pui32Read[1];
-	int8_t i8Motor1Speed;
-	int8_t i8Motor2Speed;
-
-	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
-
-	i8Motor1Speed = *pui32Read;
-	i8Motor2Speed = (*pui32Read) >> 8;
-
-	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
-		return;
-
-	disableMOTOR();
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - i8Motor1Speed);
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, i8Motor2Speed);
-
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-	true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-	true);
-	enableMOTOR();
-}
-
-void spinCounterclockwise()
-{
-	uint32_t pui32Read[1];
-	int8_t i8Motor1Speed;
-	int8_t i8Motor2Speed;
-
-	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
-
-	i8Motor1Speed = *pui32Read;
-	i8Motor2Speed = (*pui32Read) >> 8;
-
-	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
-		return;
-
-	disableMOTOR();
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, i8Motor1Speed);
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - i8Motor2Speed);
-
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-	true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-	true);
-	enableMOTOR();
+	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
+	{
+		configureMotors(FORWARD, i8Motor1Speed, FORWARD, i8Motor2Speed);
+	}
 }
 
 void goBackward()
 {
-	uint32_t pui32Read[1];
 	int8_t i8Motor1Speed;
 	int8_t i8Motor2Speed;
 
-	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
+	{
+		configureMotors(REVERSE, i8Motor1Speed, REVERSE, i8Motor2Speed);
+	}
+}
 
-	i8Motor1Speed = *pui32Read;
-	i8Motor2Speed = (*pui32Read) >> 8;
+void spinClockwise()
+{
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
 
-	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
-		return;
+	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
+	{
+		configureMotors(REVERSE, i8Motor1Speed, FORWARD, i8Motor2Speed);
+	}
+}
 
-	disableMOTOR();
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+void spinCounterclockwise()
+{
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
 
-	setMotorDirection(LEFT_MOTOR_PORT_BASE, REVERSE);
-	setMotorSpeed(LEFT_MOTOR_PWM_OUT1, 100 - i8Motor1Speed);
-	setMotorDirection(RIGHT_MOTOR_PORT_BASE, REVERSE);
-	setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, 100 - i8Motor2Speed);
-
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-	true);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-	true);
-	enableMOTOR();
+	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
+	{
+		configureMotors(FORWARD, i8Motor1Speed, REVERSE, i8Motor2Speed);
+	}
 }
 
 //-----------------------------------Smart-phone Control functions

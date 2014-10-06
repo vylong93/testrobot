@@ -75,6 +75,10 @@ extern uint8_t g_ui8RandomNumber;
 extern uint16_t g_pui16ADC0Result[];
 extern uint16_t g_pui16ADC1Result[];
 
+extern RobotRunStateEnum g_eRunningStatus;
+extern uint32_t g_ui32Motor1RunTimes;
+extern uint32_t g_ui32Motor2RunTimes;
+
 void RobotProcess();
 void StateOne_MeasureDistance();
 void StateTwo_ExchangeTableAndCalculateLocsTable();
@@ -219,15 +223,17 @@ void StateOne_MeasureDistance()
 
 			reloadDelayTimerA();
 
+// WARING!!! DO NOT INSERT ANY CODE IN HERE! - BEGIN =================================
 			RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
 			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
 			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
 			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
 			RF24_TX_buffer[4] = g_ui32RobotID;
 			broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
-			// DO NOT INSERT ANY CODE IN HERE!
+			//
 			ROM_SysCtlDelay(DELAY_START_SPEAKER);
 			startSpeaker();
+// WARING!!! DO NOT INSERT ANY CODE IN HERE! - END ===================================
 
 			RF24_RX_activate();
 
@@ -525,8 +531,7 @@ void RobotProcess()
 		break;
 
 	default: // IDLE state
-//		rfDelayLoop(DELAY_CYCLES_5MS * 25);
-		delayTimerB(1000, true);
+		rfDelayLoop(DELAY_CYCLES_5MS * 25);
 		toggleLED(LED_RED);
 		break;
 	}
@@ -591,6 +596,7 @@ inline void RF24_IntHandler()
 				// limit valid rf command in each process state
 				{
 				case MEASURE_DISTANCE:
+
 					if (RF24_RX_buffer[0] == ROBOT_REQUEST_SAMPLING_MIC)
 					{
 						// DO NOT INSERT ANY CODE IN HERE!
@@ -605,6 +611,7 @@ inline void RF24_IntHandler()
 					else
 					{
 					}
+
 					break;
 
 				default: // IDLE state
@@ -630,10 +637,7 @@ inline void RF24_IntHandler()
 						getHopOriginTableAndRotate(RF24_RX_buffer);
 						break;
 
-					case PC_SEND_READ_VECTOR:
-						sendVectorToControlBoard();
-						break;
-
+				    // DeBug command
 					case PC_SEND_MEASURE_DISTANCE:
 
 						turnOffLED(LED_ALL);
@@ -653,6 +657,10 @@ inline void RF24_IntHandler()
 
 						g_ui8NeighborsCounter = 0;
 
+						break;
+
+					case PC_SEND_READ_VECTOR:
+						sendVectorToControlBoard();
 						break;
 
 					case PC_SEND_SET_TABLE_POSITION:
@@ -690,44 +698,26 @@ inline void RF24_IntHandler()
 						toggleLED(LED_ALL);
 						break;
 
-					case PC_TEST_ALL_MOTOR_MODES:
-						randomMotorMode();
+					case PC_SET_RUNNING_STATUS:
+
+						g_eRunningStatus = RF24_RX_buffer[1];
+
+						g_ui32Motor1RunTimes = RF24_RX_buffer[2];
+						g_ui32Motor2RunTimes = RF24_RX_buffer[3];
+
+						IntTrigger(INT_MOTOR_TIMERA);
 						break;
 
 					case PC_CHANGE_MOTORS_SPEED:
-						disableMOTOR();
-						PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-						PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-						setMotorDirection(LEFT_MOTOR_PORT_BASE,
-								RF24_RX_buffer[1]);
-						setMotorSpeed(LEFT_MOTOR_PWM_OUT1, RF24_RX_buffer[2]);
-						setMotorDirection(RIGHT_MOTOR_PORT_BASE,
-								RF24_RX_buffer[3]);
-						setMotorSpeed(RIGHT_MOTOR_PWM_OUT1, RF24_RX_buffer[4]);
-
-						PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-						PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-
-						PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-						true);
-						PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-						true);
-						enableMOTOR();
+						configureMotors(RF24_RX_buffer[1], RF24_RX_buffer[2], RF24_RX_buffer[3], RF24_RX_buffer[4]);
 						break;
 
 					case PC_SEND_STOP_MOTOR_LEFT:
-						PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-						setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-						PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT,
-						false);
+						stopMotorLeft();
 						break;
 
 					case PC_SEND_STOP_MOTOR_RIGHT:
-						PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-						setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-						PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT,
-						false);
+						stopMotorRight();
 						break;
 
 					case PC_SEND_DATA_ADC0_TO_PC:
@@ -786,16 +776,7 @@ inline void RF24_IntHandler()
 						switch (RF24_RX_buffer[1])
 						{
 						case SP_SEND_STOP_TWO_MOTOR:
-							PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-							PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-
-							setMotorDirection(RIGHT_MOTOR_PORT_BASE, FORWARD);
-							setMotorDirection(LEFT_MOTOR_PORT_BASE, FORWARD);
-
-							PWMOutputState(MOTOR_PWM_BASE,
-							RIGHT_MOTOR_PWM_OUT1_BIT, false);
-							PWMOutputState(MOTOR_PWM_BASE,
-							LEFT_MOTOR_PWM_OUT1_BIT, false);
+							stopMotors();
 							break;
 
 						case SP_SEND_FORWAR:
@@ -863,4 +844,68 @@ void DelayTimerBIntHanler()
 {
 	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 	g_bDelayTimerBFlagAssert = true;
+}
+
+void MotorTimerAIntHanler()
+{
+  TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+
+  switch (g_eRunningStatus)
+  {
+  case M_STRAIGHT:
+	  configureMotors(FORWARD, MIN_MOTOR_DUTYCYCLE, FORWARD, MAX_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_BACKWARD:
+	  configureMotors(REVERSE, MIN_MOTOR_DUTYCYCLE, REVERSE, MAX_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_SPIN_CLOCKWISE:
+      configureMotors(REVERSE, MIN_MOTOR_DUTYCYCLE, FORWARD, MAX_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_SPIN_COUNTER_CLOCKWISE:
+      configureMotors(FORWARD, MIN_MOTOR_DUTYCYCLE, REVERSE, MAX_MOTOR_DUTYCYCLE);
+	  break;
+
+  default: // M_STOP
+	  stopMotors();
+	  return;
+  }
+
+  TimerLoadSet(MOTOR_TIMER_BASE, TIMER_B, SysCtlClockGet() / 1000 * g_ui32Motor2RunTimes);
+
+  TimerEnable(MOTOR_TIMER_BASE, TIMER_B);
+}
+
+void MotorTimerBIntHanler()
+{
+  TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+  switch (g_eRunningStatus)
+  {
+  case M_STRAIGHT:
+	  configureMotors(FORWARD, MAX_MOTOR_DUTYCYCLE, FORWARD, MIN_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_BACKWARD:
+	  configureMotors(REVERSE, MAX_MOTOR_DUTYCYCLE, REVERSE, MIN_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_SPIN_CLOCKWISE:
+      configureMotors(REVERSE, MAX_MOTOR_DUTYCYCLE, FORWARD, MIN_MOTOR_DUTYCYCLE);
+	  break;
+
+  case M_SPIN_COUNTER_CLOCKWISE:
+      configureMotors(FORWARD, MAX_MOTOR_DUTYCYCLE, REVERSE, MIN_MOTOR_DUTYCYCLE);
+	  break;
+
+  default: // M_STOP
+	  stopMotors();
+	  return;
+  }
+
+  TimerLoadSet(MOTOR_TIMER_BASE, TIMER_A, SysCtlClockGet() / 1000 * g_ui32Motor1RunTimes);
+
+  TimerEnable(MOTOR_TIMER_BASE, TIMER_A);
 }

@@ -12,11 +12,11 @@
 
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
-#define DELAY_MEASURE_DISTANCE_STATE 1000 	// move to exchange table state timeout period
+#define DELAY_MEASURE_DISTANCE_STATE 500 	// move to exchange table state timeout period
 #define DELAY_EXCHANGE_TABLE_STATE	 2000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 #define DELAY_ROTATE_NETWORK		 4000
-#define DELAY_REBROADCAST			 2000
+#define DELAY_REBROADCAST			 500
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -55,8 +55,11 @@ typedef struct tagLocation {
 #define PRIORITY_DMA_MIC1			0x40
 #define PRIORITY_DMA_MIC2			0x40
 
-#define PRIORITY_DELAY_TIMERA		0x60
-#define PRIORITY_DELAY_TIMERB		0x60
+#define PRIORITY_MOTOR_TIMERA       0x60
+#define PRIORITY_MOTOR_TIMERB       0x60
+
+#define PRIORITY_DELAY_TIMERA		0x80
+#define PRIORITY_DELAY_TIMERB		0x80
 
 #define PRIORITY_LOW_POWER_MODE		0xE0
 
@@ -112,17 +115,6 @@ void calculateRealVector(vector2_t vector, location_t table[], uint8_t length);
 
 //#define ANGLE_MIN_IN_RAD	0.1745329252 // ~ 10 degree
 //#define COSINE_ANGLE_MIN	0.9999953604 // cos(ANGLE_MIN_IN_RAD)
-
-//#define INTERCEPT 	63.6207f
-//#define SLOPE 		2.7455f
-
-//#define INTERCEPT 	78.5855f
-//#define SLOPE 		2.72f
-
-#define INTERCEPT 	69.6207f
-#define SLOPE 		2.72f
-
-
 
 float vsqrtf(float op1);
 float calSin(float x);
@@ -195,47 +187,80 @@ inline void startSpeaker();
 
 
 //-----------------------Motor functions-----------------------
+#define MIN_MOTOR_DUTYCYCLE		1
+#define MAX_MOTOR_DUTYCYCLE		90
+
 #define MOTOR_PWM_CLOCK         SYSCTL_PERIPH_PWM0
-#define MOTOR_PWM_FREQUENCY     1000
+#define MOTOR_PWM_FREQUENCY     15000
 #define MOTOR_PWM_BASE          PWM0_BASE
 
 #define MOTOR_SLEEP_PIN_CLOCK   SYSCTL_PERIPH_GPIOD
 #define MOTOR_SLEEP_PIN_BASE    GPIO_PORTD_BASE
 #define MOTOR_SLEEP_PIN         GPIO_PIN_0
 
+#define MOTOR_TIMER_CLOCK       SYSCTL_PERIPH_WTIMER1
+#define MOTOR_TIMER_BASE        WTIMER1_BASE
+#define INT_MOTOR_TIMERA        INT_WTIMER1A
+#define INT_MOTOR_TIMERB        INT_WTIMER1B
+
+// LEFT Motor's pin
 #define LEFT_MOTOR_PORT_CLOCK   	SYSCTL_PERIPH_GPIOE
 #define LEFT_MOTOR_PORT_BASE    	GPIO_PORTE_BASE
-#define LEFT_MOTOR_IN1          	GPIO_PIN_5
-#define LEFT_MOTOR_IN2          	GPIO_PIN_4
-#define LEFT_MOTOR_PWM_CONFIG   	GPIO_PE5_M0PWM5
+
 #define LEFT_MOTOR_PWM_GEN      	PWM_GEN_2
+
+#define LEFT_MOTOR_IN1          	GPIO_PIN_5
+#define LEFT_MOTOR_PWM_CONFIG1   	GPIO_PE5_M0PWM5
 #define LEFT_MOTOR_PWM_OUT1     	PWM_OUT_5
-#define LEFT_MOTOR_PWM_OUT2     	PWM_OUT_4
 #define LEFT_MOTOR_PWM_OUT1_BIT 	PWM_OUT_5_BIT
+
+#define LEFT_MOTOR_IN2          	GPIO_PIN_4
+#define LEFT_MOTOR_PWM_CONFIG2   	GPIO_PE4_M0PWM4
+#define LEFT_MOTOR_PWM_OUT2     	PWM_OUT_4
 #define LEFT_MOTOR_PWM_OUT2_BIT 	PWM_OUT_4_BIT
 
+// RIGHT Motor's pin
 #define RIGHT_MOTOR_PORT_CLOCK          SYSCTL_PERIPH_GPIOB
 #define RIGHT_MOTOR_PORT_BASE           GPIO_PORTB_BASE
-#define RIGHT_MOTOR_IN1                 GPIO_PIN_5
-#define RIGHT_MOTOR_IN2                 GPIO_PIN_4
-#define RIGHT_MOTOR_PWM_CONFIG          GPIO_PB5_M0PWM3
+
 #define RIGHT_MOTOR_PWM_GEN             PWM_GEN_1
+
+#define RIGHT_MOTOR_IN1                 GPIO_PIN_5
+#define RIGHT_MOTOR_PWM_CONFIG1         GPIO_PB5_M0PWM3
 #define RIGHT_MOTOR_PWM_OUT1            PWM_OUT_3
-#define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT1_BIT        PWM_OUT_3_BIT
+
+#define RIGHT_MOTOR_IN2                 GPIO_PIN_4
+#define RIGHT_MOTOR_PWM_CONFIG2         GPIO_PB4_M0PWM2
+#define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT2_BIT        PWM_OUT_2_BIT
 
 #define FORWARD         0
 #define REVERSE         1
 
+typedef enum
+{
+  M_STOP = 0,
+  M_STRAIGHT = 1,
+  M_BACKWARD = 2,
+  M_SPIN_CLOCKWISE = 3,
+  M_SPIN_COUNTER_CLOCKWISE = 4
+} RobotRunStateEnum;
+
 inline void initMotor();
+inline void initMotorTimers();
 inline void enableMOTOR();
 inline void disableMOTOR();
-inline void setMotorDirection(uint32_t motor, uint8_t direction);
-inline void toggleMotorMode();
-inline void randomMotorMode();
-inline void setMotorSpeed(uint32_t motorPortOut, uint8_t speed);
-void setSpinSpeed(uint8_t speed, uint8_t direction, uint32_t delay);
+
+void setMotorLeftDirectionAndSpeed(uint8_t direction, uint8_t speed);
+void setMotorRightDirectionAndSpeed(uint8_t direction, uint8_t speed);
+
+void configureMotors(uint8_t left_Direction, uint8_t left_dutyCycles, uint8_t right_Direction, uint8_t right_dutyCycles);
+
+void stopMotorLeft();
+void stopMotorRight();
+void stopMotors();
+
 //----------------------------------------------Motor functions
 
 
@@ -295,7 +320,7 @@ inline void generateRandomByte();
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
 #define PC_START_SAMPLING_MIC           0xC2
-#define PC_TEST_ALL_MOTOR_MODES         0xC3
+#define PC_SET_RUNNING_STATUS			0xC3
 #define PC_CHANGE_MOTORS_SPEED          0xC4
 #define PC_TEST_RF_CARRIER_DETECTION    0xC5
 #define PC_SEND_TEST_DATA_TO_PC         0xC6
@@ -357,7 +382,7 @@ typedef enum
 {
   RUN_MODE,
   SLEEP_MODE,
-  DEEP_SLEEP_MODE,
+  DEEP_SLEEP_MODE
 } CpuStateEnum;
 
 //-----------------------------------------------------------------------------
@@ -425,6 +450,7 @@ void setAddressEEPROM();
 
 
 //----------------Smart-phone Control functions-------------------
+bool tryToGetMotorsParameterInEEPROM(int8_t *pi8Motor1Speed, int8_t *pi8Motor2Speed);
 void goStraight();
 void spinClockwise();
 void spinCounterclockwise();
