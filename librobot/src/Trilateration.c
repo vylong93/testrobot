@@ -63,21 +63,13 @@ void Tri_findLocs(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable)
 	float cosAlphaYOX;
 	float sinAlphaYOX;
 
-	// edgeXY = ((Tri_tryToFindTwoXYNeighbors(pOneHopTable, &robotX, &robotY, pNeighborsTable) / 256.0) - INTERCEPT) / SLOPE;
 	edgeXY = Tri_tryToFindTwoXYNeighbors(pOneHopTable, &robotX, &robotY,
-			pNeighborsTable) / 256.0f; // Long Dang, Sep 16, 2014
+			pNeighborsTable) / 256.0f;
 
 	if (edgeXY != 0)
 	{
-		// Long Dang, Sep 16, 2014 ===========================================
-
-		// edgeOX = ((robotX.distance / 256.0) - INTERCEPT) / SLOPE;
-		// edgeOY = ((robotY.distance / 256.0) - INTERCEPT) / SLOPE;
-
 		edgeOX = robotX.distance / 256.0f;
 		edgeOY = robotY.distance / 256.0f;
-
-		//=========================================== Long Dang, Sep 16, 2014
 
 		cosAlphaYOX = cosinesRuleForTriangles(edgeOX, edgeOY, edgeXY);
 		sinAlphaYOX = calSin(calACos(cosAlphaYOX));
@@ -193,20 +185,11 @@ void Tri_findAllPointsFromFirstTwoPoints(robotMeas_t* pNeighborsTable,
 		if (successDistanceCounter != 3)
 			continue;
 
-		// Long Dang, Sep 16, 2014 =======================================
-//		// doi don vi khoan cach ra cm
-//		edgeOY = ((robotY.distance / 256.0) - INTERCEPT) / SLOPE;
-//		edgeOX = ((robotX.distance / 256.0) - INTERCEPT) / SLOPE;
-//		edgeOZ = ((distanceOZ / 256.0) - INTERCEPT) / SLOPE;
-//		edgeYZ = ((distanceYZ / 256.0) - INTERCEPT) / SLOPE;
-//		edgeXZ = ((distanceXZ / 256.0) - INTERCEPT) / SLOPE;
-
 		edgeOY = robotY.distance / 256.0f;
 		edgeOX = robotX.distance / 256.0f;
 		edgeOZ = distanceOZ / 256.0f;
 		edgeYZ = distanceYZ / 256.0f;
 		edgeXZ = distanceXZ / 256.0f;
-		//======================================= Long Dang, Sep 16, 2014
 
 		// tinh toa do cua Z, edgeXY, offset 0
 		newPos = Tri_trilaterateFromSixEdgeAndAngleOffset(edgeOY, edgeOX,
@@ -277,15 +260,9 @@ void Tri_findAllPossibleRemainPoints(robotMeas_t* pNeighborsTable,
 						&edgeOP, &edgeOQ, &edgePQ, g_ui32RobotID, robotP.ID,
 						robotQ.ID);
 
-				// Long Dang, Sep 16, 2014 ==============================
-//				edgeOK = ((robotK.distance / 256.0) - INTERCEPT) / SLOPE;
-//				edgeQK = ((robotQ.distance / 256.0) - INTERCEPT) / SLOPE;
-//				edgePK = ((robotP.distance / 256.0) - INTERCEPT) / SLOPE;
-
 				edgeOK = robotK.distance / 256.0f;
 				edgeQK = robotQ.distance / 256.0f;
 				edgePK = robotP.distance / 256.0f;
-				// ============================== Long Dang, Sep 16, 2014
 
 				// tinh goc P va goc Q, ket qua la so duong
 				alphaP = Tri_findAngleInLocalCoordination(edgeOP, robotP.ID);
@@ -296,9 +273,6 @@ void Tri_findAllPossibleRemainPoints(robotMeas_t* pNeighborsTable,
 				if (((alphaP > alphaQ) && ((alphaP - alphaQ) < MATH_PI))
 						|| ((alphaQ - alphaP) > MATH_PI))
 				{
-					// int tempID = robotP.ID;
-					// robotP.ID = robotQ.ID;
-					// robotQ.ID = tempID;
 
 					float tempEdge = edgeOP;
 					edgeOP = edgeOQ;
@@ -426,15 +400,9 @@ void Tri_getThreeEdgeFormOriginal(robotMeas_t* pNeighborsTable,
 		}
 	}
 
-	// Long Dang, Sep 14, 2014 ===========================
-//	*edgeOP = ((distanceOP / 512.0) - INTERCEPT) / SLOPE;
-//	*edgeOQ = ((distanceOQ / 512.0) - INTERCEPT) / SLOPE;
-//	*edgePQ = ((distancePQ / 512.0) - INTERCEPT) / SLOPE;
-
 	*edgeOP = distanceOP / 512.0f;
 	*edgeOQ = distanceOQ / 512.0f;
 	*edgePQ = distancePQ / 512.0f;
-	//=========================== Long Dang, Sep 14, 2014
 }
 
 bool Tri_tryToFindTwoLocatedNeighbors(oneHopMeas_t* pOneHopTable,
@@ -516,7 +484,8 @@ vector2_t Tri_trilaterateFromSixEdgeAndAngleOffset(float edgeIQ, float edgeIP,
 
 	float alphaJ;
 	alphaJ = AlphaPIJ * signedAlphaJ;
-	alphaJ = angleOffset + AlphaPIJ;
+	//alphaJ = angleOffset + AlphaPIJ;
+	alphaJ += angleOffset;
 
 	tempVector.x = edgeIJ * calCos(alphaJ);
 	tempVector.y = edgeIJ * calSin(alphaJ);
@@ -533,13 +502,13 @@ int8_t Tri_findSignedYaxis(float Alpha, float Beta, float Theta)
 	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
 			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
 		return (1);
-//
-//	temp = Alpha + Theta;
-//	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
-//			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
+
+	temp = Alpha + Theta;
+	if ((Beta < (temp + ANGLE_MIN_IN_RAD))
+			&& (Beta > (temp - ANGLE_MIN_IN_RAD)))
 		return (-1);
 
-//	return (0);
+	return (0);
 }
 
 uint16_t Tri_tryToGetNeighborsDistance(robotMeas_t* pNeighborsTable,

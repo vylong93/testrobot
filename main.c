@@ -75,10 +75,6 @@ extern uint8_t g_ui8RandomNumber;
 extern uint16_t g_pui16ADC0Result[];
 extern uint16_t g_pui16ADC1Result[];
 
-extern RobotRunStateEnum g_eRunningStatus;
-extern uint32_t g_ui32Motor1RunTimes;
-extern uint32_t g_ui32Motor2RunTimes;
-
 void RobotProcess();
 void StateOne_MeasureDistance();
 void StateTwo_ExchangeTableAndCalculateLocsTable();
@@ -142,6 +138,12 @@ void StateOne_MeasureDistance()
 	float32_t f32_inputValue;
 	float32_t f32_outputValue;
 
+	// set this as origin
+	g_ui32OriginID = g_ui32RobotID;
+
+	//init variables
+	g_bIsNetworkRotated = false;
+
 	turnOnLED(LED_BLUE);
 
 	g_bBypassThisState = false;
@@ -180,13 +182,6 @@ void StateOne_MeasureDistance()
 				}
 				else
 				{
-					// Long Dang, Sep 16, 2014 ===========================================
-
-//					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - INTERCEPT)
-//							/ SLOPE;
-//					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - INTERCEPT)
-//							/ SLOPE;
-
 					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - g_f32Intercept)
 							/ g_f32Slope;
 					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - g_f32Intercept)
@@ -203,7 +198,6 @@ void StateOne_MeasureDistance()
 
 					NeighborsTable[g_ui8NeighborsCounter].distance =
 							(uint16_t) (f32_outputValue + 0.5);
-					// =========================================== Long Dang, Sep 16, 2014
 
 					g_ui8NeighborsCounter++;
 
@@ -223,17 +217,17 @@ void StateOne_MeasureDistance()
 
 			reloadDelayTimerA();
 
-// WARING!!! DO NOT INSERT ANY CODE IN HERE! - BEGIN =================================
 			RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
 			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
 			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
 			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
 			RF24_TX_buffer[4] = g_ui32RobotID;
+
 			broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
-			//
+			// WARING!!! DO NOT INSERT ANY CODE IN HERE!
 			ROM_SysCtlDelay(DELAY_START_SPEAKER);
+			// WARING!!! DO NOT INSERT ANY CODE IN HERE!
 			startSpeaker();
-// WARING!!! DO NOT INSERT ANY CODE IN HERE! - END ===================================
 
 			RF24_RX_activate();
 
@@ -283,7 +277,6 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 								(g_ui8RandomNumber + 100) :
 								(g_ui8RandomNumber);
 				ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
-				//ui16RandomValue = g_ui8RandomNumber << 4;
 
 				delayTimerB(ui16RandomValue, true); // maybe Received Request table command here!
 
@@ -348,15 +341,25 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 
 void StateThree_VoteOrigin()
 {
-//	uint16_t ui16RandomValue;
-
-	if(g_ui32OriginID == g_ui32RobotID)
+	if(g_ui32OriginID == g_ui32RobotID) // haven't update
 	{
 		// set This As Origin Node
-		g_ui8OriginNumberOfNeighbors =  g_ui8LocsCounter;
+		g_ui8OriginNumberOfNeighbors = g_ui8LocsCounter;
 		g_ui8Hopth = 0;
 		g_ui32RotationHopID = g_ui32RobotID;
 	}
+	else // haven't update
+	{
+		if (g_ui8OriginNumberOfNeighbors < g_ui8LocsCounter)
+		{
+
+			g_ui32OriginID = g_ui32RobotID;
+			g_ui8OriginNumberOfNeighbors = g_ui8LocsCounter;
+			g_ui8Hopth = 0;
+			g_ui32RotationHopID = g_ui32RobotID;
+		}
+	}
+
 	g_ui8ReBroadcastCounter = 0;
 
 	g_bBypassThisState = false;
@@ -370,14 +373,8 @@ void StateThree_VoteOrigin()
 		generateRandomByte();
 		while (g_ui8RandomNumber == 0)
 			;
-//		ui16RandomValue = DELAY_REBROADCAST + g_ui8RandomNumber;
 
-//		delayTimerB(ui16RandomValue, true);	// maybe Received Request update network origin command here!
-//
-//		while (!g_bDelayTimerBFlagAssert)
-//			; // this line make sure robot will re delay after handle request update network origin command
-
-		ROM_SysCtlDelay(33333333); // remove
+		ROM_SysCtlDelay(33333333);
 
 		// delay timeout
 		if (!g_bBypassThisState)
@@ -434,13 +431,12 @@ void StateFour_RequestRotateNetwork()
 	{
 		// I'am Original
 		g_bIsNetworkRotated = true;
+
 		g_vector.x = 0;
 		g_vector.y = 0;
+
+		g_ui32RotationHopID = g_ui32RobotID;
 	}
-//	else
-//	{
-//		g_bIsNetworkRotated = false;
-//	}
 
 	// waiting request and rotate
 	while(!g_bIsNetworkRotated);
@@ -493,13 +489,19 @@ void StateFour_RequestRotateNetwork()
 
 		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 17))
 		{
-			SysCtlDelay(10000); // delay 600us
+			SysCtlDelay(2500); // delay 150us
 			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
 			i++;
 		}
 	}
-
 	// Coordinates rotated!!!
+
+	// offset locs table to real vector
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		locs[i].vector.x += g_vector.x;
+		locs[i].vector.y += g_vector.y;
+	}
 
 	g_eProcessState = IDLE;
 }
@@ -509,12 +511,6 @@ void RobotProcess()
 	switch (g_eProcessState)
 	{
 	case MEASURE_DISTANCE:
-		// set this as origin
-		g_ui32OriginID = g_ui32RobotID;
-
-		//init variables
-		g_bIsNetworkRotated = false;
-
 		StateOne_MeasureDistance();
 		break;
 
@@ -596,7 +592,6 @@ inline void RF24_IntHandler()
 				// limit valid rf command in each process state
 				{
 				case MEASURE_DISTANCE:
-
 					if (RF24_RX_buffer[0] == ROBOT_REQUEST_SAMPLING_MIC)
 					{
 						// DO NOT INSERT ANY CODE IN HERE!
@@ -608,15 +603,18 @@ inline void RF24_IntHandler()
 										| (RF24_RX_buffer[3] << 8)
 										| RF24_RX_buffer[4];
 					}
-					else
-					{
-					}
 
 					break;
 
 				default: // IDLE state
 					switch (RF24_RX_buffer[0])
 					{
+					case ROBOT_REQUEST_SAMPLING_MIC:
+						// DO NOT INSERT ANY CODE IN HERE!
+						startSamplingMicSignals();
+						//TODO: response
+						break;
+
 					// EXCHANGE_TABLE state
 					case ROBOT_REQUEST_NEIGHBORS_TABLE:
 						reloadDelayTimerA();
@@ -629,10 +627,10 @@ inline void RF24_IntHandler()
 						turnOnLED(LED_RED);
 						reloadDelayTimerA();
 						updateOrRejectNetworkOrigin(RF24_RX_buffer);
-						//delayTimerB(g_ui8RandomNumber, false); // remove
 						turnOffLED(LED_RED);
 						break;
 
+					// ROTATE_NETWORK state
 					case ROBOT_REQUEST_ROTATE_NETWORK:
 						getHopOriginTableAndRotate(RF24_RX_buffer);
 						break;
@@ -649,7 +647,7 @@ inline void RF24_IntHandler()
 								g_ui8ReadTablePosition++)
 						{
 							NeighborsTable[g_ui8ReadTablePosition].ID = 0;
-//							NeighborsTable[g_ui8ReadTablePosition].distance = 0;
+							NeighborsTable[g_ui8ReadTablePosition].distance = 0;
 							OneHopNeighborsTable[g_ui8ReadTablePosition].firstHopID = 0;
 						}
 
@@ -696,16 +694,6 @@ inline void RF24_IntHandler()
 
 					case PC_TOGGLE_ALL_STATUS_LEDS:
 						toggleLED(LED_ALL);
-						break;
-
-					case PC_SET_RUNNING_STATUS:
-
-						g_eRunningStatus = RF24_RX_buffer[1];
-
-						g_ui32Motor1RunTimes = RF24_RX_buffer[2];
-						g_ui32Motor2RunTimes = RF24_RX_buffer[3];
-
-						IntTrigger(INT_MOTOR_TIMERA);
 						break;
 
 					case PC_CHANGE_MOTORS_SPEED:
@@ -796,13 +784,11 @@ inline void RF24_IntHandler()
 							break;
 
 						default:
-							//signalUnhandleError();
 							break;
 						}
 						break;
 
 					default:
-						//signalUnhandleError();
 						break;
 					}
 					break;
@@ -844,68 +830,4 @@ void DelayTimerBIntHanler()
 {
 	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 	g_bDelayTimerBFlagAssert = true;
-}
-
-void MotorTimerAIntHanler()
-{
-  TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-
-  switch (g_eRunningStatus)
-  {
-  case M_STRAIGHT:
-	  configureMotors(FORWARD, MIN_MOTOR_DUTYCYCLE, FORWARD, MAX_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_BACKWARD:
-	  configureMotors(REVERSE, MIN_MOTOR_DUTYCYCLE, REVERSE, MAX_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_SPIN_CLOCKWISE:
-      configureMotors(REVERSE, MIN_MOTOR_DUTYCYCLE, FORWARD, MAX_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_SPIN_COUNTER_CLOCKWISE:
-      configureMotors(FORWARD, MIN_MOTOR_DUTYCYCLE, REVERSE, MAX_MOTOR_DUTYCYCLE);
-	  break;
-
-  default: // M_STOP
-	  stopMotors();
-	  return;
-  }
-
-  TimerLoadSet(MOTOR_TIMER_BASE, TIMER_B, SysCtlClockGet() / 1000 * g_ui32Motor2RunTimes);
-
-  TimerEnable(MOTOR_TIMER_BASE, TIMER_B);
-}
-
-void MotorTimerBIntHanler()
-{
-  TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
-
-  switch (g_eRunningStatus)
-  {
-  case M_STRAIGHT:
-	  configureMotors(FORWARD, MAX_MOTOR_DUTYCYCLE, FORWARD, MIN_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_BACKWARD:
-	  configureMotors(REVERSE, MAX_MOTOR_DUTYCYCLE, REVERSE, MIN_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_SPIN_CLOCKWISE:
-      configureMotors(REVERSE, MAX_MOTOR_DUTYCYCLE, FORWARD, MIN_MOTOR_DUTYCYCLE);
-	  break;
-
-  case M_SPIN_COUNTER_CLOCKWISE:
-      configureMotors(FORWARD, MAX_MOTOR_DUTYCYCLE, REVERSE, MIN_MOTOR_DUTYCYCLE);
-	  break;
-
-  default: // M_STOP
-	  stopMotors();
-	  return;
-  }
-
-  TimerLoadSet(MOTOR_TIMER_BASE, TIMER_A, SysCtlClockGet() / 1000 * g_ui32Motor1RunTimes);
-
-  TimerEnable(MOTOR_TIMER_BASE, TIMER_A);
 }
