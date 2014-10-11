@@ -198,11 +198,6 @@ inline void startSpeaker();
 #define MOTOR_SLEEP_PIN_BASE    GPIO_PORTD_BASE
 #define MOTOR_SLEEP_PIN         GPIO_PIN_0
 
-#define MOTOR_TIMER_CLOCK       SYSCTL_PERIPH_WTIMER1
-#define MOTOR_TIMER_BASE        WTIMER1_BASE
-#define INT_MOTOR_TIMERA        INT_WTIMER1A
-#define INT_MOTOR_TIMERB        INT_WTIMER1B
-
 // LEFT Motor's pin
 #define LEFT_MOTOR_PORT_CLOCK   	SYSCTL_PERIPH_GPIOE
 #define LEFT_MOTOR_PORT_BASE    	GPIO_PORTE_BASE
@@ -238,17 +233,7 @@ inline void startSpeaker();
 #define FORWARD         0
 #define REVERSE         1
 
-typedef enum
-{
-  M_STOP = 0,
-  M_STRAIGHT = 1,
-  M_BACKWARD = 2,
-  M_SPIN_CLOCKWISE = 3,
-  M_SPIN_COUNTER_CLOCKWISE = 4
-} RobotRunStateEnum;
-
 inline void initMotor();
-inline void initMotorTimers();
 inline void enableMOTOR();
 inline void disableMOTOR();
 
@@ -320,7 +305,6 @@ inline void generateRandomByte();
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
 #define PC_START_SAMPLING_MIC           0xC2
-#define PC_SET_RUNNING_STATUS			0xC3
 #define PC_CHANGE_MOTORS_SPEED          0xC4
 #define PC_TEST_RF_CARRIER_DETECTION    0xC5
 #define PC_SEND_TEST_DATA_TO_PC         0xC6

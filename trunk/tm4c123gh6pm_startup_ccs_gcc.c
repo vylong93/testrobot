@@ -67,8 +67,6 @@ extern void BatterySequenceIntHandler(void);
 extern void RandomGeneratorIntHandler(void);
 extern void DelayTimerAIntHanler(void);
 extern void DelayTimerBIntHanler(void);
-extern void MotorTimerAIntHanler(void);
-extern void MotorTimerBIntHanler(void);
 
 //*****************************************************************************
 //
@@ -193,8 +191,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Timer 5 subtimer B
     DelayTimerAIntHanler,                      // Wide Timer 0 subtimer A
     DelayTimerBIntHanler,                      // Wide Timer 0 subtimer B
-    MotorTimerAIntHanler,                      // Wide Timer 1 subtimer A
-    MotorTimerBIntHanler,                      // Wide Timer 1 subtimer B
+    IntDefaultHandler,                      // Wide Timer 1 subtimer A
+    IntDefaultHandler,                      // Wide Timer 1 subtimer B
     IntDefaultHandler,                      // Wide Timer 2 subtimer A
     IntDefaultHandler,                      // Wide Timer 2 subtimer B
     IntDefaultHandler,                      // Wide Timer 3 subtimer A

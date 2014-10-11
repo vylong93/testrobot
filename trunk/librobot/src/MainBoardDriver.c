@@ -236,15 +236,9 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 	float cosB;
 	float cosC;
 
-	// Long Dang, Sep 16, 2014 ======================
-//	float fa = ((a / 256.0) - INTERCEPT) / SLOPE;
-//	float fb = ((b / 256.0) - INTERCEPT) / SLOPE;
-//	float fc = ((c / 256.0) - INTERCEPT) / SLOPE;
-
 	float fa = a / 256.0f;
 	float fb = b / 256.0f;
 	float fc = c / 256.0f;
-	//====================== Long Dang, Sep 16, 2014
 
 	if (!isTriangle(fa, fb, fc))
 		return false;
@@ -871,15 +865,8 @@ void signalUnhandleError()
 //-----------------------Motor functions-----------------------
 static uint32_t ui32PWMPeriod;
 
-uint32_t g_ui32Motor1RunTimes;
-uint32_t g_ui32Motor2RunTimes;
-
-RobotRunStateEnum g_eRunningStatus;
-
 inline void initMotor()
 {
-	g_eRunningStatus = M_STOP;
-
 	// Initilize PWM generator module 0
 	SysCtlPWMClockSet(PWM_CLOCK_SELECT);
 	SysCtlDelay(2);
@@ -892,30 +879,6 @@ inline void initMotor()
 	SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
 	SysCtlDelay(2);
 	GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
-
-//	// Left motor (1) pin configure
-//	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
-//	SysCtlDelay(2);
-//	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
-//	GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG);
-//	GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
-//
-//	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-//	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
-//	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
-//	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
-//
-//	// Right motor (2) pin configure
-//	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
-//	SysCtlDelay(2);
-//	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
-//	GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG);
-//	GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
-//
-//	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN); // M0PWM3
-//	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
-//	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
-//	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
 
 	// Left motor (1) pin configure
 	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
@@ -954,31 +917,6 @@ inline void initMotor()
 	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
 	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
 	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
-
-	initMotorTimers();
-}
-
-inline void initMotorTimers()
-{
-	g_ui32Motor1RunTimes = 70; // const
-	g_ui32Motor2RunTimes = 68; // const
-
-   SysCtlPeripheralEnable(MOTOR_TIMER_CLOCK);
-   TimerClockSourceSet(MOTOR_TIMER_BASE, TIMER_CLOCK_SYSTEM);
-   TimerConfigure(MOTOR_TIMER_BASE,
-   TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_ONE_SHOT | TIMER_CFG_B_ONE_SHOT);
-
-   TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-   TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
-
-   IntPrioritySet(INT_MOTOR_TIMERA, PRIORITY_MOTOR_TIMERA);
-   IntPrioritySet(INT_MOTOR_TIMERB, PRIORITY_MOTOR_TIMERB);
-
-   IntEnable(INT_MOTOR_TIMERA);
-   IntEnable(INT_MOTOR_TIMERB);
-
-   TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-   TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 }
 
 inline void enableMOTOR()
