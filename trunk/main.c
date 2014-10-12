@@ -192,7 +192,7 @@ void StateOne_MeasureDistance()
 									+ g_f32PeakEnvelopeB
 											* g_f32PeakEnvelopeB) / 2.0)
 									- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0))
-									* 65536; // * 256^2
+									* 65536.0; // * 256^2
 
 					f32_outputValue = vsqrtf(f32_inputValue);
 
@@ -352,7 +352,7 @@ void StateThree_VoteOrigin()
 	{
 		if (g_ui8OriginNumberOfNeighbors < g_ui8LocsCounter)
 		{
-
+			// set This As Origin Node
 			g_ui32OriginID = g_ui32RobotID;
 			g_ui8OriginNumberOfNeighbors = g_ui8LocsCounter;
 			g_ui8Hopth = 0;
@@ -374,7 +374,7 @@ void StateThree_VoteOrigin()
 		while (g_ui8RandomNumber == 0)
 			;
 
-		ROM_SysCtlDelay(33333333);
+		delayTimerB(DELAY_REBROADCAST, true);
 
 		// delay timeout
 		if (!g_bBypassThisState)
@@ -402,6 +402,16 @@ void StateThree_VoteOrigin()
 		}
 	}
 
+	g_eProcessState = ROTATE_NETWORK;
+}
+
+void StateFour_RequestRotateNetwork()
+{
+	uint32_t tableSizeInByte;
+	uint32_t neighborID;
+	int8_t i;
+	int32_t tempValue;
+
 	if (g_ui32OriginID & 0x01)
 		turnOnLED(LED_GREEN);
 	else
@@ -417,25 +427,15 @@ void StateThree_VoteOrigin()
 	else
 		turnOffLED(LED_RED);
 
-	g_eProcessState = ROTATE_NETWORK;
-}
-
-void StateFour_RequestRotateNetwork()
-{
-	uint32_t tableSizeInByte;
-	uint32_t neighborID;
-	int8_t i;
-	int32_t tempValue;
-
-	if (g_ui32RobotID == g_ui32OriginID)
+	if (g_ui32OriginID == g_ui32RobotID)
 	{
 		// I'am Original
 		g_bIsNetworkRotated = true;
 
+		g_ui32RotationHopID = g_ui32RobotID;
+
 		g_vector.x = 0;
 		g_vector.y = 0;
-
-		g_ui32RotationHopID = g_ui32RobotID;
 	}
 
 	// waiting request and rotate
@@ -475,13 +475,13 @@ void StateFour_RequestRotateNetwork()
 		RF24_TX_buffer[7] = tableSizeInByte >> 8;
 		RF24_TX_buffer[8] = tableSizeInByte;
 
-		tempValue = (int8_t)(g_vector.x * 65536.0);
+		tempValue = (int8_t)(g_vector.x * 65536.0 + 0.5);
 		RF24_TX_buffer[9] = tempValue >> 24;
 		RF24_TX_buffer[10] = tempValue >> 16;
 		RF24_TX_buffer[11] = tempValue >> 8;
 		RF24_TX_buffer[12] = tempValue;
 
-		tempValue = (int8_t)(g_vector.y * 65536.0);
+		tempValue = (int8_t)(g_vector.y * 65536.0 + 0.5);
 		RF24_TX_buffer[13] = tempValue >> 24;
 		RF24_TX_buffer[14] = tempValue >> 16;
 		RF24_TX_buffer[15] = tempValue >> 8;

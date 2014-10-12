@@ -16,7 +16,7 @@
 #define DELAY_EXCHANGE_TABLE_STATE	 2000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 #define DELAY_ROTATE_NETWORK		 4000
-#define DELAY_REBROADCAST			 500
+#define DELAY_REBROADCAST			 2000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH

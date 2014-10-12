@@ -65,13 +65,13 @@ void initTimerDelay()
 
 void delayTimerA(uint32_t period, bool isSynchronous)
 {
-	g_bDelayTimerAFlagAssert = false;
-
 	timerALastDelayPeriod = SysCtlClockGet() / 1000 * period;
 
 	TimerLoadSet(DELAY_TIMER_BASE, TIMER_A, timerALastDelayPeriod);
 
 	TimerEnable(DELAY_TIMER_BASE, TIMER_A);
+
+	g_bDelayTimerAFlagAssert = false;
 
 	if (isSynchronous)
 		while (!g_bDelayTimerAFlagAssert)
@@ -85,13 +85,13 @@ void reloadDelayTimerA()
 
 void delayTimerB(uint32_t period, bool isSynchronous)
 {
-	g_bDelayTimerBFlagAssert = false;
-
 	timerBLastDelayPeriod = SysCtlClockGet() / 1000 * period;
 
 	TimerLoadSet(DELAY_TIMER_BASE, TIMER_B, timerBLastDelayPeriod);
 
 	TimerEnable(DELAY_TIMER_BASE, TIMER_B);
+
+	g_bDelayTimerBFlagAssert = false;
 
 	if (isSynchronous)
 		while (!g_bDelayTimerBFlagAssert)
@@ -480,13 +480,13 @@ void getNeighborNeighborsTable()
 void sendVectorToControlBoard()
 {
 	int32_t temp;
-	temp = g_vector.x * 65536.0;
+	temp = g_vector.x * 65536.0 + 0.5;
 	RF24_TX_buffer[0] = temp >> 24;
 	RF24_TX_buffer[1] = temp >> 16;
 	RF24_TX_buffer[2] = temp >> 8;
 	RF24_TX_buffer[3] = temp;
 
-	temp = g_vector.y * 65536.0;
+	temp = g_vector.y * 65536.0 + 0.5;
 	RF24_TX_buffer[4] = temp >> 24;
 	RF24_TX_buffer[5] = temp >> 16;
 	RF24_TX_buffer[6] = temp >> 8;
@@ -517,13 +517,13 @@ void sendLocationsTableToControlBoard()
 	RF24_TX_buffer[2] = locs[g_ui8ReadTablePosition].ID >> 8;
 	RF24_TX_buffer[3] = locs[g_ui8ReadTablePosition].ID;
 
-	temp = locs[g_ui8ReadTablePosition].vector.x * 32768;
+	temp = locs[g_ui8ReadTablePosition].vector.x * 65536.0 + 0.5;
 	RF24_TX_buffer[4] = temp >> 24;
 	RF24_TX_buffer[5] = temp >> 16;
 	RF24_TX_buffer[6] = temp >> 8;
 	RF24_TX_buffer[7] = temp;
 
-	temp = locs[g_ui8ReadTablePosition].vector.y * 32768;
+	temp = locs[g_ui8ReadTablePosition].vector.y * 65536.0 + 0.5;
 	RF24_TX_buffer[8] = temp >> 24;
 	RF24_TX_buffer[9] = temp >> 16;
 	RF24_TX_buffer[10] = temp >> 8;
@@ -635,10 +635,10 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 	dataLength = (RxData[5] << 24) | (RxData[6] << 16) | (RxData[7] << 8) | RxData[8];
 
 	tempValue = (RxData[9] << 24) | (RxData[10] << 16) | (RxData[11] << 8) | RxData[12];
-	RotationHopVector.x = (float) (tempValue / 65535.0);
+	RotationHopVector.x = (float) (tempValue / 65536.0);
 
 	tempValue = (RxData[13] << 24) | (RxData[14] << 16) | (RxData[15] << 8) | RxData[16];
-	RotationHopVector.y = (float) (tempValue / 65535.0);
+	RotationHopVector.y = (float) (tempValue / 65536.0);
 
 	oriLocsCounter = dataLength / sizeof(location_t);
 
