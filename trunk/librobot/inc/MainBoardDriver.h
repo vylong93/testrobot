@@ -76,7 +76,7 @@ typedef struct tagLocation {
 
 typedef enum
 {
-	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK, REDUCE_ERROR,
 } ProcessStateEnum;
 
 void initRobotProcess();
@@ -89,11 +89,14 @@ void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
 void getHopOriginTableAndRotate(uint8_t RxData[]);
-bool isLocationTableContainID(uint32_t id, location_t table[], uint8_t length);
+int32_t isLocationTableContainID(uint32_t id, location_t table[], uint8_t length);
 uint32_t tryToGetCommonNeighborID(location_t firstTable[], uint8_t firstTableLength, location_t secondTable[], uint8_t secondTableLength);
 float getAngleFromTable(uint32_t id, location_t table[], uint8_t length);
 void rotateLocationTable(float angle, bool mirror, location_t table[], uint8_t length);
 void calculateRealVector(vector2_t vector, location_t table[], uint8_t length);
+void updateGradient(vector2_t *pVectGradienNew, bool enableRandomCal);
+void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimatePosNew, vector2_t *pvectEstimatePosOld, vector2_t *pvectGradienNew, vector2_t *pectGradienOld, float fStepSize);
+bool checkVarianceCondition(vector2_t vectNew, vector2_t vectOld, float fCondition);
 
 //-----------------------------------Robot Int functions
 
@@ -298,6 +301,8 @@ inline void initPeripheralsForAnalogFunction(void);
 inline void startSamplingMicSignals();
 inline void startSamplingBatteryVoltage();
 inline void generateRandomByte();
+float generateRandomRange(float min, float max);
+
 //-------------------------------------------------------------------Ananlog functions
 
 

@@ -26,6 +26,7 @@
 #include "libnrf24l01/inc/TM4C123_nRF24L01.h"
 #include "libnrf24l01/inc/nRF24L01.h"
 #include "librobot/inc/MainBoardDriver.h"
+#include "librobot/inc/Trilateration.h"
 
 uint8_t RF24_RX_buffer[32] =
 { 0 };
@@ -281,6 +282,8 @@ uint8_t g_ui8NeighborsCounter;
 uint32_t g_ui32RobotID;
 vector2_t g_vector;
 bool g_bIsNetworkRotated;
+bool g_bIsAveragePosUpdate;
+bool g_bIsActiveCoordinatesFixing;
 
 ProcessStateEnum g_eProcessState;
 
@@ -677,8 +680,8 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 
 	if(!g_bIsNetworkRotated)
 	{
-		if(isLocationTableContainID(g_ui32RobotID, oriLocs, oriLocsCounter)
-				&& isLocationTableContainID(g_ui32RotationHopID, locs, g_ui8LocsCounter))
+		if((isLocationTableContainID(g_ui32RobotID, oriLocs, oriLocsCounter) != -1)
+				&& (isLocationTableContainID(g_ui32RotationHopID, locs, g_ui8LocsCounter) != -1))
 		{
 			robotJ_ID = 0;
 
@@ -739,15 +742,15 @@ void calculateRealVector(vector2_t vector, location_t table[], uint8_t length)
 	g_vector.y = vector.y + table[i].vector.y;
 }
 
-bool isLocationTableContainID(uint32_t id, location_t table[], uint8_t length)
+int32_t isLocationTableContainID(uint32_t id, location_t table[], uint8_t length)
 {
 	uint8_t i;
 	for(i = 0; i < length; i++)
 	{
 		if (table[i].ID == id)
-			return true;
+			return i;
 	}
-	return false;
+	return -1;
 }
 
 uint32_t tryToGetCommonNeighborID(location_t firstTable[], uint8_t firstTableLength, location_t secondTable[], uint8_t secondTableLength)
@@ -816,6 +819,68 @@ void rotateLocationTable(float angle, bool mirrorXaxis, location_t table[], uint
 	}
 }
 
+void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCal)
+{
+	int i;
+	uint32_t ui32Distance;
+	float fVectorNorm;
+	float fTemplateParameter;
+
+	// Gradian Update
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32RobotID)
+			continue;
+
+		if (enableRandomCal)
+		{
+			generateRandomByte();
+			while (g_ui8RandomNumber == 0);
+			if (g_ui8RandomNumber & 0x01)
+				continue;
+		}
+
+		ui32Distance = Tri_tryToGetNeighborsDistance(NeighborsTable, locs[i].ID);
+		ui32Distance = (ui32Distance + Tri_tryToGetDistance(OneHopNeighborsTable, locs[i].ID, g_ui32RobotID)) /2;
+		fVectorNorm = vsqrtf(locs[i].vector.x * locs[i].vector.x + locs[i].vector.y * locs[i].vector.y);
+
+		fTemplateParameter = (fVectorNorm - ui32Distance / 256.0f) / fVectorNorm;
+
+		pvectGradienNew->x += -locs[i].vector.x * fTemplateParameter;
+		pvectGradienNew->y += -locs[i].vector.y * fTemplateParameter;
+	}
+}
+
+bool checkVarianceCondition(vector2_t vectNew, vector2_t vectOld, float fCondition)
+{
+	vector2_t vectVariance;
+
+	vectVariance.x = vectNew.x - vectOld.x;
+	vectVariance.y = vectNew.y - vectOld.y;
+
+	vectVariance.x = (vectVariance.x < 0) ? (-vectVariance.x) : (vectVariance.x);
+	vectVariance.y = (vectVariance.y < 0) ? (-vectVariance.y) : (vectVariance.y);
+
+	return (vectVariance.x < fCondition) && (vectVariance.y < fCondition);
+}
+
+void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimatePosNew, vector2_t *pvectEstimatePosOld, vector2_t *pvectGradienNew, vector2_t *pvectGradienOld, float fStepSize)
+{
+	pvectEstimatePosOld->x = pvectEstimatePosNew->x;
+	pvectEstimatePosOld->y = pvectEstimatePosNew->y;
+
+	pvectEstimatePosNew->x = pvectEstimatePosOld->x - fStepSize * pvectGradienNew->x;
+	pvectEstimatePosNew->y = pvectEstimatePosOld->y - fStepSize * pvectGradienNew->y;
+
+	pvectAverageCoordination->x = pvectEstimatePosNew->x;
+	pvectAverageCoordination->y = pvectEstimatePosNew->y;
+
+	pvectGradienOld->x = pvectGradienNew->x;
+	pvectGradienOld->y = pvectGradienNew->y;
+
+	pvectGradienNew->x = 0;
+	pvectGradienNew->y = 0;
+}
 
 //-----------------------------------Robot Int functions
 
@@ -1237,6 +1302,19 @@ inline void generateRandomByte()
 {
 	g_ui8RandomNumber = 0;
 	ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
+}
+
+float generateRandomRange(float min, float max)
+{
+	if (max <= min)
+		return 0;
+
+	float fResolution = 255.0f / (max - min);
+
+	generateRandomByte();
+	while (g_ui8RandomNumber == 0);
+
+	return ((float)(g_ui8RandomNumber / fResolution) + min);
 }
 
 void ADC0IntHandler(void)
