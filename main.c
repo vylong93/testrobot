@@ -46,6 +46,8 @@ extern uint32_t g_ui32RobotID;
 extern vector2_t g_vector;
 
 extern bool g_bIsNetworkRotated;
+extern bool g_bIsActiveCoordinatesFixing;
+extern bool g_bIsAveragePosUpdate;
 
 extern ProcessStateEnum g_eProcessState;
 extern bool g_bBypassThisState;
@@ -80,6 +82,7 @@ void StateOne_MeasureDistance();
 void StateTwo_ExchangeTableAndCalculateLocsTable();
 void StateThree_VoteOrigin();
 void StateFour_RequestRotateNetwork();
+void StateFive_ReduceCoordinatesError();
 
 extern float g_f32Intercept;
 extern float g_f32Slope;
@@ -503,8 +506,216 @@ void StateFour_RequestRotateNetwork()
 		locs[i].vector.y += g_vector.y;
 	}
 
+	// g_eProcessState = REDUCE_ERROR;
 	g_eProcessState = IDLE;
 }
+
+void StateFive_ReduceCoordinatesError()
+{
+	bool bIsGradientSearchStop;
+	float fRandomeStepSize;					// random 2.0f -> 4.0f
+	float const fStepSize = 0.2f; 			// ???
+	float const fStopCondition = 0.003f; 	// ???
+	float const fStopCondition2 = 0.009f; 	// ???
+	int8_t i;
+	int8_t i8Position;
+	uint8_t ui8VectorCounter;
+	vector2_t vectGradienNew;
+	vector2_t vectGradienOld;
+	vector2_t vectEstimatePosNew;
+	vector2_t vectEstimatePosOld;
+	vector2_t vectTemplatePositiveValue;
+
+	uint32_t ui32LocalLoop = 0;
+
+	g_bIsActiveCoordinatesFixing = true;
+
+	// Calculate average position
+	g_bIsAveragePosUpdate = false;
+
+	ui8VectorCounter = 0;
+
+	for(i = 0; i < g_ui8NeighborsCounter; i++)
+	{
+		if (NeighborsTable[i].ID == g_ui32RobotID)
+			continue;
+
+		//TODO: wait for neighbor g_bIsNetworkRotated = true
+
+		//TODO: send request neighbor send my coordinates in there's table: <x>, <y>
+
+		//TODO: g_vector.x += <x>;
+		//TODO: g_vector.y += <y>;
+
+		ui8VectorCounter++;
+	}
+	g_vector.x /= ui8VectorCounter;
+	g_vector.y /= ui8VectorCounter;
+
+	g_bIsAveragePosUpdate = true;
+
+	vectEstimatePosNew.x = g_vector.x;
+	vectEstimatePosNew.y = g_vector.y;
+
+	// Update locs table
+	for(i = 0; i < g_ui8NeighborsCounter; i++)
+	{
+		if (NeighborsTable[i].ID == g_ui32RobotID)
+			continue;
+
+		//TODO: wait for neighbor g_bIsAveragePosUpdate = true
+
+		//TODO: send request neighbor send there g_vector: <x>, <y>
+
+		i8Position = isLocationTableContainID(NeighborsTable[i].ID, locs, g_ui8LocsCounter);
+
+		if (i8Position == -1)
+		{
+			//TODO: Tri_addLocation(NeighborsTable[i].ID, <x>, <y>);
+		}
+		else
+		{
+			//TODO: locs[position].vector.x = <x>;
+			//TODO: locs[position].vector.y = <y>;
+		}
+	}
+
+	vectGradienNew.x = 0;
+	vectGradienNew.y = 0;
+
+	bIsGradientSearchStop = false;
+
+	ui32LocalLoop++;
+
+	while(true)
+	{
+		while(!bIsGradientSearchStop)
+		{
+			updateGradient(&vectGradienNew, false);
+
+			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
+
+			ui32LocalLoop++;
+
+			bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition);
+
+//			// Update locs by other robot current position
+//			for(i = 0; i < g_ui8NeighborsCounter; i++)
+//			{
+//				if (NeighborsTable[i].ID == g_ui32RobotID)
+//					continue;
+//
+//				//TODO: wait for neighbor ui32LocalLoop < this.ui32LocalLoop && neighbor g_bIsActiveCoordinatesFixing == true
+//
+//				//TODO: send request neighbor send there g_vector coordinates: <x>, <y> and there bIsGradientSearchStop flag
+//
+//				i8Position = isLocationTableContainID(NeighborsTable[neighborPointer].ID, locs, g_ui8LocsCounter);
+//
+//				if (i8Position == -1)
+//				{
+//					//TODO: Tri_addLocation(NeighborsTable[neighborPointer].ID, <x>, <y>);
+//				}
+//				else
+//				{
+//					//TODO: locs[position].vector.x = <x>;
+//					//TODO: locs[position].vector.y = <y>;
+//				}
+//
+//				//TODO: if (neighbor bIsGradientSearchStop == false)
+//				//TODO:		bIsGradientSearchStop = false;
+//			}
+
+			// Make sure all neighbors will also stop
+			for(i = 0; i < g_ui8NeighborsCounter; i++)
+			{
+				if (NeighborsTable[i].ID == g_ui32RobotID)
+					continue;
+
+				//TODO: wait for neighbor ui32LocalLoop < this.ui32LocalLoop && neighbor g_bIsActiveCoordinatesFixing == true
+
+				//TODO: send request neighbor send there bIsGradientSearchStop flag
+
+				//TODO: if (neighbor bIsGradientSearchStop == false)
+				//TODO:	{	bIsGradientSearchStop = false;	break; }
+			}
+
+			// Update locs
+			for(i = 0; i < g_ui8NeighborsCounter; i++)
+			{
+				if (NeighborsTable[i].ID == g_ui32RobotID)
+					continue;
+
+				//TODO: send request neighbor send there g_vector coordinates: <x>, <y>
+
+				i8Position = isLocationTableContainID(NeighborsTable[i].ID, locs, g_ui8LocsCounter);
+
+				if (i8Position == -1)
+				{
+					//TODO: Tri_addLocation(NeighborsTable[i].ID, <x>, <y>);
+				}
+				else
+				{
+					//TODO: locs[position].vector.x = <x>;
+					//TODO: locs[position].vector.y = <y>;
+				}
+			}
+		}
+
+		updateGradient(&vectGradienNew, true);
+
+		fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
+		updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
+
+		ui32LocalLoop++;
+
+		//??? - bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition2);
+		vectTemplatePositiveValue.x = (vectGradienOld.x < 0) ? (-vectGradienOld.x) : (vectGradienOld.x);
+		vectTemplatePositiveValue.y = (vectGradienOld.y < 0) ? (-vectGradienOld.y) : (vectGradienOld.y);
+		bIsGradientSearchStop = (vectTemplatePositiveValue.x < fStopCondition2) && (vectTemplatePositiveValue.y < fStopCondition2);
+
+		// Make sure all neighbors will also stop
+		for(i = 0; i < g_ui8NeighborsCounter; i++)
+		{
+			if (NeighborsTable[i].ID == g_ui32RobotID)
+				continue;
+
+			//TODO: wait for neighbor ui32LocalLoop < this.ui32LocalLoop && neighbor g_bIsActiveCoordinatesFixing == true
+
+			//TODO: send request neighbor send there bIsGradientSearchStop flag
+
+			//TODO: if (neighbor bIsGradientSearchStop == false)
+			//TODO:	{	bIsGradientSearchStop = false;	break; }
+		}
+		if (bIsGradientSearchStop)
+			break;
+
+		// Update locs
+		for(i = 0; i < g_ui8NeighborsCounter; i++)
+		{
+			if (NeighborsTable[i].ID == g_ui32RobotID)
+				continue;
+
+			//TODO: send request neighbor send there g_vector coordinates: <x>, <y>
+
+			i8Position = isLocationTableContainID(NeighborsTable[i].ID, locs, g_ui8LocsCounter);
+
+			if (i8Position == -1)
+			{
+				//TODO: Tri_addLocation(NeighborsTable[i].ID, <x>, <y>);
+			}
+			else
+			{
+				//TODO: locs[position].vector.x = <x>;
+				//TODO: locs[position].vector.y = <y>;
+			}
+		}
+	}
+
+	g_bIsActiveCoordinatesFixing = false;
+
+	g_eProcessState = IDLE;
+}
+
 
 void RobotProcess()
 {
@@ -526,12 +737,17 @@ void RobotProcess()
 		StateFour_RequestRotateNetwork();
 		break;
 
+	case REDUCE_ERROR:
+		StateFive_ReduceCoordinatesError();
+		break;
+
 	default: // IDLE state
 		rfDelayLoop(DELAY_CYCLES_5MS * 25);
 		toggleLED(LED_RED);
 		break;
 	}
 }
+
 
 inline void RF24_IntHandler()
 {
