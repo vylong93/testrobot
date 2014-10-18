@@ -47,7 +47,6 @@ extern vector2_t g_vector;
 
 extern bool g_bIsNetworkRotated;
 extern bool g_bIsActiveCoordinatesFixing;
-extern bool g_bIsAveragePosUpdate;
 extern bool g_bIsGradientSearchStop;
 extern uint32_t g_ui32LocalLoop;
 
@@ -530,126 +529,135 @@ void StateFive_ReduceCoordinatesError()
 	vector2_t vectEstimatePosNew;
 	vector2_t vectEstimatePosOld;
 
-	g_ui32LocalLoop = 0;
-
-	g_bIsActiveCoordinatesFixing = true;
-
-	// Calculate average position
-	g_bIsAveragePosUpdate = false;
-
-	ui8VectorCounter = 0;
-
-	for(i = 0; i < g_ui8NeighborsCounter; i++)
+	if (g_ui32OriginID == g_ui32RobotID)
 	{
-		if (NeighborsTable[i].ID == g_ui32RobotID)
-			continue;
+		g_bIsActiveCoordinatesFixing = false;
+		g_bIsGradientSearchStop = true;
+		g_vector.x = 0;
+		g_vector.y = 0;
 
-		g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+	}
+	else
+	{
+		g_bIsActiveCoordinatesFixing = true;
 
-		isSuccess = false;
+		// Calculate average position
+		g_ui32LocalLoop = 0;
 
-		while (1) // wait for neighbor g_bIsNetworkRotated = true and get my vector
+		ui8VectorCounter = 1;
+
+		for(i = 0; i < g_ui8NeighborsCounter; i++)
 		{
-			generateRandomByte();
-			while (g_ui8RandomNumber == 0);
+			if (NeighborsTable[i].ID == g_ui32RobotID)
+				continue;
 
-			ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+			g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
 
-			g_ui8RandomNumber =
-					(g_ui8RandomNumber < 100) ?
-							(g_ui8RandomNumber + 100) :
-							(g_ui8RandomNumber);
+			isSuccess = false;
 
-			ui16RandomValue = g_ui8RandomNumber * 20;
-
-			delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
-
-			while (!g_bDelayTimerBFlagAssert)
-				; // this line make sure robot will re delay after response to another robot
-
-			// delay timeout
-			RF24_TX_buffer[0] = ROBOT_REQUEST_MY_VECTOR;
-			parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
-			RF24_TX_buffer[5] = ui8RandomRfChannel;
-
-			if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 6))
+			while (1) // wait for neighbor g_bIsNetworkRotated = true and get my vector
 			{
-				turnOffLED(LED_RED);
+				generateRandomByte();
+				while (g_ui8RandomNumber == 0);
 
-				RF24_setChannel(ui8RandomRfChannel);
-				RF24_TX_flush();
-				RF24_clearIrqFlag(RF24_IRQ_MASK);
-				RF24_RX_activate();
+				ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
 
-				isSuccess = getMyVector(&ui8VectorCounter);
+				g_ui8RandomNumber =
+						(g_ui8RandomNumber < 100) ?
+								(g_ui8RandomNumber + 100) :
+								(g_ui8RandomNumber);
 
-				RF24_setChannel(0);
-				RF24_TX_flush();
-				RF24_clearIrqFlag(RF24_IRQ_MASK);
-				RF24_RX_activate();
+				ui16RandomValue = g_ui8RandomNumber * 20;
 
-				turnOnLED(LED_RED);
+				delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
 
-				if (isSuccess)
+				while (!g_bDelayTimerBFlagAssert)
+					; // this line make sure robot will re delay after response to another robot
+
+				// delay timeout
+				RF24_TX_buffer[0] = ROBOT_REQUEST_MY_VECTOR;
+				parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+				RF24_TX_buffer[5] = ui8RandomRfChannel;
+
+				if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 6))
+				{
+					turnOffLED(LED_RED);
+
+					RF24_setChannel(ui8RandomRfChannel);
+					RF24_TX_flush();
+					RF24_clearIrqFlag(RF24_IRQ_MASK);
+					RF24_RX_activate();
+
+					isSuccess = getMyVector(&ui8VectorCounter);
+
+					RF24_setChannel(0);
+					RF24_TX_flush();
+					RF24_clearIrqFlag(RF24_IRQ_MASK);
+					RF24_RX_activate();
+
+					turnOnLED(LED_RED);
+
+					if (isSuccess)
+						break;
+				}
+				else if (g_ui8ReTransmitCounter == 0)
 					break;
 			}
-			else if (g_ui8ReTransmitCounter == 0)
-				break;
 		}
-	}
 
-	g_vector.x /= ui8VectorCounter;
-	g_vector.y /= ui8VectorCounter;
+		g_vector.x /= ui8VectorCounter;
+		g_vector.y /= ui8VectorCounter;
 
-	g_bIsAveragePosUpdate = true;
+		g_ui32LocalLoop = 1;
 
-	turnOnLED(LED_ALL);
-	while(1); // DEBUG only
+		turnOnLED(LED_ALL);
+		while(1); // DEBUG only
 
-	// Update locs table
-	updateLocsByOtherRobotCurrentPosition(true);
+		// Update locs table
+		updateLocsByOtherRobotCurrentPosition(true);
 
-	vectEstimatePosNew.x = g_vector.x;
-	vectEstimatePosNew.y = g_vector.y;
+		vectEstimatePosNew.x = g_vector.x;
+		vectEstimatePosNew.y = g_vector.y;
 
-	vectGradienNew.x = 0;
-	vectGradienNew.y = 0;
+		vectGradienNew.x = 0;
+		vectGradienNew.y = 0;
 
-	g_bIsGradientSearchStop = false;
+		g_bIsGradientSearchStop = false;
 
-	g_ui32LocalLoop++;
+		g_ui32LocalLoop++;
 
-	while(!g_bIsGradientSearchStop)
-	{
-		// Algorithm 1
 		while(!g_bIsGradientSearchStop)
 		{
-			updateGradient(&vectGradienNew, false);
+			// Algorithm 1
+			while(!g_bIsGradientSearchStop)
+			{
+				updateGradient(&vectGradienNew, false);
 
-			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
+				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
+
+				g_ui32LocalLoop++;
+
+				g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition);
+
+				updateLocsByOtherRobotCurrentPosition(false);
+			}
+
+			// Escape Local Minima
+			updateGradient(&vectGradienNew, true);
+
+			fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
+
+			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
 
 			g_ui32LocalLoop++;
 
-			g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition);
+			g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition2);
 
 			updateLocsByOtherRobotCurrentPosition(false);
 		}
 
-		// Escape Local Minima
-		updateGradient(&vectGradienNew, true);
-
-		fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
-
-		updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
-
-		g_ui32LocalLoop++;
-
-		g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition2);
-
-		updateLocsByOtherRobotCurrentPosition(false);
+		g_bIsActiveCoordinatesFixing = false;
 	}
-
-	g_bIsActiveCoordinatesFixing = false;
 
 	g_eProcessState = IDLE;
 }
@@ -790,6 +798,11 @@ inline void RF24_IntHandler()
 					// REDUCE_ERROR state
 					case ROBOT_REQUEST_MY_VECTOR:
 						tryToResponeNeighborVector();
+						delayTimerB(g_ui8RandomNumber, false);
+						break;
+
+					case ROBOT_REQUEST_VECTOR_AND_FLAG:
+						tryToResponeVectorAndFlag();
 						delayTimerB(g_ui8RandomNumber, false);
 						break;
 
