@@ -880,7 +880,7 @@ void rotateLocationTable(float angle, bool mirrorXaxis, location_t table[], uint
 	}
 }
 
-void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCal)
+void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCalculation)
 {
 	int i;
 	uint32_t ui32Distance;
@@ -893,7 +893,7 @@ void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCal)
 		if (locs[i].ID == g_ui32RobotID)
 			continue;
 
-		if (enableRandomCal)
+		if (enableRandomCalculation)
 		{
 			generateRandomByte();
 			while (g_ui8RandomNumber == 0);
@@ -901,11 +901,15 @@ void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCal)
 				continue;
 		}
 
-		ui32Distance = Tri_tryToGetNeighborsDistance(NeighborsTable, locs[i].ID);
-		ui32Distance = (ui32Distance + Tri_tryToGetDistance(OneHopNeighborsTable, locs[i].ID, g_ui32RobotID)) /2;
+		ui32Distance = Tri_tryToGetDistance(OneHopNeighborsTable, locs[i].ID, g_ui32RobotID);
+		if (ui32Distance > 0)
+			ui32Distance = (ui32Distance + Tri_tryToGetNeighborsDistance(NeighborsTable, locs[i].ID)) / 2;
+		else
+			ui32Distance = Tri_tryToGetNeighborsDistance(NeighborsTable, locs[i].ID);
+
 		fVectorNorm = vsqrtf(locs[i].vector.x * locs[i].vector.x + locs[i].vector.y * locs[i].vector.y);
 
-		fTemplateParameter = (fVectorNorm - ui32Distance / 256.0f) / fVectorNorm;
+		fTemplateParameter = (fVectorNorm - (float)(ui32Distance / 256.0f)) / fVectorNorm;
 
 		pvectGradienNew->x += -locs[i].vector.x * fTemplateParameter;
 		pvectGradienNew->y += -locs[i].vector.y * fTemplateParameter;
@@ -958,7 +962,19 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 	for(i = 0; i < g_ui8NeighborsCounter; i++)
 	{
 		if (NeighborsTable[i].ID == g_ui32RobotID)
+		{
 			continue;
+		}
+		if (NeighborsTable[i].ID == g_ui32OriginID)
+		{
+			i8Position = isLocationTableContainID(g_ui32OriginID, locs, g_ui8LocsCounter);
+			if (i8Position != -1)
+			{
+				locs[i8Position].vector.x = 0;
+				locs[i8Position].vector.y = 0;
+			}
+			continue;
+		}
 
 		g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
 
@@ -977,7 +993,7 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 							(g_ui8RandomNumber + 100) :
 							(g_ui8RandomNumber);
 
-			ui16RandomValue = g_ui8RandomNumber * 20;
+			ui16RandomValue = g_ui8RandomNumber * 10;
 
 			delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_VECTOR_AND_FLAG command here!
 
@@ -1035,6 +1051,20 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 				if (!bIsNeighborGradientSearchStop)
 					g_bIsGradientSearchStop = false;
 			}
+		}
+	}
+}
+
+void synchronousLocsTableAndMyVector()
+{
+	uint8_t i;
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32RobotID)
+		{
+			locs[i].vector.x = g_vector.x;
+			locs[i].vector.y = g_vector.y;
+			return;
 		}
 	}
 }
@@ -1122,13 +1152,13 @@ void tryToResponeVectorAndFlag()
 	{
 		RF24_TX_buffer[0] = ROBOT_RESPONSE_VECTOR_AND_FLAG;
 
-		i32TempAxix = (int32_t)(g_vector.x * 65536 + 0.5);
+		i32TempAxix = g_vector.x * 65536 + 0.5;
 		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[1]); // 1->4
 
-		i32TempAxix = (int32_t)(g_vector.y * 65536 + 0.5);
+		i32TempAxix = g_vector.y * 65536 + 0.5;
 		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[5]); // 5->8
 
-		RF24_TX_buffer[9] = (g_bIsGradientSearchStop) ? 0x01: 0x00;
+		RF24_TX_buffer[9] = (g_bIsGradientSearchStop) ? (0x01): (0x00);
 
 		responseLength = 10;
 	}
@@ -1222,8 +1252,8 @@ bool getNeighborVectorAndFlag(vector2_t *pVectReceived, bool* pIsNeighborGradien
 
 				if (RF24_RX_buffer[0] == ROBOT_RESPONSE_VECTOR_AND_FLAG && length == 10)
 				{
-					pVectReceived->x += (construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0f);
-					pVectReceived->y += (construct4BytesToInt32(&RF24_RX_buffer[5]) / 65536.0f);
+					pVectReceived->x = (construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0f);
+					pVectReceived->y = (construct4BytesToInt32(&RF24_RX_buffer[5]) / 65536.0f);
 					*pIsNeighborGradientSearchStop = (RF24_RX_buffer[9] == 0x01);
 					returnState = true;
 					*pIsNeighborActive = true;
