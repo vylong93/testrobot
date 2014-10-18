@@ -320,7 +320,6 @@ uint32_t g_ui32RobotID;
 vector2_t g_vector;
 
 bool g_bIsNetworkRotated;
-bool g_bIsAveragePosUpdate;
 bool g_bIsActiveCoordinatesFixing;
 bool g_bIsGradientSearchStop;
 uint32_t g_ui32LocalLoop;
@@ -361,7 +360,6 @@ void initRobotProcess()
 	g_vector.x = 0;
 	g_vector.y = 0;
 	g_bIsNetworkRotated = false;
-	g_bIsAveragePosUpdate = false;
 	g_bIsActiveCoordinatesFixing = false;
 	g_bIsGradientSearchStop = false;
 	g_ui32LocalLoop = 0;
@@ -948,6 +946,11 @@ void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimat
 void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 {
 	uint8_t i;
+	uint8_t ui8RandomRfChannel;
+	uint16_t ui16RandomValue;
+	bool isSuccess;
+	bool isNeighborActive;
+
 	int8_t i8Position;
 	vector2_t vectReceived;
 	bool bIsNeighborGradientSearchStop;
@@ -957,36 +960,81 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 		if (NeighborsTable[i].ID == g_ui32RobotID)
 			continue;
 
-		if (!isFirstInit)
+		g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+
+		isSuccess = false;
+		isNeighborActive = false;
+
+		while (1) // wait for neighbor g_ui32LocalLoop < this.g_ui32LocalLoop && neighbor g_bIsActiveCoordinatesFixing == true
 		{
-			//TODO: wait for neighbor g_ui32LocalLoop < this.g_ui32LocalLoop && neighbor g_bIsActiveCoordinatesFixing == true
-		}
-		else
-		{
-			//TODO: wait for neighbor g_bIsAveragePosUpdate = true
+			generateRandomByte();
+			while (g_ui8RandomNumber == 0);
+
+			ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+
+			g_ui8RandomNumber =
+					(g_ui8RandomNumber < 100) ?
+							(g_ui8RandomNumber + 100) :
+							(g_ui8RandomNumber);
+
+			ui16RandomValue = g_ui8RandomNumber * 20;
+
+			delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_VECTOR_AND_FLAG command here!
+
+			while (!g_bDelayTimerBFlagAssert)
+				; // this line make sure robot will re delay after response to another robot
+
+			// delay timeout
+			RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR_AND_FLAG;
+			parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+			RF24_TX_buffer[5] = ui8RandomRfChannel;
+			parse32BitTo4Bytes(g_ui32LocalLoop, &RF24_TX_buffer[6]); // 6->9
+
+			// send request neighbor send there g_vector coordinates: <x>, <y>
+			if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
+			{
+				turnOffLED(LED_RED);
+
+				RF24_setChannel(ui8RandomRfChannel);
+				RF24_TX_flush();
+				RF24_clearIrqFlag(RF24_IRQ_MASK);
+				RF24_RX_activate();
+
+				isSuccess = getNeighborVectorAndFlag(&vectReceived, &bIsNeighborGradientSearchStop, &isNeighborActive);
+
+				RF24_setChannel(0);
+				RF24_TX_flush();
+				RF24_clearIrqFlag(RF24_IRQ_MASK);
+				RF24_RX_activate();
+
+				turnOnLED(LED_RED);
+
+				if (isSuccess)
+					break;
+			}
+			else if (g_ui8ReTransmitCounter == 0)
+				break;
 		}
 
-		//TODO: send request neighbor send there g_vector coordinates: <x>, <y> and there g_bIsGradientSearchStop flag
-		vectReceived.x = 0;
-		vectReceived.y = 0;
-		bIsNeighborGradientSearchStop = false;
-
-		i8Position = isLocationTableContainID(NeighborsTable[i].ID, locs, g_ui8LocsCounter);
-
-		if (i8Position == -1)
+		if (isNeighborActive)
 		{
-			Tri_addLocation(NeighborsTable[i].ID, vectReceived.x, vectReceived.y);
-		}
-		else
-		{
-			locs[i8Position].vector.x = vectReceived.x;
-			locs[i8Position].vector.y = vectReceived.y;
-		}
+			i8Position = isLocationTableContainID(NeighborsTable[i].ID, locs, g_ui8LocsCounter);
 
-		if (!isFirstInit)
-		{
-			if (!bIsNeighborGradientSearchStop)
-				g_bIsGradientSearchStop = false;
+			if (i8Position == -1)
+			{
+				Tri_addLocation(NeighborsTable[i].ID, vectReceived.x, vectReceived.y);
+			}
+			else
+			{
+				locs[i8Position].vector.x = vectReceived.x;
+				locs[i8Position].vector.y = vectReceived.y;
+			}
+
+			if (!isFirstInit)
+			{
+				if (!bIsNeighborGradientSearchStop)
+					g_bIsGradientSearchStop = false;
+			}
 		}
 	}
 }
@@ -1049,6 +1097,59 @@ void tryToResponeNeighborVector()
 	turnOnLED(LED_RED);
 }
 
+void tryToResponeVectorAndFlag()
+{
+	int32_t i32TempAxix;
+
+	uint32_t neighborID = 0;
+	uint32_t responseLength = 0;
+	uint32_t randomRfChannel = 0;
+	uint32_t neighborLoopCounter = 0;
+
+	neighborID = construct4BytesToUint32(&RF24_RX_buffer[1]);
+
+	randomRfChannel = RF24_RX_buffer[5];
+
+	neighborLoopCounter = construct4BytesToUint32(&RF24_RX_buffer[6]);
+
+	rfDelayLoop(DELAY_CYCLES_1MS5);
+
+	RF24_setChannel(randomRfChannel);
+
+	turnOffLED(LED_RED);
+
+	if (g_ui32LocalLoop >= neighborLoopCounter && g_bIsActiveCoordinatesFixing)
+	{
+		RF24_TX_buffer[0] = ROBOT_RESPONSE_VECTOR_AND_FLAG;
+
+		i32TempAxix = (int32_t)(g_vector.x * 65536 + 0.5);
+		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[1]); // 1->4
+
+		i32TempAxix = (int32_t)(g_vector.y * 65536 + 0.5);
+		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[5]); // 5->8
+
+		RF24_TX_buffer[9] = (g_bIsGradientSearchStop) ? 0x01: 0x00;
+
+		responseLength = 10;
+	}
+	else
+	{
+		if (g_bIsActiveCoordinatesFixing)
+			RF24_TX_buffer[0] = ROBOT_RESPONSE_PLEASE_WAIT;
+		else
+			RF24_TX_buffer[0] = ROBOT_RESPONSE_UNACTIVE;
+
+		responseLength = 1;
+	}
+
+	sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, responseLength);
+
+	RF24_RX_flush();
+	RF24_setChannel(0);
+
+	turnOnLED(LED_RED);
+}
+
 bool getMyVector(uint8_t *pCounter)
 {
 	bool returnState = true;
@@ -1096,6 +1197,58 @@ bool getMyVector(uint8_t *pCounter)
 	return returnState;
 }
 
+bool getNeighborVectorAndFlag(vector2_t *pVectReceived, bool* pIsNeighborGradientSearchStop, bool *pIsNeighborActive)
+{
+	bool returnState = true;
+	uint32_t length = 0;
+
+	disableRF24Interrupt();
+
+	delayTimerB(DELAY_GET_VECTOR_PERIOD, false);
+
+	while (!g_bDelayTimerBFlagAssert)
+	{
+		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+		{
+			reloadDelayTimerB();
+
+			if (RF24_getIrqFlag(RF24_IRQ_RX))
+			{
+				length = RF24_RX_getPayloadWidth();
+
+				RF24_RX_getPayloadData(length, RF24_RX_buffer);
+
+				RF24_clearIrqFlag(RF24_IRQ_RX);
+
+				if (RF24_RX_buffer[0] == ROBOT_RESPONSE_VECTOR_AND_FLAG && length == 10)
+				{
+					pVectReceived->x += (construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0f);
+					pVectReceived->y += (construct4BytesToInt32(&RF24_RX_buffer[5]) / 65536.0f);
+					*pIsNeighborGradientSearchStop = (RF24_RX_buffer[9] == 0x01);
+					returnState = true;
+					*pIsNeighborActive = true;
+					break;
+				}
+				else if (RF24_RX_buffer[0] == ROBOT_RESPONSE_PLEASE_WAIT)
+				{
+					returnState = false;
+					*pIsNeighborActive = true;
+					break;
+				}
+				else // if (RF24_RX_buffer[0] == ROBOT_RESPONSE_UNACTIVE)
+				{
+					returnState = true;
+					*pIsNeighborActive = false;
+					break;
+				}
+			}
+		}
+	}
+
+	enableRF24Interrupt();
+
+	return returnState;
+}
 
 //-----------------------------------Robot Int functions
 

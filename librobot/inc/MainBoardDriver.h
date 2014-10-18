@@ -18,6 +18,7 @@
 #define DELAY_ROTATE_NETWORK		 4000
 #define DELAY_REBROADCAST			 2000
 #define DELAY_GET_FLAG_PERIOD		 1000
+#define DELAY_GET_VECTOR_PERIOD		 1000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -107,7 +108,9 @@ void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimat
 bool checkVarianceCondition(vector2_t vectNew, vector2_t vectOld, float fCondition);
 void updateLocsByOtherRobotCurrentPosition(bool isFirstInit);
 void tryToResponeNeighborVector();
+void tryToResponeVectorAndFlag();
 bool getMyVector(uint8_t *pCounter);
+bool getNeighborVectorAndFlag(vector2_t *pvectReceived, bool* pIsNeighborGradientSearchStop, bool *pIsNeighborActive);
 
 //-----------------------------------Robot Int functions
 
@@ -356,6 +359,10 @@ float generateRandomRange(float min, float max);
 #define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
 #define ROBOT_RESPONSE_MY_VECTOR				0xD8
 #define ROBOT_RESPONSE_MY_VECTOR_NOT_FOUND 		0xD9
+#define ROBOT_REQUEST_VECTOR_AND_FLAG			0xDA
+#define ROBOT_RESPONSE_VECTOR_AND_FLAG			0xDB
+#define ROBOT_RESPONSE_PLEASE_WAIT				0xDC
+#define ROBOT_RESPONSE_UNACTIVE					0xDD
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
