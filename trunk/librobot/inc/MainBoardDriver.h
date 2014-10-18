@@ -107,6 +107,7 @@ void updateGradient(vector2_t *pVectGradienNew, bool enableRandomCal);
 void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimatePosNew, vector2_t *pvectEstimatePosOld, vector2_t *pvectGradienNew, vector2_t *pectGradienOld, float fStepSize);
 bool checkVarianceCondition(vector2_t vectNew, vector2_t vectOld, float fCondition);
 void updateLocsByOtherRobotCurrentPosition(bool isFirstInit);
+void synchronousLocsTableAndMyVector();
 void tryToResponeNeighborVector();
 void tryToResponeVectorAndFlag();
 bool getMyVector(uint8_t *pCounter);

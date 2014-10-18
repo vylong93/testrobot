@@ -567,7 +567,7 @@ void StateFive_ReduceCoordinatesError()
 								(g_ui8RandomNumber + 100) :
 								(g_ui8RandomNumber);
 
-				ui16RandomValue = g_ui8RandomNumber * 20;
+				ui16RandomValue = g_ui8RandomNumber * 10;
 
 				delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
 
@@ -608,13 +608,17 @@ void StateFive_ReduceCoordinatesError()
 		g_vector.x /= ui8VectorCounter;
 		g_vector.y /= ui8VectorCounter;
 
+		synchronousLocsTableAndMyVector();
+
 		g_ui32LocalLoop = 1;
 
-		turnOnLED(LED_ALL);
-		while(1); // DEBUG only
+		turnOnLED(LED_ALL); // OK
 
 		// Update locs table
 		updateLocsByOtherRobotCurrentPosition(true);
+
+		turnOffLED(LED_GREEN); // OK
+		while(1);
 
 		vectEstimatePosNew.x = g_vector.x;
 		vectEstimatePosNew.y = g_vector.y;
@@ -634,6 +638,7 @@ void StateFive_ReduceCoordinatesError()
 				updateGradient(&vectGradienNew, false);
 
 				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
+				synchronousLocsTableAndMyVector();
 
 				g_ui32LocalLoop++;
 
@@ -648,6 +653,7 @@ void StateFive_ReduceCoordinatesError()
 			fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
 
 			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
+			synchronousLocsTableAndMyVector();
 
 			g_ui32LocalLoop++;
 
