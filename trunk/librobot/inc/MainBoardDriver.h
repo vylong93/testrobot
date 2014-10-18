@@ -17,10 +17,11 @@
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 #define DELAY_ROTATE_NETWORK		 4000
 #define DELAY_REBROADCAST			 2000
+#define DELAY_GET_FLAG_PERIOD		 1000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
-#define LOCATIONS_TABLE_LENGTH	10
+#define LOCATIONS_TABLE_LENGTH	NEIGHBOR_TABLE_LENGTH
 
 typedef struct tagRobotMeas
 {
@@ -65,6 +66,13 @@ typedef struct tagLocation {
 
 #define INT_SW_TRIGGER_LPM			INT_I2C1
 
+
+void parse32BitTo4Bytes(uint32_t value, uint8_t *buffer);
+uint32_t construct4BytesToUint32(uint8_t *buffer);
+int32_t construct4BytesToInt32(uint8_t *buffer);
+void delayRandom(uint32_t parameterUnit);
+
+
 //----------------Robot Init functions-------------------
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 #define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
@@ -97,6 +105,9 @@ void calculateRealVector(vector2_t vector, location_t table[], uint8_t length);
 void updateGradient(vector2_t *pVectGradienNew, bool enableRandomCal);
 void updatePosition(vector2_t *pvectAverageCoordination, vector2_t *pvectEstimatePosNew, vector2_t *pvectEstimatePosOld, vector2_t *pvectGradienNew, vector2_t *pectGradienOld, float fStepSize);
 bool checkVarianceCondition(vector2_t vectNew, vector2_t vectOld, float fCondition);
+void updateLocsByOtherRobotCurrentPosition(bool isFirstInit);
+void tryToResponeNeighborVector();
+bool getMyVector(uint8_t *pCounter);
 
 //-----------------------------------Robot Int functions
 
@@ -323,10 +334,8 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_STOP_MOTOR_RIGHT		0xA5
 #define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
 #define PC_SEND_READ_ONEHOP_TABLE		0xA7
-#define PC_SEND_SET_TABLE_POSITION		0xA8
-#define PC_SEND_SET_ONE_HOP_POSITION	0xA9
+#define PC_SEND_READ_LOCS_TABLE			0xA8
 
-#define PC_SEND_READ_LOCS_TABLE			0xE3
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 #define PC_SEND_READ_VECTOR				0xB1
 
@@ -342,6 +351,11 @@ float generateRandomRange(float min, float max);
 
 #define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN		0xD4
 #define ROBOT_REQUEST_ROTATE_NETWORK			0xD5
+
+#define ROBOT_REQUEST_MY_VECTOR					0xD6
+#define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
+#define ROBOT_RESPONSE_MY_VECTOR				0xD8
+#define ROBOT_RESPONSE_MY_VECTOR_NOT_FOUND 		0xD9
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02
