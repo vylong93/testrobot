@@ -49,6 +49,7 @@ extern bool g_bIsNetworkRotated;
 extern bool g_bIsActiveCoordinatesFixing;
 extern bool g_bIsGradientSearchStop;
 extern uint32_t g_ui32LocalLoop;
+uint32_t g_ui32LocalLoopStop;
 
 extern ProcessStateEnum g_eProcessState;
 extern bool g_bBypassThisState;
@@ -520,14 +521,16 @@ void StateFive_ReduceCoordinatesError()
 
 	float fRandomeStepSize;					// random 2.0f -> 4.0f
 	float const fStepSize = 0.2f; 			//
-	float const fStopCondition = 0.003f; 	// unit m
-	float const fStopCondition2 = 0.012f; 	// unit m
+	float const fStopCondition = 0.03f; 	// unit m
+	float const fStopCondition2 = 0.12f; 	// unit m
 
 	uint8_t ui8VectorCounter;
 	vector2_t vectGradienNew;
 	vector2_t vectGradienOld;
 	vector2_t vectEstimatePosNew;
 	vector2_t vectEstimatePosOld;
+
+	g_ui32LocalLoopStop = 1; // DEBUG only
 
 	if (g_ui32OriginID == g_ui32RobotID)
 	{
@@ -618,7 +621,6 @@ void StateFive_ReduceCoordinatesError()
 		updateLocsByOtherRobotCurrentPosition(true);
 
 		turnOffLED(LED_GREEN); // OK
-		while(1);
 
 		vectEstimatePosNew.x = g_vector.x;
 		vectEstimatePosNew.y = g_vector.y;
@@ -635,6 +637,11 @@ void StateFive_ReduceCoordinatesError()
 			// Algorithm 1
 			while(!g_bIsGradientSearchStop)
 			{
+				//DEBUG only
+				while(g_ui32LocalLoop > g_ui32LocalLoopStop);
+
+				turnOffLED(LED_BLUE);
+
 				updateGradient(&vectGradienNew, false);
 
 				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
@@ -645,7 +652,16 @@ void StateFive_ReduceCoordinatesError()
 				g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition);
 
 				updateLocsByOtherRobotCurrentPosition(false);
+
+				if (g_ui32LocalLoop & 0x01)
+					turnOnLED(LED_GREEN);
+				else
+					turnOffLED(LED_GREEN);
+
+
 			}
+
+			turnOnLED(LED_BLUE);
 
 			// Escape Local Minima
 			updateGradient(&vectGradienNew, true);
@@ -663,6 +679,8 @@ void StateFive_ReduceCoordinatesError()
 		}
 
 		g_bIsActiveCoordinatesFixing = false;
+
+		turnOffLED(LED_BLUE);
 	}
 
 	g_eProcessState = IDLE;
@@ -813,6 +831,10 @@ inline void RF24_IntHandler()
 						break;
 
 				    // DeBug command
+					case PC_SEND_LOCAL_LOOP_STOP:
+						g_ui32LocalLoopStop = construct4BytesToUint32(&RF24_RX_buffer[1]);
+						break;
+
 					case PC_SEND_MEASURE_DISTANCE:
 
 						turnOffLED(LED_ALL);

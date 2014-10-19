@@ -886,6 +886,7 @@ void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCalculation)
 	uint32_t ui32Distance;
 	float fVectorNorm;
 	float fTemplateParameter;
+	vector2_t distanceVector;
 
 	// Gradian Update
 	for(i = 0; i < g_ui8LocsCounter; i++)
@@ -907,7 +908,10 @@ void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCalculation)
 		else
 			ui32Distance = Tri_tryToGetNeighborsDistance(NeighborsTable, locs[i].ID);
 
-		fVectorNorm = vsqrtf(locs[i].vector.x * locs[i].vector.x + locs[i].vector.y * locs[i].vector.y);
+		distanceVector.x = g_vector.x - locs[i].vector.x;
+		distanceVector.y = g_vector.y - locs[i].vector.y;
+
+		fVectorNorm = vsqrtf(distanceVector.x * distanceVector.x + distanceVector.y * distanceVector.y);
 
 		fTemplateParameter = (fVectorNorm - (float)(ui32Distance / 256.0f)) / fVectorNorm;
 

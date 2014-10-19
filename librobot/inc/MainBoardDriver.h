@@ -342,6 +342,7 @@ float generateRandomRange(float min, float max);
 
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 #define PC_SEND_READ_VECTOR				0xB1
+#define PC_SEND_LOCAL_LOOP_STOP			0xB2
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1
