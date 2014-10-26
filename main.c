@@ -45,12 +45,14 @@ extern bool g_bDelayTimerBFlagAssert;
 extern uint32_t g_ui32RobotID;
 extern vector2_t g_vector;
 extern bool g_bIsValidVector;
+extern bool g_bIsCounterClockwiseOriented;
+extern float g_fRobotOrientedAngle;
 
 extern bool g_bIsNetworkRotated;
 extern bool g_bIsActiveCoordinatesFixing;
 extern bool g_bIsGradientSearchStop;
 extern uint32_t g_ui32LocalLoop;
-uint32_t g_ui32LocalLoopStop;
+uint32_t g_ui32LocalLoopStop; // Debug Only
 
 extern ProcessStateEnum g_eProcessState;
 extern bool g_bBypassThisState;
@@ -77,6 +79,7 @@ extern uint8_t g_ui8ReTransmitCounter;
 extern uint8_t g_ui8RandomNumber;
 extern uint16_t g_pui16ADC0Result[];
 extern uint16_t g_pui16ADC1Result[];
+extern bool g_bIsNewTDOAResults;
 
 void RobotProcess();
 void StateOne_MeasureDistance();
@@ -84,9 +87,14 @@ void StateTwo_ExchangeTableAndCalculateLocsTable();
 void StateThree_VoteOrigin();
 void StateFour_RequestRotateNetwork();
 void StateFive_ReduceCoordinatesError();
+void StateSix_Swarm();
 
 extern float g_f32Intercept;
 extern float g_f32Slope;
+
+float g_fStepSize;
+float g_fStopCondition;
+float g_fStopCondition2;
 
 int main(void)
 {
@@ -146,7 +154,6 @@ void StateOne_MeasureDistance()
 	g_ui32OriginID = g_ui32RobotID;
 	g_vector.x = 0;
 	g_vector.y = 0;
-	g_bIsValidVector = false;
 
 	//init variables
 	g_bIsNetworkRotated = false;
@@ -172,13 +179,17 @@ void StateOne_MeasureDistance()
 
 		while (!g_bDelayTimerBFlagAssert)
 		{
+			g_bIsNewTDOAResults = false;
+
 			if (NeighborsTable[g_ui8NeighborsCounter].ID != 0)
 			{
 				turnOnLED(LED_GREEN);
 
 				reloadDelayTimerA();
 
-				TDOA_run();
+				while(!g_bIsNewTDOAResults);
+
+				g_bIsNewTDOAResults = false;
 
 				if (g_f32MaxEnvelopeA < MAX_THRESHOLD
 						|| g_f32MaxEnvelopeB < MAX_THRESHOLD
@@ -537,16 +548,16 @@ void StateFour_RequestRotateNetwork()
 	g_eProcessState = REDUCE_ERROR;
 }
 
-float g_fStepSize = 0.2f;
-float g_fStopCondition = 0.003f;
-float g_fStopCondition2 = 0.012f;
-
 void StateFive_ReduceCoordinatesError()
 {
 	int8_t i;
 	uint8_t ui8RandomRfChannel;
 	uint16_t ui16RandomValue;
 	bool isSuccess;
+
+	g_fStepSize = 0.2f;
+	g_fStopCondition = 0.3f;
+	g_fStopCondition2 = 1.2f;
 
 //	float fRandomeStepSize;					// random 2.0f -> 4.0f
 //	float const fStepSize = 0.2f; 			//
@@ -776,6 +787,78 @@ void StateFive_ReduceCoordinatesError()
 		turnOffLED(LED_BLUE);
 	}
 
+	g_bIsValidVector = true;
+
+	//g_eProcessState = LOCOMOTION;
+	g_eProcessState = IDLE;
+}
+
+void StateSix_Locomotion()
+{
+	vector2_t vectZero;
+	vector2_t vectOne;
+	vector2_t vectDiff;
+
+	float fAngleOffer = 0.0872664626; // ~ 5 degree
+	float fRotateAngle = MATH_PI_DIV_2;
+	float fThetaOne;
+	float fThetaTwo;
+
+	uint16_t ui16RandomValue;
+
+	g_bIsNewTDOAResults = false;
+
+	// save my old vector for initialize position V0
+	vectZero.x = g_vector.x;
+	vectZero.y = g_vector.y;
+
+	// delay random
+	generateRandomByte();
+	while (g_ui8RandomNumber == 0);
+
+	g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+
+	//ui16RandomValue = g_ui8RandomNumber * 10;
+	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
+
+	delayTimerB(ui16RandomValue + DELAY_LOCOMOTION_PERIOD, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+										// if received neighbor run command then redelay and wait
+
+	// delay timeout
+	g_bIsValidVector = false;
+
+	runForwardAndCalculatteNewPosition();
+	vectOne.x = g_vector.x;
+	vectOne.y = g_vector.y;
+
+	spinClockwise(fRotateAngle);
+
+	runForwardAndCalculatteNewPosition();
+
+	g_bIsValidVector = true;
+
+	vectDiff.x = vectOne.x - vectZero.x;
+	vectDiff.y = vectOne.y - vectZero.y;
+	fThetaOne = calculateRobotOrientation(vectDiff);
+
+	vectDiff.x = g_vector.x - vectOne.x;
+	vectDiff.y = g_vector.y - vectOne.y;
+	fThetaTwo = calculateRobotOrientation(vectDiff);
+
+	g_fRobotOrientedAngle = fThetaTwo;
+
+	fRotateAngle += fThetaOne;
+
+	while(fRotateAngle > MATH_PI_MUL_2)
+		fRotateAngle -= MATH_PI_MUL_2;
+
+	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
+		g_bIsCounterClockwiseOriented = false;
+	else
+		g_bIsCounterClockwiseOriented = true;
+
+	//TODO: spinClockwise(fRotateAngle);
+
 	g_eProcessState = IDLE;
 }
 
@@ -801,6 +884,10 @@ void RobotProcess()
 
 	case REDUCE_ERROR:
 		StateFive_ReduceCoordinatesError();
+		break;
+
+	case LOCOMOTION:
+		StateSix_Locomotion();
 		break;
 
 	default: // IDLE state
@@ -889,7 +976,8 @@ inline void RF24_IntHandler()
 					case ROBOT_REQUEST_SAMPLING_MIC:
 						// DO NOT INSERT ANY CODE IN HERE!
 						startSamplingMicSignals();
-						//TODO: response
+						if (g_bIsValidVector)
+							responseTDOAResultsToNeighbor(RF24_RX_buffer);
 						break;
 
 					// EXCHANGE_TABLE state
@@ -926,6 +1014,12 @@ inline void RF24_IntHandler()
 					case ROBOT_REQUEST_VECTOR:
 						tryToResponseVector();
 						delayTimerB(g_ui8RandomNumber, false);
+						break;
+
+					// LOCOMOTION state
+					case ROBOT_REQUEST_TO_RUN:
+						clearRequestNeighbor(RF24_RX_buffer);
+						reloadDelayTimerB();
 						break;
 
 				    // DeBug command

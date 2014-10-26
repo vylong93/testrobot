@@ -2,6 +2,7 @@
 #define MAIN_BOARD_DRIVERS_H
 
 #include "libnrf24l01/inc/nRF24L01.h"
+
 #include "arm_math.h"
 
 #define DISTANCE_BETWEEN_TWO_MICS		5.0
@@ -19,6 +20,8 @@
 #define DELAY_REBROADCAST			 2000
 #define DELAY_GET_FLAG_PERIOD		 1000
 #define DELAY_GET_VECTOR_PERIOD		 1000
+#define DELAY_LOCOMOTION_PERIOD	     3000
+#define DELAY_NEIGHBOR_RESPONSE_PERIOD	1000
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -46,6 +49,7 @@ typedef struct tagLocation {
 	vector2_t vector;
 } location_t;
 
+
 /*
  * Priority level: 0x00 = 0x20 :: 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
  */
@@ -67,6 +71,12 @@ typedef struct tagLocation {
 
 #define INT_SW_TRIGGER_LPM			INT_I2C1
 
+void clearNeighborTable(robotMeas_t neighborTable[], uint8_t *counter);
+void clearOneHopNeighborTable(oneHopMeas_t table[]);
+void deleteNeighborInInNeighborTable(robotMeas_t table[], uint32_t id);
+void deleteNeighborInOneHopTable(oneHopMeas_t table[], uint32_t id);
+void deleteNeighborInLocationsTable(location_t table[], uint32_t id);
+void deleteTable(robotMeas_t neighborTable[]);
 
 void parse32BitTo4Bytes(uint32_t value, uint8_t *buffer);
 uint32_t construct4BytesToUint32(uint8_t *buffer);
@@ -85,10 +95,12 @@ void delayRandom(uint32_t parameterUnit);
 
 typedef enum
 {
-	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK, REDUCE_ERROR,
+	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK, REDUCE_ERROR, LOCOMOTION,
 } ProcessStateEnum;
 
 void initRobotProcess();
+void responseTDOAResultsToNeighbor(uint8_t RxData[]);
+void storeNeighorVectorAndDistanceToTables(uint8_t RxData[]);
 void checkAndResponeMyNeighborsTableToOneRobot();
 void sendVectorToControlBoard(const vector2_t vector);
 void sendNeighborsTableToControlBoard();
@@ -115,6 +127,9 @@ void tryToResponseVector();
 bool getMyVector(uint8_t *pCounter);
 bool getNeighborVectorAndFlag(vector2_t *pvectReceived, bool* pIsNeighborGradientSearchStop, bool *pIsNeighborActive);
 bool getNeighborVector(uint32_t neighborID);
+void clearRequestNeighbor(uint8_t RxData[]);
+void runForwardAndCalculatteNewPosition();
+float calculateRobotOrientation(vector2_t vectDiff);
 
 //-----------------------------------Robot Int functions
 
@@ -149,17 +164,25 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c);
 
 
 //----------------Delay Timer functions-------------------
+
+// Interrupt Timers
 #define DELAY_TIMER_CLOCK	SYSCTL_PERIPH_WTIMER0
 #define DELAY_TIMER_BASE	WTIMER0_BASE
 #define INT_DELAY_TIMERA	INT_WTIMER0A
 #define INT_DELAY_TIMERB	INT_WTIMER0B
+
+// Non-Interrtup Timer
+#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_TIMER2
+#define DELAY_TIMER_BASE_NON_INT	TIMER2_BASE
 
 void initTimerDelay();
 void delayTimerA(uint32_t period, bool isSynchronous);
 void delayTimerB(uint32_t period, bool isSynchronous);
 void reloadDelayTimerA();
 void reloadDelayTimerB();
+void delayTimerNonInt(uint32_t period);
 //-----------------------------------Delay Timer functions
+
 
 
 //-----------------------LED functions-------------------------
@@ -266,6 +289,7 @@ void configureMotors(uint8_t left_Direction, uint8_t left_dutyCycles, uint8_t ri
 void stopMotorLeft();
 void stopMotorRight();
 void stopMotors();
+void spinClockwiseWithAngle(float angle);
 
 //----------------------------------------------Motor functions
 
@@ -325,18 +349,15 @@ float generateRandomRange(float min, float max);
 
 
 //----------------------RF24 Functions------------------------
-#define PC_TEST_RF_TRANSMISSION         0xC0
-#define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
-#define PC_START_SAMPLING_MIC           0xC2
-#define PC_CHANGE_MOTORS_SPEED          0xC4
-#define PC_TEST_RF_CARRIER_DETECTION    0xC5
-#define PC_SEND_TEST_DATA_TO_PC         0xC6
-#define PC_START_SPEAKER                0xC8
+#define COMMAND_RESET					0x01
+#define COMMAND_SLEEP					0x02
+#define	COMMAND_DEEP_SLEEP				0x03
+#define	COMMAND_WAKE_UP					0x04
 
 #define PC_SEND_DATA_ADC0_TO_PC         0xA0
 #define PC_SEND_DATA_ADC1_TO_PC         0xA1
-#define PC_SEND_BATT_VOLT_TO_PC			0xA3
 
+#define PC_SEND_BATT_VOLT_TO_PC			0xA3
 #define PC_SEND_STOP_MOTOR_LEFT			0xA4
 #define PC_SEND_STOP_MOTOR_RIGHT		0xA5
 #define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
@@ -351,19 +372,20 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
 #define PC_SEND_ROTATE_CLOCKWISE		0xB6
 
-#define PC_SEND_READ_EEPROM             0xE0
-#define PC_SEND_WRITE_EEPROM            0xE1
-#define PC_SEND_SET_ADDRESS_EEPROM      0xE2
+#define PC_TEST_RF_TRANSMISSION         0xC0
+#define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
+#define PC_START_SAMPLING_MIC           0xC2
+#define PC_CHANGE_MOTORS_SPEED          0xC4
+#define PC_TEST_RF_CARRIER_DETECTION    0xC5
+#define PC_SEND_TEST_DATA_TO_PC         0xC6
+#define PC_START_SPEAKER                0xC8
 
-#define ROBOT_REQUEST_SAMPLING_MIC		0xD0
-#define ROBOT_REQUEST_NEIGHBORS_TABLE 	0xD1
-
-#define ROBOT_RESPONSE_HELLO_NEIGHBOR		0xD2
-#define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 	0xD3
-
+#define ROBOT_REQUEST_SAMPLING_MIC				0xD0
+#define ROBOT_REQUEST_NEIGHBORS_TABLE 			0xD1
+#define ROBOT_RESPONSE_HELLO_NEIGHBOR			0xD2
+#define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 		0xD3
 #define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN		0xD4
 #define ROBOT_REQUEST_ROTATE_NETWORK			0xD5
-
 #define ROBOT_REQUEST_MY_VECTOR					0xD6
 #define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
 #define ROBOT_RESPONSE_MY_VECTOR				0xD8
@@ -375,11 +397,14 @@ float generateRandomRange(float min, float max);
 #define ROBOT_REQUEST_VECTOR					0xDE
 #define ROBOT_RESPONSE_VECTOR					0xDF
 
-#define COMMAND_RESET			0x01
-#define COMMAND_SLEEP			0x02
-#define	COMMAND_DEEP_SLEEP		0x03
-#define	COMMAND_WAKE_UP			0x04
+#define ROBOT_REQUEST_TO_RUN					0x90
+#define ROBOT_RESPONSE_TDOA_DISTANCE			0x91
 
+#define PC_SEND_READ_EEPROM             0xE0
+#define PC_SEND_WRITE_EEPROM            0xE1
+#define PC_SEND_SET_ADDRESS_EEPROM      0xE2
+
+// Format <SMART_PHONE_COMMAND><SP_SEND_...>
 #define SMART_PHONE_COMMAND				0xF0
 #define SP_SEND_STOP_TWO_MOTOR			0xF1
 #define SP_SEND_FORWAR					0xF2
