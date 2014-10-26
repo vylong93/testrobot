@@ -318,6 +318,7 @@ uint8_t g_ui8NeighborsCounter;
 
 uint32_t g_ui32RobotID;
 vector2_t g_vector;
+bool g_bIsValidVector;
 
 bool g_bIsNetworkRotated;
 bool g_bIsActiveCoordinatesFixing;
@@ -357,8 +358,9 @@ void initRobotProcess()
 	}
 
 	g_eProcessState = IDLE;
-	g_vector.x = 0;
-	g_vector.y = 0;
+	g_vector.x = (g_ui32RobotID & 0xFF);
+	g_vector.y = (g_ui32RobotID & 0xFF);
+	g_bIsValidVector = false;
 	g_bIsNetworkRotated = false;
 	g_bIsActiveCoordinatesFixing = false;
 	g_bIsGradientSearchStop = false;
@@ -521,20 +523,14 @@ void getNeighborNeighborsTable()
 	enableRF24Interrupt();
 }
 
-void sendVectorToControlBoard()
+void sendVectorToControlBoard(const vector2_t vector)
 {
-	int32_t temp;
-	temp = g_vector.x * 65536.0 + 0.5;
-	RF24_TX_buffer[0] = temp >> 24;
-	RF24_TX_buffer[1] = temp >> 16;
-	RF24_TX_buffer[2] = temp >> 8;
-	RF24_TX_buffer[3] = temp;
+	int32_t i32TempAxix;
+	i32TempAxix = g_vector.x * 65536 + 0.5;
+	parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[0]); // 0->3
 
-	temp = g_vector.y * 65536.0 + 0.5;
-	RF24_TX_buffer[4] = temp >> 24;
-	RF24_TX_buffer[5] = temp >> 16;
-	RF24_TX_buffer[6] = temp >> 8;
-	RF24_TX_buffer[7] = temp;
+	i32TempAxix = g_vector.y * 65536 + 0.5;
+	parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[4]); // 4->7
 
 	sendDataToControlBoard(RF24_TX_buffer);
 }
@@ -625,6 +621,15 @@ void sendOneHopNeighborsTableToControlBoard()
 	sendDataToControlBoard(dataBuffer);
 }
 
+void rotateClockwiseTest(uint8_t RxData[])
+{
+	uint32_t ui32DelayPeriod = construct4BytesToUint32(&RxData[1]);
+
+	spinClockwise();
+	delayTimerB(ui32DelayPeriod, true);
+	stopMotors();
+}
+
 void updateOrRejectNetworkOrigin(uint8_t RxData[])
 {
 	//RxData:: <Update Network Origin COMMAND> <thisOriginID> <thisOriginNumberOfNeighbors> <thisHopth>
@@ -673,6 +678,7 @@ bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID)
 
 void getHopOriginTableAndRotate(uint8_t RxData[])
 {
+	uint8_t ui8RandomRfChannel;
 	location_t oriLocs[LOCATIONS_TABLE_LENGTH];
 	uint8_t oriLocsCounter;
 
@@ -703,6 +709,9 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 
 	tempValue = (RxData[13] << 24) | (RxData[14] << 16) | (RxData[15] << 8) | RxData[16];
 	RotationHopVector.y = (float) (tempValue / 65536.0);
+
+	ui8RandomRfChannel = RxData[17];
+	RF24_setChannel(ui8RandomRfChannel);
 
 	oriLocsCounter = dataLength / sizeof(location_t);
 
@@ -738,6 +747,9 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 			}
 		}
 	}
+
+	RF24_RX_flush();
+	RF24_setChannel(0);
 
 	if(!g_bIsNetworkRotated)
 	{
@@ -911,12 +923,18 @@ void updateGradient(vector2_t *pvectGradienNew, bool enableRandomCalculation)
 		distanceVector.x = g_vector.x - locs[i].vector.x;
 		distanceVector.y = g_vector.y - locs[i].vector.y;
 
+		if (distanceVector.x == 0 && distanceVector.y == 0)
+		{
+			distanceVector.x = 1;
+			distanceVector.y = 1;
+		}
+
 		fVectorNorm = vsqrtf(distanceVector.x * distanceVector.x + distanceVector.y * distanceVector.y);
 
 		fTemplateParameter = (fVectorNorm - (float)(ui32Distance / 256.0f)) / fVectorNorm;
 
-		pvectGradienNew->x += -locs[i].vector.x * fTemplateParameter;
-		pvectGradienNew->y += -locs[i].vector.y * fTemplateParameter;
+		pvectGradienNew->x += distanceVector.x * fTemplateParameter;
+		pvectGradienNew->y += distanceVector.y * fTemplateParameter;
 	}
 }
 
@@ -1030,7 +1048,18 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 				turnOnLED(LED_RED);
 
 				if (isSuccess)
+				{
+					if (vectReceived.x == 0 || vectReceived.y == 0)
+					{
+						turnOffLED(LED_ALL);
+						while(1)
+						{
+							rfDelayLoop(DELAY_CYCLES_5MS * 10);
+							toggleLED(LED_ALL);
+						}
+					}
 					break;
+				}
 			}
 			else if (g_ui8ReTransmitCounter == 0)
 				break;
@@ -1052,8 +1081,7 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit)
 
 			if (!isFirstInit)
 			{
-				if (!bIsNeighborGradientSearchStop)
-					g_bIsGradientSearchStop = false;
+				g_bIsGradientSearchStop &= bIsNeighborGradientSearchStop;
 			}
 		}
 	}
@@ -1184,6 +1212,42 @@ void tryToResponeVectorAndFlag()
 	turnOnLED(LED_RED);
 }
 
+void tryToResponseVector()
+{
+	int32_t i32TempAxix;
+
+	uint32_t neighborID = 0;
+	uint32_t responseLength = 0;
+	uint32_t randomRfChannel = 0;
+
+	neighborID = construct4BytesToUint32(&RF24_RX_buffer[1]);
+
+	randomRfChannel = RF24_RX_buffer[5];
+
+	rfDelayLoop(DELAY_CYCLES_1MS5);
+
+	RF24_setChannel(randomRfChannel);
+
+	turnOffLED(LED_RED);
+
+	RF24_TX_buffer[0] = ROBOT_RESPONSE_VECTOR;
+
+	i32TempAxix = g_vector.x * 65536 + 0.5;
+	parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[1]); // 1->4
+
+	i32TempAxix = g_vector.y * 65536 + 0.5;
+	parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[5]); // 5->8
+
+	responseLength = 9;
+
+	sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, responseLength);
+
+	RF24_RX_flush();
+	RF24_setChannel(0);
+
+	turnOnLED(LED_RED);
+}
+
 bool getMyVector(uint8_t *pCounter)
 {
 	bool returnState = true;
@@ -1273,6 +1337,64 @@ bool getNeighborVectorAndFlag(vector2_t *pVectReceived, bool* pIsNeighborGradien
 				{
 					returnState = true;
 					*pIsNeighborActive = false;
+					break;
+				}
+			}
+		}
+	}
+
+	enableRF24Interrupt();
+
+	return returnState;
+}
+
+bool getNeighborVector(uint32_t neighborID)
+{
+	bool returnState = true;
+	uint32_t length = 0;
+	int8_t i8Position;
+	vector2_t tempVector;
+
+	disableRF24Interrupt();
+
+	delayTimerB(DELAY_GET_VECTOR_PERIOD, false);
+
+	while (!g_bDelayTimerBFlagAssert)
+	{
+		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+		{
+			reloadDelayTimerB();
+
+			if (RF24_getIrqFlag(RF24_IRQ_RX))
+			{
+				length = RF24_RX_getPayloadWidth();
+
+				RF24_RX_getPayloadData(length, RF24_RX_buffer);
+
+				RF24_clearIrqFlag(RF24_IRQ_RX);
+
+				if (RF24_RX_buffer[0] == ROBOT_RESPONSE_VECTOR && length == 9)
+				{
+					tempVector.x = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0f;
+					tempVector.y = construct4BytesToInt32(&RF24_RX_buffer[5]) / 65536.0f;
+
+					i8Position = isLocationTableContainID(neighborID, locs, g_ui8LocsCounter);
+					if (i8Position != -1)
+					{
+						locs[i8Position].vector.x = tempVector.x;
+						locs[i8Position].vector.y = tempVector.y;
+					}
+					else
+					{
+						Tri_addLocation(neighborID, tempVector.x, tempVector.y);
+					}
+
+					returnState = true;
+					break;
+				}
+				else
+				{
+					returnState = false;
 					break;
 				}
 			}
