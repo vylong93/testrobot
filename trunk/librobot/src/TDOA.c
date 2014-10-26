@@ -35,6 +35,8 @@ float32_t g_f32MaxEnvelopeA;
 float32_t g_f32PeakEnvelopeB;
 float32_t g_f32MaxEnvelopeB;
 
+bool g_bIsNewTDOAResults;
+
 void TDOA_initFilters(float32_t* FilterCoeffs)
 {
 	// Call FIR init function to initialize the instance structure.
@@ -52,8 +54,8 @@ void TDOA_run(void)
 
 	int i;
 
-	while (countAdcDMAsStopped != 2)
-		;
+//	while (countAdcDMAsStopped != 2)
+//		;
 
 	// Convert g_ui32ADC0/1Result to SamplesMicA/B
 	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
@@ -82,6 +84,8 @@ void TDOA_run(void)
 
 	TDOA_getDistances(OutputMicA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
 	TDOA_getDistances(OutputMicB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
+
+	g_bIsNewTDOAResults = true;
 }
 
 float32_t TDOA_getDistances(float32_t *myData, float32_t *peakEnvelope,
