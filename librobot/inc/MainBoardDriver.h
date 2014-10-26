@@ -90,10 +90,11 @@ typedef enum
 
 void initRobotProcess();
 void checkAndResponeMyNeighborsTableToOneRobot();
-void sendVectorToControlBoard();
+void sendVectorToControlBoard(const vector2_t vector);
 void sendNeighborsTableToControlBoard();
 void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
+void rotateClockwiseTest(uint8_t RxData[]);
 void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
@@ -110,8 +111,10 @@ void updateLocsByOtherRobotCurrentPosition(bool isFirstInit);
 void synchronousLocsTableAndMyVector();
 void tryToResponeNeighborVector();
 void tryToResponeVectorAndFlag();
+void tryToResponseVector();
 bool getMyVector(uint8_t *pCounter);
 bool getNeighborVectorAndFlag(vector2_t *pvectReceived, bool* pIsNeighborGradientSearchStop, bool *pIsNeighborActive);
+bool getNeighborVector(uint32_t neighborID);
 
 //-----------------------------------Robot Int functions
 
@@ -343,6 +346,10 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_MEASURE_DISTANCE		0xB0
 #define PC_SEND_READ_VECTOR				0xB1
 #define PC_SEND_LOCAL_LOOP_STOP			0xB2
+#define PC_SEND_SET_STEPSIZE			0xB3
+#define PC_SEND_SET_STOP_CONDITION_ONE	0xB4
+#define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
+#define PC_SEND_ROTATE_CLOCKWISE		0xB6
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1
@@ -365,6 +372,8 @@ float generateRandomRange(float min, float max);
 #define ROBOT_RESPONSE_VECTOR_AND_FLAG			0xDB
 #define ROBOT_RESPONSE_PLEASE_WAIT				0xDC
 #define ROBOT_RESPONSE_UNACTIVE					0xDD
+#define ROBOT_REQUEST_VECTOR					0xDE
+#define ROBOT_RESPONSE_VECTOR					0xDF
 
 #define COMMAND_RESET			0x01
 #define COMMAND_SLEEP			0x02

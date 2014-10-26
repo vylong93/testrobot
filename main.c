@@ -44,6 +44,7 @@ extern bool g_bDelayTimerBFlagAssert;
 
 extern uint32_t g_ui32RobotID;
 extern vector2_t g_vector;
+extern bool g_bIsValidVector;
 
 extern bool g_bIsNetworkRotated;
 extern bool g_bIsActiveCoordinatesFixing;
@@ -143,6 +144,9 @@ void StateOne_MeasureDistance()
 
 	// set this as origin
 	g_ui32OriginID = g_ui32RobotID;
+	g_vector.x = 0;
+	g_vector.y = 0;
+	g_bIsValidVector = false;
 
 	//init variables
 	g_bIsNetworkRotated = false;
@@ -279,6 +283,7 @@ void StateTwo_ExchangeTableAndCalculateLocsTable()
 						(g_ui8RandomNumber < 100) ?
 								(g_ui8RandomNumber + 100) :
 								(g_ui8RandomNumber);
+
 				ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
 
 				delayTimerB(ui16RandomValue, true); // maybe Received Request table command here!
@@ -410,6 +415,7 @@ void StateThree_VoteOrigin()
 
 void StateFour_RequestRotateNetwork()
 {
+	uint8_t ui8RandomRfChannel;
 	uint32_t tableSizeInByte;
 	uint32_t neighborID;
 	int8_t i;
@@ -455,6 +461,9 @@ void StateFour_RequestRotateNetwork()
 		while (g_ui8RandomNumber == 0)
 			;
 		g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+
+		ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+
 		delayTimerB(g_ui8RandomNumber + 1000, true);
 
 		neighborID = locs[i].ID;
@@ -490,11 +499,27 @@ void StateFour_RequestRotateNetwork()
 		RF24_TX_buffer[15] = tempValue >> 8;
 		RF24_TX_buffer[16] = tempValue;
 
-		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 17))
+		RF24_TX_buffer[17] = ui8RandomRfChannel;
+
+		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 18))
 		{
+			turnOffLED(LED_RED);
+
+			RF24_setChannel(ui8RandomRfChannel);
+			RF24_TX_flush();
+			RF24_clearIrqFlag(RF24_IRQ_MASK);
+			RF24_RX_activate();
+
 			SysCtlDelay(2500); // delay 150us
 			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
 			i++;
+
+			RF24_setChannel(0);
+			RF24_TX_flush();
+			RF24_clearIrqFlag(RF24_IRQ_MASK);
+			RF24_RX_activate();
+
+			turnOnLED(LED_RED);
 		}
 	}
 	// Coordinates rotated!!!
@@ -512,6 +537,10 @@ void StateFour_RequestRotateNetwork()
 	g_eProcessState = REDUCE_ERROR;
 }
 
+float g_fStepSize = 0.2f;
+float g_fStopCondition = 0.003f;
+float g_fStopCondition2 = 0.012f;
+
 void StateFive_ReduceCoordinatesError()
 {
 	int8_t i;
@@ -519,10 +548,10 @@ void StateFive_ReduceCoordinatesError()
 	uint16_t ui16RandomValue;
 	bool isSuccess;
 
-	float fRandomeStepSize;					// random 2.0f -> 4.0f
-	float const fStepSize = 0.2f; 			//
-	float const fStopCondition = 0.03f; 	// unit m
-	float const fStopCondition2 = 0.12f; 	// unit m
+//	float fRandomeStepSize;					// random 2.0f -> 4.0f
+//	float const fStepSize = 0.2f; 			//
+//	float const fStopCondition = 0.003f; 	// unit m
+//	float const fStopCondition2 = 0.12f; 	// unit m
 
 	uint8_t ui8VectorCounter;
 	vector2_t vectGradienNew;
@@ -539,6 +568,67 @@ void StateFive_ReduceCoordinatesError()
 		g_vector.x = 0;
 		g_vector.y = 0;
 
+		while(1)
+		{
+			rfDelayLoop(DELAY_CYCLES_5MS * 500); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+			toggleLED(LED_ALL);
+
+			for(i = 0; i < g_ui8NeighborsCounter; i++)
+			{
+				if (NeighborsTable[i].ID == g_ui32RobotID)
+					continue;
+
+				g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+
+				isSuccess = false;
+
+				while(1)
+				{
+					generateRandomByte();
+					while (g_ui8RandomNumber == 0);
+
+					ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+
+					g_ui8RandomNumber =
+							(g_ui8RandomNumber < 100) ?
+									(g_ui8RandomNumber + 100) :
+									(g_ui8RandomNumber);
+
+					ui16RandomValue = g_ui8RandomNumber * 5;
+
+					delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+
+					RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
+					parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+					RF24_TX_buffer[5] = ui8RandomRfChannel;
+
+					// send request neighbor send there g_vector coordinates: <x>, <y>
+					if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
+					{
+						turnOffLED(LED_RED);
+
+						RF24_setChannel(ui8RandomRfChannel);
+						RF24_TX_flush();
+						RF24_clearIrqFlag(RF24_IRQ_MASK);
+						RF24_RX_activate();
+
+						isSuccess = getNeighborVector(NeighborsTable[i].ID);
+
+						RF24_setChannel(0);
+						RF24_TX_flush();
+						RF24_clearIrqFlag(RF24_IRQ_MASK);
+						RF24_RX_activate();
+
+						turnOnLED(LED_RED);
+
+						if (isSuccess)
+							break;
+					}
+					else if (g_ui8ReTransmitCounter == 0)
+						break;
+				}
+			}
+		}
 	}
 	else
 	{
@@ -644,12 +734,12 @@ void StateFive_ReduceCoordinatesError()
 
 				updateGradient(&vectGradienNew, false);
 
-				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fStepSize);
+				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, g_fStepSize);
 				synchronousLocsTableAndMyVector();
 
 				g_ui32LocalLoop++;
 
-				g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition);
+				g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition);
 
 				updateLocsByOtherRobotCurrentPosition(false);
 
@@ -657,26 +747,29 @@ void StateFive_ReduceCoordinatesError()
 					turnOnLED(LED_GREEN);
 				else
 					turnOffLED(LED_GREEN);
-
-
 			}
 
 			turnOnLED(LED_BLUE);
-
-			// Escape Local Minima
-			updateGradient(&vectGradienNew, true);
-
-			fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
-
-			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
-			synchronousLocsTableAndMyVector();
-
-			g_ui32LocalLoop++;
-
-			g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, fStopCondition2);
-
-			updateLocsByOtherRobotCurrentPosition(false);
+//
+//			//TODO: uncomment: Escape Local Minima
+//			updateGradient(&vectGradienNew, true);
+//
+//			fRandomeStepSize = generateRandomRange(2.0f, 4.0f);
+//
+//			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
+//			synchronousLocsTableAndMyVector();
+//
+//			g_ui32LocalLoop++;
+//
+//			g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition2);
+//
+//			updateLocsByOtherRobotCurrentPosition(false);
 		}
+
+//		g_ui32LocalLoop = 0;
+//		g_vector.x = vectEstimatePosOld.x;
+//		g_vector.y = vectEstimatePosOld.y;
+//		updateLocsByOtherRobotCurrentPosition(true);
 
 		g_bIsActiveCoordinatesFixing = false;
 
@@ -830,9 +923,30 @@ inline void RF24_IntHandler()
 						delayTimerB(g_ui8RandomNumber, false);
 						break;
 
+					case ROBOT_REQUEST_VECTOR:
+						tryToResponseVector();
+						delayTimerB(g_ui8RandomNumber, false);
+						break;
+
 				    // DeBug command
+					case PC_SEND_ROTATE_CLOCKWISE:
+						rotateClockwiseTest(RF24_RX_buffer);
+						break;
+
 					case PC_SEND_LOCAL_LOOP_STOP:
 						g_ui32LocalLoopStop = construct4BytesToUint32(&RF24_RX_buffer[1]);
+						break;
+
+					case PC_SEND_SET_STEPSIZE:
+						g_fStepSize = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
+						break;
+
+					case PC_SEND_SET_STOP_CONDITION_ONE:
+						g_fStopCondition = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
+						break;
+
+					case PC_SEND_SET_STOP_CONDITION_TWO:
+						g_fStopCondition2 = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
 						break;
 
 					case PC_SEND_MEASURE_DISTANCE:
@@ -857,7 +971,7 @@ inline void RF24_IntHandler()
 						break;
 
 					case PC_SEND_READ_VECTOR:
-						sendVectorToControlBoard();
+						sendVectorToControlBoard(g_vector);
 						break;
 
 					case PC_SEND_READ_NEIGHBORS_TABLE:
