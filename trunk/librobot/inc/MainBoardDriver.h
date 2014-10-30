@@ -107,6 +107,9 @@ void sendNeighborsTableToControlBoard();
 void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
 void rotateClockwiseTest(uint8_t RxData[]);
+void rotateClockwiseAngleTest(uint8_t RxData[]);
+void forwardPeriodTest(uint8_t RxData[]);
+void forwardDistanceTest(uint8_t RxData[]);
 void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
@@ -289,7 +292,9 @@ void configureMotors(uint8_t left_Direction, uint8_t left_dutyCycles, uint8_t ri
 void stopMotorLeft();
 void stopMotorRight();
 void stopMotors();
-void spinClockwiseWithAngle(float angle);
+
+void rotateClockwiseWithAngle(float angle);
+void runForwardWithDistance(float distance);
 
 //----------------------------------------------Motor functions
 
@@ -371,6 +376,9 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_SET_STOP_CONDITION_ONE	0xB4
 #define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
 #define PC_SEND_ROTATE_CLOCKWISE		0xB6
+#define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
+#define PC_SEND_FORWARD_PERIOD			0xB8
+#define PC_SEND_FORWARD_DISTANCE		0xB9
 
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1

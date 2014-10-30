@@ -789,8 +789,8 @@ void StateFive_ReduceCoordinatesError()
 
 	g_bIsValidVector = true;
 
-	//g_eProcessState = LOCOMOTION;
-	g_eProcessState = IDLE;
+	g_eProcessState = LOCOMOTION;
+	//g_eProcessState = IDLE;
 }
 
 void StateSix_Locomotion()
@@ -799,7 +799,7 @@ void StateSix_Locomotion()
 	vector2_t vectOne;
 	vector2_t vectDiff;
 
-	float fAngleOffer = 0.0872664626; // ~ 5 degree
+	float fAngleOffer = 0.1754329252; // ~ 10 degree
 	float fRotateAngle = MATH_PI_DIV_2;
 	float fThetaOne;
 	float fThetaTwo;
@@ -807,6 +807,9 @@ void StateSix_Locomotion()
 	uint16_t ui16RandomValue;
 
 	g_bIsNewTDOAResults = false;
+
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_RED);
 
 	// save my old vector for initialize position V0
 	vectZero.x = g_vector.x;
@@ -821,8 +824,9 @@ void StateSix_Locomotion()
 	//ui16RandomValue = g_ui8RandomNumber * 10;
 	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
 
-	delayTimerB(ui16RandomValue + DELAY_LOCOMOTION_PERIOD, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+	// delayTimerB(ui16RandomValue + DELAY_LOCOMOTION_PERIOD, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
 										// if received neighbor run command then redelay and wait
+	delayTimerB(ui16RandomValue, true);
 
 	// delay timeout
 	g_bIsValidVector = false;
@@ -831,7 +835,9 @@ void StateSix_Locomotion()
 	vectOne.x = g_vector.x;
 	vectOne.y = g_vector.y;
 
-	spinClockwise(fRotateAngle);
+	turnOnLED(LED_BLUE);
+
+	rotateClockwiseWithAngle(fRotateAngle);
 
 	runForwardAndCalculatteNewPosition();
 
@@ -845,19 +851,21 @@ void StateSix_Locomotion()
 	vectDiff.y = g_vector.y - vectOne.y;
 	fThetaTwo = calculateRobotOrientation(vectDiff);
 
-	g_fRobotOrientedAngle = fThetaTwo;
+	if (vectDiff.x > 0)
+		g_fRobotOrientedAngle = fThetaTwo;
+	else
+		g_fRobotOrientedAngle = MATH_PI + fThetaTwo;
 
 	fRotateAngle += fThetaOne;
 
-	while(fRotateAngle > MATH_PI_MUL_2)
-		fRotateAngle -= MATH_PI_MUL_2;
-
 	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
-		g_bIsCounterClockwiseOriented = false;
+		g_bIsCounterClockwiseOriented = true; // SAME
 	else
-		g_bIsCounterClockwiseOriented = true;
+		g_bIsCounterClockwiseOriented = false; // DIFFERENT
 
-	//TODO: spinClockwise(fRotateAngle);
+	turnOnLED(LED_GREEN);
+
+	rotateClockwiseWithAngle(g_fRobotOrientedAngle);
 
 	g_eProcessState = IDLE;
 }
@@ -1025,6 +1033,18 @@ inline void RF24_IntHandler()
 				    // DeBug command
 					case PC_SEND_ROTATE_CLOCKWISE:
 						rotateClockwiseTest(RF24_RX_buffer);
+						break;
+
+					case PC_SEND_ROTATE_CLOCKWISE_ANGLE:
+						rotateClockwiseAngleTest(RF24_RX_buffer);
+						break;
+
+					case PC_SEND_FORWARD_PERIOD:
+						forwardPeriodTest(RF24_RX_buffer);
+						break;
+
+					case PC_SEND_FORWARD_DISTANCE:
+						forwardDistanceTest(RF24_RX_buffer);
 						break;
 
 					case PC_SEND_LOCAL_LOOP_STOP:

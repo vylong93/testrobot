@@ -278,12 +278,7 @@ float calASin(float x)
 
 float calACos(float x)
 {
-	//return (MATH_PI_DIV_2_MUL_32768 - calASin(x));
 	return (MATH_PI_DIV_2 - calASin(x));
-//	float ASin = calASin(x);
-//	float result = MATH_PI_DIV_2 - ASin;
-//
-//	return (result);
 }
 
 float cosinesRuleForTriangles(float a, float b, float c)
@@ -830,27 +825,44 @@ void rotateClockwiseTest(uint8_t RxData[])
 
 	int8_t i8Motor1Speed;
 	int8_t i8Motor2Speed;
-	int8_t i8Variance;
 
 	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
 	{
-		if (i8Motor1Speed > i8Motor2Speed)
-		{
-			i8Variance = i8Motor1Speed - i8Motor2Speed;
-			i8Motor2Speed /= 2;
-			i8Motor1Speed = i8Motor2Speed + i8Variance;
-		}
-		else
-		{
-			i8Variance = i8Motor2Speed - i8Motor1Speed;
-			i8Motor1Speed /= 2;
-			i8Motor2Speed = i8Motor1Speed + i8Variance;
-		}
-
-		configureMotors(REVERSE, i8Motor1Speed, FORWARD, i8Motor2Speed);
+		configureMotors(REVERSE, i8Motor1Speed + 5, FORWARD, i8Motor2Speed + 5);
 		delayTimerNonInt(ui32DelayPeriod);
 		stopMotors();
 	}
+}
+
+void rotateClockwiseAngleTest(uint8_t RxData[])
+{
+	int16_t angleInDegree = (RxData[1] << 8) | RxData[2];
+	float angleInRadian = angleInDegree / 180.0 * MATH_PI;
+	rotateClockwiseWithAngle(angleInRadian);
+}
+
+void forwardPeriodTest(uint8_t RxData[])
+{
+	uint32_t ui32DelayPeriod = construct4BytesToUint32(&RxData[1]);
+
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+
+	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
+	{
+		configureMotors(FORWARD, i8Motor1Speed + 5, FORWARD, i8Motor2Speed + 5);
+		delayTimerNonInt(ui32DelayPeriod);
+		stopMotors();
+	}
+}
+
+void forwardDistanceTest(uint8_t RxData[])
+{
+	uint32_t ui32Distance = construct4BytesToUint32(&RxData[1]);
+
+	float distance = ui32Distance / 65536.0;
+
+	runForwardWithDistance(distance);
 }
 
 void updateOrRejectNetworkOrigin(uint8_t RxData[])
@@ -1665,7 +1677,7 @@ void runForwardAndCalculatteNewPosition()
 
 	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
 
-	//TODO: run forward
+	runForwardWithDistance(5.0);
 
 	// send request measure distance command
 	RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
@@ -1731,12 +1743,9 @@ void runForwardAndCalculatteNewPosition()
 
 float calculateRobotOrientation(vector2_t vectDiff)
 {
-	float fAngle = calACos(vectDiff.x / vsqrtf(vectDiff.x * vectDiff.x + vectDiff.y * vectDiff.y));
+	float fraction = vectDiff.y / vectDiff.x;
 
-	if (vectDiff.y > 0)
-		return fAngle;
-	else
-		return (MATH_PI_MUL_2 - fAngle);
+	return calASin(fraction / vsqrtf(fraction * fraction + 1));
 }
 
 //-----------------------------------Robot Int functions
@@ -1974,34 +1983,78 @@ void stopMotors()
 	stopMotorRight();
 }
 
-void spinClockwiseWithAngle(float angle)
+void rotateClockwiseWithAngle(float angleInRadian)
 {
-	//TODO: spin with timer delay
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+	uint16_t ui16DelayPeriod;
 
-//	int8_t i8Motor1Speed;
-//	int8_t i8Motor2Speed;
-//	int8_t i8Variance;
-//
-//	if (tryToGetMotorsParameterInEEPROM(&i8Motor1Speed, &i8Motor2Speed))
-//	{
-//		if (i8Motor1Speed > i8Motor2Speed)
-//		{
-//			i8Variance = i8Motor1Speed - i8Motor2Speed;
-//			i8Motor2Speed /= 2;
-//			i8Motor1Speed = i8Motor2Speed + i8Variance;
-//		}
-//		else
-//		{
-//			i8Variance = i8Motor2Speed - i8Motor1Speed;
-//			i8Motor1Speed /= 2;
-//			i8Motor2Speed = i8Motor1Speed + i8Variance;
-//		}
-//
-//		configureMotors(REVERSE, i8Motor1Speed, FORWARD, i8Motor2Speed);
-//		delayTimerNonInt(ui32DelayPeriod);
-//		stopMotors();
-//	}
+	uint8_t motorLeftDirection;
+	uint8_t motorRightDirection;
+	uint8_t motorTempDirection;
+
+	uint32_t pui32Read[1];
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = (*pui32Read & 0xFF);
+	i8Motor2Speed = (((*pui32Read) >> 8) & 0xFF);
+	ui16DelayPeriod = ((*pui32Read) >> 16) & 0xFFFF;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	if (angleInRadian < 0)
+	{
+		motorLeftDirection = FORWARD;
+		motorRightDirection = REVERSE;
+
+		angleInRadian = 0 - angleInRadian;
+	}
+	else
+	{
+		motorLeftDirection = REVERSE;
+		motorRightDirection = FORWARD;
+	}
+
+	while(angleInRadian > MATH_PI_MUL_2)
+		angleInRadian -= MATH_PI_MUL_2;
+
+	if (angleInRadian > MATH_PI)
+	{
+		angleInRadian = MATH_PI_MUL_2 - angleInRadian;
+		motorTempDirection = motorLeftDirection;
+		motorLeftDirection = motorRightDirection;
+		motorRightDirection = motorTempDirection;
+	}
+
+	configureMotors(motorLeftDirection , i8Motor1Speed + 5, motorRightDirection, i8Motor2Speed + 5);
+	delayTimerNonInt((uint32_t)((ui16DelayPeriod / MATH_PI_DIV_2) * angleInRadian + 0.5));
+	stopMotors();
 }
+
+void runForwardWithDistance(float distance)
+{
+	int8_t i8Motor1Speed;
+	int8_t i8Motor2Speed;
+	uint16_t ui16DelayPeriod;
+
+	uint32_t pui32Read[1];
+
+	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
+
+	i8Motor1Speed = (*pui32Read & 0xFF);
+	i8Motor2Speed = (((*pui32Read) >> 8) & 0xFF);
+	ui16DelayPeriod = ((*pui32Read) >> 16) & 0xFFFF;
+
+	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
+		return;
+
+	configureMotors(FORWARD , i8Motor1Speed + 5, FORWARD, i8Motor2Speed + 5);
+	delayTimerNonInt((uint32_t)((ui16DelayPeriod / 8.0) * distance + 0.5));
+	stopMotors();
+}
+
 
 //----------------------------------------------Motor functions
 
