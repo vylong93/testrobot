@@ -61,6 +61,7 @@ extern void ADC0IntHandler(void);
 extern void ADC1IntHandler(void);
 extern void uDMAErrorHandler(void);
 extern void RF24_IntHandler(void);
+extern void RobotResponseIntHandler(void);
 extern void LowPowerModeIntHandler(void);
 extern void SpeakerTimerIntHandler(void);
 extern void BatterySequenceIntHandler(void);
@@ -163,7 +164,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    IntDefaultHandler,                      // I2C2 Master and Slave
+    RobotResponseIntHandler,                      // I2C2 Master and Slave
     IntDefaultHandler,                      // I2C3 Master and Slave
     IntDefaultHandler,                      // Timer 4 subtimer A
     IntDefaultHandler,                      // Timer 4 subtimer B
