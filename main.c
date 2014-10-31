@@ -830,7 +830,7 @@ void StateSix_Locomotion()
 
 	ui16RandomValue = g_ui8RandomNumber * 10;
 
-	ui16RandomValue += DELAY_LOCOMOTION_PERIOD;
+	ui16RandomValue = ui16RandomValue + (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
 
 	delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
 										// if received neighbor run command then redelay and wait
@@ -845,6 +845,7 @@ void StateSix_Locomotion()
 
 		// Re-add my vector
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_bIsValidVector = true;
 		g_eProcessState = IDLE;
 		return;
 	}
@@ -861,6 +862,7 @@ void StateSix_Locomotion()
 
 		// Re-add my vector
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_bIsValidVector = true;
 		g_eProcessState = IDLE;
 		return; // Not enough neighbors
 	}
