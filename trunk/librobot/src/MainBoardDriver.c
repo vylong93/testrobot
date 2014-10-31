@@ -324,94 +324,6 @@ bool isValidTriangle(uint32_t a, uint32_t b, uint32_t c)
 //-----------------------------------Math functions
 
 
-void clearNeighborTable(robotMeas_t neighborTable[], uint8_t *counter)
-{
-	deleteTable(neighborTable);
-	*counter = 0;
-}
-
-void clearOneHopNeighborTable(oneHopMeas_t table[])
-{
-	uint8_t i;
-	for(i = 0; i < ONEHOP_NEIGHBOR_TABLE_LENGTH; i++)
-	{
-		table[i].firstHopID = 0;
-		deleteTable(table[i].neighbors);
-	}
-}
-
-void deleteNeighborInInNeighborTable(robotMeas_t table[], uint32_t id)
-{
-	uint8_t i;
-	for(i = 0; i < NEIGHBOR_TABLE_LENGTH; i++)
-	{
-		if (table[i].ID == id)
-		{
-			while(i < NEIGHBOR_TABLE_LENGTH - 1)
-			{
-				table[i].ID = table[i + 1].ID;
-				table[i].distance = table[i + 1].distance;
-				i++;
-			}
-			table[i].ID = 0;
-			table[i].distance = 0;
-			break;
-		}
-	}
-}
-
-void deleteNeighborInOneHopTable(oneHopMeas_t table[], uint32_t id)
-{
-	uint8_t i;
-	for(i = 0; i < ONEHOP_NEIGHBOR_TABLE_LENGTH; i++)
-	{
-		if (table[i].firstHopID == id)
-		{
-			while(i < ONEHOP_NEIGHBOR_TABLE_LENGTH - 1)
-			{
-				table[i].firstHopID = table[i + 1].firstHopID;
-				*(table[i].neighbors) = *(table[i + 1].neighbors);
-				i++;
-			}
-			table[i].firstHopID = 0;
-			deleteTable(table[i].neighbors);
-			break;
-		}
-	}
-}
-
-void deleteNeighborInLocationsTable(location_t table[], uint32_t id)
-{
-	uint8_t i;
-	for(i = 0; i < LOCATIONS_TABLE_LENGTH; i++)
-	{
-		if (table[i].ID == id)
-		{
-			while(i < LOCATIONS_TABLE_LENGTH - 1)
-			{
-				table[i].ID = table[i + 1].ID;
-				table[i].vector.x = table[i + 1].vector.x;
-				table[i].vector.y = table[i + 1].vector.x;
-				i++;
-			}
-
-			table[i].ID = 0;
-			table[i].vector.x = 0;
-			table[i].vector.y = 0;
-			break;
-		}
-	}
-}
-
-void deleteTable(robotMeas_t neighborTable[])
-{
-	uint8_t i;
-	for(i = 0; i < NEIGHBOR_TABLE_LENGTH; i++)
-	{
-		neighborTable[i].ID = 0;
-		neighborTable[i].distance = 0;
-	}
-}
 
 //----------------Robot Init functions-------------------
 
@@ -434,12 +346,15 @@ bool g_bIsValidVector;
 bool g_bIsCounterClockwiseOriented;
 float g_fRobotOrientedAngle;
 
+uint32_t g_ui32RequestRobotID;
+
 bool g_bIsNetworkRotated;
 bool g_bIsActiveCoordinatesFixing;
 bool g_bIsGradientSearchStop;
 uint32_t g_ui32LocalLoop;
 
-ProcessStateEnum g_eProcessState;
+ProcessState_t g_eProcessState;
+RobotResponseState_t g_eRobotResponseState;
 
 extern location_t locs[];
 extern bool g_bIsNewTDOAResults;
@@ -486,18 +401,37 @@ void initRobotProcess()
 	g_bIsActiveCoordinatesFixing = false;
 	g_bIsGradientSearchStop = false;
 	g_ui32LocalLoop = 0;
+
+	//==============================================
+	// IMPORTANCE: Configure Software Interrupt
+	//==============================================
+	IntPrioritySet(INT_SW_TRIGGER_ROBOT_RESPONSE, PRIORITY_ROBOT_RESPONSE);
+
+	IntEnable(INT_SW_TRIGGER_ROBOT_RESPONSE);
 }
 
-void responseTDOAResultsToNeighbor(uint8_t RxData[])
+void addToNeighborTable(uint32_t neighborId, uint16_t distance)
+{
+	NeighborsTable[g_ui8NeighborsCounter].ID = neighborId;
+	NeighborsTable[g_ui8NeighborsCounter].distance = distance;
+
+	g_ui8NeighborsCounter++;
+
+	//TODO: search the worth result and replace it by the current result if better
+	g_ui8NeighborsCounter =
+			(g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH) ?
+					(g_ui8NeighborsCounter) :
+					(NEIGHBOR_TABLE_LENGTH);
+}
+
+void responseTDOAResultsToNeighbor(uint32_t neighborId)
 {
 	float32_t f32_inputValue;
 	float32_t f32_outputValue;
-	uint32_t neighborId;
 	uint16_t neighborDistance;
+	uint16_t ui16DelayPeriod;
 
 	int32_t i32TempAxix;
-
-	neighborId = construct4BytesToUint32(&RxData[1]);
 
 	while(!g_bIsNewTDOAResults);
 
@@ -516,10 +450,13 @@ void responseTDOAResultsToNeighbor(uint8_t RxData[])
 
 	neighborDistance = (uint16_t) (f32_outputValue + 0.5);
 
+	addToNeighborTable(neighborId, neighborDistance);
+
 	generateRandomByte();
 	while (g_ui8RandomNumber == 0);
-	g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-	delayTimerB(g_ui8RandomNumber, true);
+	g_ui8RandomNumber = (g_ui8RandomNumber < 20) ? (g_ui8RandomNumber + 20) : (g_ui8RandomNumber);
+	ui16DelayPeriod = g_ui8RandomNumber * 10;
+	delayTimerNonInt(ui16DelayPeriod);
 
 	RF24_TX_buffer[0] = ROBOT_RESPONSE_TDOA_DISTANCE;
 	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
@@ -534,6 +471,8 @@ void responseTDOAResultsToNeighbor(uint8_t RxData[])
 	RF24_TX_buffer[14] = (neighborDistance & 0xFF);
 
 	sendMessageToOneNeighbor(neighborId, RF24_TX_buffer, 15);
+
+	turnOffLED(LED_GREEN);
 }
 
 void storeNeighorVectorAndDistanceToTables(uint8_t RxData[])
@@ -858,9 +797,9 @@ void forwardPeriodTest(uint8_t RxData[])
 
 void forwardDistanceTest(uint8_t RxData[])
 {
-	uint32_t ui32Distance = construct4BytesToUint32(&RxData[1]);
+	int32_t i32Distance = construct4BytesToInt32(&RxData[1]);
 
-	float distance = ui32Distance / 65536.0;
+	float distance = i32Distance / 65536.0;
 
 	runForwardWithDistance(distance);
 }
@@ -1650,6 +1589,18 @@ void clearRequestNeighbor(uint8_t RxData[])
 	deleteNeighborInLocationsTable(locs, neighborID);
 }
 
+void updateNeighborVectorInLocsTableByRequest(uint8_t RxData[])
+{
+	uint32_t neigborId = construct4BytesToUint32(&RF24_RX_buffer[1]); // 1->4
+	int32_t i32xAxis = construct4BytesToInt32(&RF24_RX_buffer[5]); // 5->8
+	int32_t i32yAxis = construct4BytesToInt32(&RF24_RX_buffer[9]); // 9->12
+
+	float xAxis = i32xAxis / 65536.0;
+	float yAxis = i32yAxis / 65536.0;
+
+	updateNeighborInLocationTable(neigborId, xAxis, yAxis);
+}
+
 void runForwardAndCalculatteNewPosition()
 {
 	uint8_t length;
@@ -1659,10 +1610,6 @@ void runForwardAndCalculatteNewPosition()
 	vector2_t vectEstimatePosOld;
 	vector2_t vectGradienNew;
 	vector2_t vectGradienOld;
-
-	RF24_TX_buffer[0] = ROBOT_REQUEST_TO_RUN;
-	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
-	broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
 
 	clearNeighborTable(NeighborsTable, &g_ui8NeighborsCounter);
 	clearOneHopNeighborTable(OneHopNeighborsTable);
@@ -1675,7 +1622,11 @@ void runForwardAndCalculatteNewPosition()
 	}
 	g_ui8LocsCounter = 0;
 
-	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+	// Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+
+	RF24_TX_buffer[0] = ROBOT_REQUEST_TO_RUN;
+	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+	broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
 
 	runForwardWithDistance(5.0);
 
@@ -1692,15 +1643,19 @@ void runForwardAndCalculatteNewPosition()
 
 	disableRF24Interrupt();
 
+	RF24_clearIrqFlag(RF24_IRQ_MASK);
+
 	g_ui8NeighborsCounter = 0;
 
 	// start state timer wait for new neighbor response
-	delayTimerA(DELAY_NEIGHBOR_RESPONSE_PERIOD * 4, false); // may received ROBOT_RESPONSE_TDOA_DISTANCE command at here!
+	delayTimerA(DELAY_NEIGHBOR_RESPONSE_PERIOD, false); // may received ROBOT_RESPONSE_TDOA_DISTANCE command at here!
 
 	while (!g_bDelayTimerAFlagAssert)
 	{
 		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
 		{
+			toggleLED(LED_GREEN);
+
 			reloadDelayTimerA();
 
 			if (RF24_getIrqFlag(RF24_IRQ_RX))
@@ -1720,7 +1675,12 @@ void runForwardAndCalculatteNewPosition()
 		}
 	}
 
+	turnOffLED(LED_GREEN);
+
 	enableRF24Interrupt();
+
+	if (g_ui8NeighborsCounter < 3)
+		return;
 
 	// active gradient descent to calculate new position
 
@@ -1730,8 +1690,12 @@ void runForwardAndCalculatteNewPosition()
 	vectGradienNew.x = 0;
 	vectGradienNew.y = 0;
 
+	g_bIsGradientSearchStop = false;
+
 	while(!g_bIsGradientSearchStop)
 	{
+		toggleLED(LED_BLUE);
+
 		updateGradient(&vectGradienNew, false);
 
 		updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, g_fStepSize);
@@ -1739,6 +1703,8 @@ void runForwardAndCalculatteNewPosition()
 
 		g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition);
 	}
+
+	turnOffLED(LED_BLUE);
 }
 
 float calculateRobotOrientation(vector2_t vectDiff)
@@ -1747,6 +1713,131 @@ float calculateRobotOrientation(vector2_t vectDiff)
 
 	return calASin(fraction / vsqrtf(fraction * fraction + 1));
 }
+
+void notifyNewVectorToNeigbors()
+{
+	uint8_t i;
+	int32_t i32TempAxix;
+
+	for(i = 0; i < g_ui8NeighborsCounter; i++)
+	{
+		RF24_TX_buffer[0] = ROBOT_REQUEST_UPDATE_VECTOR;
+		parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+
+		i32TempAxix = g_vector.x * 65536 + 0.5;
+		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[5]); // 5->8
+
+		i32TempAxix = g_vector.y * 65536 + 0.5;
+		parse32BitTo4Bytes(i32TempAxix, &RF24_TX_buffer[9]); // 9->12
+
+		sendMessageToOneNeighbor(NeighborsTable[g_ui8NeighborsCounter].ID, RF24_TX_buffer, 13);
+	}
+}
+
+void clearNeighborTable(robotMeas_t neighborTable[], uint8_t *counter)
+{
+	deleteTable(neighborTable);
+	*counter = 0;
+}
+
+void clearOneHopNeighborTable(oneHopMeas_t table[])
+{
+	uint8_t i;
+	for(i = 0; i < ONEHOP_NEIGHBOR_TABLE_LENGTH; i++)
+	{
+		table[i].firstHopID = 0;
+		deleteTable(table[i].neighbors);
+	}
+}
+
+void deleteNeighborInInNeighborTable(robotMeas_t table[], uint32_t id)
+{
+	uint8_t i;
+	for(i = 0; i < NEIGHBOR_TABLE_LENGTH; i++)
+	{
+		if (table[i].ID == id)
+		{
+			while(i < NEIGHBOR_TABLE_LENGTH - 1)
+			{
+				table[i].ID = table[i + 1].ID;
+				table[i].distance = table[i + 1].distance;
+				i++;
+			}
+			table[i].ID = 0;
+			table[i].distance = 0;
+			break;
+		}
+	}
+}
+
+void deleteNeighborInOneHopTable(oneHopMeas_t table[], uint32_t id)
+{
+	uint8_t i;
+	for(i = 0; i < ONEHOP_NEIGHBOR_TABLE_LENGTH; i++)
+	{
+		if (table[i].firstHopID == id)
+		{
+			while(i < ONEHOP_NEIGHBOR_TABLE_LENGTH - 1)
+			{
+				table[i].firstHopID = table[i + 1].firstHopID;
+				*(table[i].neighbors) = *(table[i + 1].neighbors);
+				i++;
+			}
+			table[i].firstHopID = 0;
+			deleteTable(table[i].neighbors);
+			break;
+		}
+	}
+}
+
+void deleteNeighborInLocationsTable(location_t table[], uint32_t id)
+{
+	uint8_t i;
+	for(i = 0; i < LOCATIONS_TABLE_LENGTH; i++)
+	{
+		if (table[i].ID == id)
+		{
+			while(i < LOCATIONS_TABLE_LENGTH - 1)
+			{
+				table[i].ID = table[i + 1].ID;
+				table[i].vector.x = table[i + 1].vector.x;
+				table[i].vector.y = table[i + 1].vector.x;
+				i++;
+			}
+
+			table[i].ID = 0;
+			table[i].vector.x = 0;
+			table[i].vector.y = 0;
+			break;
+		}
+	}
+}
+
+void updateNeighborInLocationTable(uint32_t neigborId, float xAxis, float yAxis)
+{
+	uint8_t i;
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == neigborId)
+		{
+			locs[i].vector.x = xAxis;
+			locs[i].vector.y = yAxis;
+			return;
+		}
+	}
+	Tri_addLocation(neigborId, xAxis, yAxis);
+}
+
+void deleteTable(robotMeas_t neighborTable[])
+{
+	uint8_t i;
+	for(i = 0; i < NEIGHBOR_TABLE_LENGTH; i++)
+	{
+		neighborTable[i].ID = 0;
+		neighborTable[i].distance = 0;
+	}
+}
+
 
 //-----------------------------------Robot Int functions
 
@@ -1864,7 +1955,7 @@ inline void disableMOTOR()
 			0x00;
 }
 
-void setMotorLeftDirectionAndSpeed(uint8_t direction, uint8_t speed)
+void setMotorLeftDirectionAndSpeed(MotorDirection_t direction, uint8_t speed)
 {
 	if (direction == FORWARD)
 	{
@@ -1898,7 +1989,7 @@ void setMotorLeftDirectionAndSpeed(uint8_t direction, uint8_t speed)
 	}
 }
 
-void setMotorRightDirectionAndSpeed(uint8_t direction, uint8_t speed)
+void setMotorRightDirectionAndSpeed(MotorDirection_t direction, uint8_t speed)
 {
 	if (direction == FORWARD)
 	{
@@ -1932,7 +2023,7 @@ void setMotorRightDirectionAndSpeed(uint8_t direction, uint8_t speed)
 	}
 }
 
-void configureMotors(uint8_t leftDir, uint8_t leftDutyCycle, uint8_t rightDir, uint8_t rightDutyCycle)
+void configureMotors(MotorDirection_t leftDir, uint8_t leftDutyCycle, MotorDirection_t rightDir, uint8_t rightDutyCycle)
 {
 	if (leftDutyCycle > 99)
 		leftDutyCycle = 99;
@@ -1989,9 +2080,9 @@ void rotateClockwiseWithAngle(float angleInRadian)
 	int8_t i8Motor2Speed;
 	uint16_t ui16DelayPeriod;
 
-	uint8_t motorLeftDirection;
-	uint8_t motorRightDirection;
-	uint8_t motorTempDirection;
+	MotorDirection_t motorLeftDirection;
+	MotorDirection_t motorRightDirection;
+	MotorDirection_t motorTempDirection;
 
 	uint32_t pui32Read[1];
 
@@ -2039,6 +2130,9 @@ void runForwardWithDistance(float distance)
 	int8_t i8Motor2Speed;
 	uint16_t ui16DelayPeriod;
 
+	MotorDirection_t motorLeftDirection;
+	MotorDirection_t motorRightDirection;
+
 	uint32_t pui32Read[1];
 
 	EEPROMRead(pui32Read, EEPROM_ADDR_MOTOR_OFFSET, sizeof(pui32Read));
@@ -2050,7 +2144,19 @@ void runForwardWithDistance(float distance)
 	if(i8Motor1Speed < 0 || i8Motor1Speed > 99 || i8Motor2Speed < 0 || i8Motor2Speed > 99)
 		return;
 
-	configureMotors(FORWARD , i8Motor1Speed + 5, FORWARD, i8Motor2Speed + 5);
+	if (distance < 0)
+	{
+		distance = 0 - distance;
+		motorLeftDirection = REVERSE;
+		motorRightDirection = REVERSE;
+	}
+	else
+	{
+		motorLeftDirection = FORWARD;
+		motorRightDirection = FORWARD;
+	}
+
+	configureMotors(motorLeftDirection , i8Motor1Speed + 5, motorRightDirection, i8Motor2Speed + 5);
 	delayTimerNonInt((uint32_t)((ui16DelayPeriod / 8.0) * distance + 0.5));
 	stopMotors();
 }
@@ -2822,7 +2928,7 @@ inline void sendTestData()
 //----------------------------------------------RF24 Functions
 
 //----------------Low Power Mode functions-------------------
-CpuStateEnum g_eCPUState = RUN_MODE;
+CpuState_t g_eCPUState = RUN_MODE;
 
 inline void initLowPowerMode()
 {

@@ -37,7 +37,7 @@ extern float32_t g_f32MaxEnvelopeA;
 extern float32_t g_f32PeakEnvelopeB;
 extern float32_t g_f32MaxEnvelopeB;
 
-extern CpuStateEnum g_eCPUState;
+extern CpuState_t g_eCPUState;
 
 extern bool g_bDelayTimerAFlagAssert;
 extern bool g_bDelayTimerBFlagAssert;
@@ -48,13 +48,16 @@ extern bool g_bIsValidVector;
 extern bool g_bIsCounterClockwiseOriented;
 extern float g_fRobotOrientedAngle;
 
+extern uint32_t g_ui32RequestRobotID;
+
 extern bool g_bIsNetworkRotated;
 extern bool g_bIsActiveCoordinatesFixing;
 extern bool g_bIsGradientSearchStop;
 extern uint32_t g_ui32LocalLoop;
 uint32_t g_ui32LocalLoopStop; // Debug Only
 
-extern ProcessStateEnum g_eProcessState;
+extern ProcessState_t g_eProcessState;
+extern RobotResponseState_t g_eRobotResponseState;
 extern bool g_bBypassThisState;
 extern uint8_t g_ui8ReBroadcastCounter;
 
@@ -579,67 +582,67 @@ void StateFive_ReduceCoordinatesError()
 		g_vector.x = 0;
 		g_vector.y = 0;
 
-		while(1)
-		{
-			rfDelayLoop(DELAY_CYCLES_5MS * 500); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
-			toggleLED(LED_ALL);
-
-			for(i = 0; i < g_ui8NeighborsCounter; i++)
-			{
-				if (NeighborsTable[i].ID == g_ui32RobotID)
-					continue;
-
-				g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
-
-				isSuccess = false;
-
-				while(1)
-				{
-					generateRandomByte();
-					while (g_ui8RandomNumber == 0);
-
-					ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
-
-					g_ui8RandomNumber =
-							(g_ui8RandomNumber < 100) ?
-									(g_ui8RandomNumber + 100) :
-									(g_ui8RandomNumber);
-
-					ui16RandomValue = g_ui8RandomNumber * 5;
-
-					delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
-
-					RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
-					parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
-					RF24_TX_buffer[5] = ui8RandomRfChannel;
-
-					// send request neighbor send there g_vector coordinates: <x>, <y>
-					if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
-					{
-						turnOffLED(LED_RED);
-
-						RF24_setChannel(ui8RandomRfChannel);
-						RF24_TX_flush();
-						RF24_clearIrqFlag(RF24_IRQ_MASK);
-						RF24_RX_activate();
-
-						isSuccess = getNeighborVector(NeighborsTable[i].ID);
-
-						RF24_setChannel(0);
-						RF24_TX_flush();
-						RF24_clearIrqFlag(RF24_IRQ_MASK);
-						RF24_RX_activate();
-
-						turnOnLED(LED_RED);
-
-						if (isSuccess)
-							break;
-					}
-					else if (g_ui8ReTransmitCounter == 0)
-						break;
-				}
-			}
-		}
+//		while(1)
+//		{
+//			rfDelayLoop(DELAY_CYCLES_5MS * 500); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+//			toggleLED(LED_ALL);
+//
+//			for(i = 0; i < g_ui8NeighborsCounter; i++)
+//			{
+//				if (NeighborsTable[i].ID == g_ui32RobotID)
+//					continue;
+//
+//				g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+//
+//				isSuccess = false;
+//
+//				while(1)
+//				{
+//					generateRandomByte();
+//					while (g_ui8RandomNumber == 0);
+//
+//					ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+//
+//					g_ui8RandomNumber =
+//							(g_ui8RandomNumber < 100) ?
+//									(g_ui8RandomNumber + 100) :
+//									(g_ui8RandomNumber);
+//
+//					ui16RandomValue = g_ui8RandomNumber * 5;
+//
+//					delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+//
+//					RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
+//					parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+//					RF24_TX_buffer[5] = ui8RandomRfChannel;
+//
+//					// send request neighbor send there g_vector coordinates: <x>, <y>
+//					if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
+//					{
+//						turnOffLED(LED_RED);
+//
+//						RF24_setChannel(ui8RandomRfChannel);
+//						RF24_TX_flush();
+//						RF24_clearIrqFlag(RF24_IRQ_MASK);
+//						RF24_RX_activate();
+//
+//						isSuccess = getNeighborVector(NeighborsTable[i].ID);
+//
+//						RF24_setChannel(0);
+//						RF24_TX_flush();
+//						RF24_clearIrqFlag(RF24_IRQ_MASK);
+//						RF24_RX_activate();
+//
+//						turnOnLED(LED_RED);
+//
+//						if (isSuccess)
+//							break;
+//					}
+//					else if (g_ui8ReTransmitCounter == 0)
+//						break;
+//				}
+//			}
+//		}
 	}
 	else
 	{
@@ -789,8 +792,8 @@ void StateFive_ReduceCoordinatesError()
 
 	g_bIsValidVector = true;
 
-	g_eProcessState = LOCOMOTION;
-	//g_eProcessState = IDLE;
+	//g_eProcessState = LOCOMOTION;
+	g_eProcessState = IDLE;
 }
 
 void StateSix_Locomotion()
@@ -809,7 +812,6 @@ void StateSix_Locomotion()
 	g_bIsNewTDOAResults = false;
 
 	turnOffLED(LED_ALL);
-	turnOnLED(LED_RED);
 
 	// save my old vector for initialize position V0
 	vectZero.x = g_vector.x;
@@ -817,31 +819,57 @@ void StateSix_Locomotion()
 
 	// delay random
 	generateRandomByte();
-	while (g_ui8RandomNumber == 0);
+	while (g_ui8RandomNumber == 0)
+		;
+	g_ui8RandomNumber =
+			(g_ui8RandomNumber < 100) ?
+					(g_ui8RandomNumber + 100) :
+					(g_ui8RandomNumber);
 
-	g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-
-	//ui16RandomValue = g_ui8RandomNumber * 10;
 	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
 
-	// delayTimerB(ui16RandomValue + DELAY_LOCOMOTION_PERIOD, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+	ui16RandomValue = g_ui8RandomNumber * 10;
+
+	ui16RandomValue += DELAY_LOCOMOTION_PERIOD;
+
+	delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
 										// if received neighbor run command then redelay and wait
-	delayTimerB(ui16RandomValue, true);
 
 	// delay timeout
 	g_bIsValidVector = false;
 
-	runForwardAndCalculatteNewPosition();
+	runForwardAndCalculatteNewPosition(); // g_vector may be modified to new position
+	if (g_ui8NeighborsCounter < 3)
+	{
+		//TODO: runback
+
+		// Re-add my vector
+		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_eProcessState = IDLE;
+		return;
+	}
+
 	vectOne.x = g_vector.x;
 	vectOne.y = g_vector.y;
 
-	turnOnLED(LED_BLUE);
-
 	rotateClockwiseWithAngle(fRotateAngle);
 
-	runForwardAndCalculatteNewPosition();
+	runForwardAndCalculatteNewPosition(); // g_vector may be modified to new position
+	if (g_ui8NeighborsCounter < 3)
+	{
+		//TODO: runback
+
+		// Re-add my vector
+		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_eProcessState = IDLE;
+		return; // Not enough neighbors
+	}
+
+	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
 
 	g_bIsValidVector = true;
+
+	notifyNewVectorToNeigbors();
 
 	vectDiff.x = vectOne.x - vectZero.x;
 	vectDiff.y = vectOne.y - vectZero.y;
@@ -864,8 +892,6 @@ void StateSix_Locomotion()
 		g_bIsCounterClockwiseOriented = false; // DIFFERENT
 
 	turnOnLED(LED_GREEN);
-
-	rotateClockwiseWithAngle(g_fRobotOrientedAngle);
 
 	g_eProcessState = IDLE;
 }
@@ -985,7 +1011,12 @@ inline void RF24_IntHandler()
 						// DO NOT INSERT ANY CODE IN HERE!
 						startSamplingMicSignals();
 						if (g_bIsValidVector)
-							responseTDOAResultsToNeighbor(RF24_RX_buffer);
+						{
+							turnOnLED(LED_GREEN);
+							g_ui32RequestRobotID = construct4BytesToUint32(&RF24_RX_buffer[1]);
+							g_eRobotResponseState = TDOA;
+							IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
+						}
 						break;
 
 					// EXCHANGE_TABLE state
@@ -1030,7 +1061,20 @@ inline void RF24_IntHandler()
 						reloadDelayTimerB();
 						break;
 
+					case ROBOT_REQUEST_UPDATE_VECTOR:
+						updateNeighborVectorInLocsTableByRequest(RF24_RX_buffer);
+						break;
+
 				    // DeBug command
+					case PC_SEND_ROTATE_CORRECTION_ANGLE:
+						rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+						g_fRobotOrientedAngle = 0;
+						break;
+
+					case PC_SEND_SET_ROBOT_STATE:
+						g_eProcessState = (ProcessState_t)(RF24_RX_buffer[1]);
+						break;
+
 					case PC_SEND_ROTATE_CLOCKWISE:
 						rotateClockwiseTest(RF24_RX_buffer);
 						break;
@@ -1116,7 +1160,8 @@ inline void RF24_IntHandler()
 						break;
 
 					case PC_CHANGE_MOTORS_SPEED:
-						configureMotors(RF24_RX_buffer[1], RF24_RX_buffer[2], RF24_RX_buffer[3], RF24_RX_buffer[4]);
+						configureMotors((MotorDirection_t)(RF24_RX_buffer[1]), RF24_RX_buffer[2],
+								        (MotorDirection_t)(RF24_RX_buffer[3]), RF24_RX_buffer[4]);
 						break;
 
 					case PC_SEND_STOP_MOTOR_LEFT:
@@ -1221,6 +1266,20 @@ inline void RF24_IntHandler()
 			GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
 			GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
 		}
+	}
+}
+
+void RobotResponseIntHandler(void)
+{
+	switch (g_eRobotResponseState)
+	{
+		case TDOA:
+			responseTDOAResultsToNeighbor(g_ui32RequestRobotID);
+			g_eRobotResponseState = DONE;
+			break;
+
+		default:
+			break;
 	}
 }
 

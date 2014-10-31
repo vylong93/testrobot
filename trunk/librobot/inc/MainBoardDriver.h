@@ -21,7 +21,7 @@
 #define DELAY_GET_FLAG_PERIOD		 1000
 #define DELAY_GET_VECTOR_PERIOD		 1000
 #define DELAY_LOCOMOTION_PERIOD	     3000
-#define DELAY_NEIGHBOR_RESPONSE_PERIOD	1000
+#define DELAY_NEIGHBOR_RESPONSE_PERIOD	2000 // must be < DELAY_LOCOMOTION_PERIOD
 
 #define NEIGHBOR_TABLE_LENGTH 10
 #define ONEHOP_NEIGHBOR_TABLE_LENGTH NEIGHBOR_TABLE_LENGTH
@@ -67,15 +67,19 @@ typedef struct tagLocation {
 #define PRIORITY_DELAY_TIMERA		0x80
 #define PRIORITY_DELAY_TIMERB		0x80
 
+#define PRIORITY_ROBOT_RESPONSE		0xA0
+
 #define PRIORITY_LOW_POWER_MODE		0xE0
 
-#define INT_SW_TRIGGER_LPM			INT_I2C1
+#define INT_SW_TRIGGER_LPM				INT_I2C1
+#define INT_SW_TRIGGER_ROBOT_RESPONSE	INT_I2C2
 
 void clearNeighborTable(robotMeas_t neighborTable[], uint8_t *counter);
 void clearOneHopNeighborTable(oneHopMeas_t table[]);
 void deleteNeighborInInNeighborTable(robotMeas_t table[], uint32_t id);
 void deleteNeighborInOneHopTable(oneHopMeas_t table[], uint32_t id);
 void deleteNeighborInLocationsTable(location_t table[], uint32_t id);
+void updateNeighborInLocationTable(uint32_t neigborId, float xAxis, float yAxis);
 void deleteTable(robotMeas_t neighborTable[]);
 
 void parse32BitTo4Bytes(uint32_t value, uint8_t *buffer);
@@ -95,11 +99,17 @@ void delayRandom(uint32_t parameterUnit);
 
 typedef enum
 {
-	IDLE, MEASURE_DISTANCE, EXCHANGE_TABLE, VOTE_ORIGIN, ROTATE_NETWORK, REDUCE_ERROR, LOCOMOTION,
-} ProcessStateEnum;
+	IDLE = 0, MEASURE_DISTANCE = 1, EXCHANGE_TABLE = 2, VOTE_ORIGIN = 3, ROTATE_NETWORK = 4, REDUCE_ERROR = 5, LOCOMOTION = 6,
+} ProcessState_t;
+
+typedef enum
+{
+	DONE = 0, TDOA = 1,
+} RobotResponseState_t;
 
 void initRobotProcess();
-void responseTDOAResultsToNeighbor(uint8_t RxData[]);
+void addToNeighborTable(uint32_t neighborId, uint16_t distance);
+void responseTDOAResultsToNeighbor(uint32_t neighborId);
 void storeNeighorVectorAndDistanceToTables(uint8_t RxData[]);
 void checkAndResponeMyNeighborsTableToOneRobot();
 void sendVectorToControlBoard(const vector2_t vector);
@@ -131,8 +141,10 @@ bool getMyVector(uint8_t *pCounter);
 bool getNeighborVectorAndFlag(vector2_t *pvectReceived, bool* pIsNeighborGradientSearchStop, bool *pIsNeighborActive);
 bool getNeighborVector(uint32_t neighborID);
 void clearRequestNeighbor(uint8_t RxData[]);
+void updateNeighborVectorInLocsTableByRequest(uint8_t RxData[]);
 void runForwardAndCalculatteNewPosition();
 float calculateRobotOrientation(vector2_t vectDiff);
+void notifyNewVectorToNeigbors();
 
 //-----------------------------------Robot Int functions
 
@@ -277,8 +289,14 @@ inline void startSpeaker();
 #define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT2_BIT        PWM_OUT_2_BIT
 
-#define FORWARD         0
-#define REVERSE         1
+//#define FORWARD         0
+//#define REVERSE         1
+
+typedef enum
+{
+  FORWARD = 0,
+  REVERSE = 1,
+} MotorDirection_t;
 
 inline void initMotor();
 inline void enableMOTOR();
@@ -379,6 +397,8 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
 #define PC_SEND_FORWARD_PERIOD			0xB8
 #define PC_SEND_FORWARD_DISTANCE		0xB9
+#define PC_SEND_SET_ROBOT_STATE			0xBA
+#define PC_SEND_ROTATE_CORRECTION_ANGLE	0xBB
 
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
@@ -405,8 +425,9 @@ float generateRandomRange(float min, float max);
 #define ROBOT_REQUEST_VECTOR					0xDE
 #define ROBOT_RESPONSE_VECTOR					0xDF
 
-#define ROBOT_REQUEST_TO_RUN					0x90
-#define ROBOT_RESPONSE_TDOA_DISTANCE			0x91
+#define ROBOT_REQUEST_TO_RUN				0x90
+#define ROBOT_RESPONSE_TDOA_DISTANCE		0x92
+#define ROBOT_REQUEST_UPDATE_VECTOR			0x93
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1
@@ -437,7 +458,7 @@ typedef enum
   RUN_MODE,
   SLEEP_MODE,
   DEEP_SLEEP_MODE
-} CpuStateEnum;
+} CpuState_t;
 
 //-----------------------------------------------------------------------------
 //  void initLowPowerMode()
