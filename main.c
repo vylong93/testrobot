@@ -90,7 +90,9 @@ void StateTwo_ExchangeTableAndCalculateLocsTable();
 void StateThree_VoteOrigin();
 void StateFour_RequestRotateNetwork();
 void StateFive_ReduceCoordinatesError();
-void StateSix_Swarm();
+void StateSix_Locomotion();
+
+void SwarmStateOne_TShape();
 
 extern float g_f32Intercept;
 extern float g_f32Slope;
@@ -98,6 +100,9 @@ extern float g_f32Slope;
 float g_fStepSize;
 float g_fStopCondition;
 float g_fStopCondition2;
+
+bool g_bIsRobotResponse; // T shape
+bool g_bIsAllowToMove;	// T shape
 
 int main(void)
 {
@@ -802,15 +807,10 @@ void StateSix_Locomotion()
 	vector2_t vectOne;
 	vector2_t vectDiff;
 
-//	int8_t i8FirstQuadrant;
-//	int8_t i8SecondQuadrant;
-//	float fTheta;
-
 	float fAngleOffer = 0.2094395102; // ~12 degree
 	float fRotateAngle = MATH_PI_DIV_2; // ~90 degree
 	float fThetaOne;
 	float fThetaTwo;
-//	bool bReservedOriented;
 
 	uint16_t ui16RandomValue;
 
@@ -847,7 +847,7 @@ void StateSix_Locomotion()
 	if (g_ui8NeighborsCounter < 3)
 	{
 		//TODO: reserved
-		runForwardAndCalculatteNewPosition(-7.0);
+		runForwardWithDistance(-7.0);
 
 		// WARNING!!! This vector may be not correct
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
@@ -859,18 +859,13 @@ void StateSix_Locomotion()
 	vectOne.x = g_vector.x;
 	vectOne.y = g_vector.y;
 
-	// Debug Only - BEGIN
-	//debugBreakpoint();
-	// Debug Only - END
-
-//	rotateClockwiseWithAngle(MATH_PI_DIV_2);
 	rotateClockwiseWithAngle(fRotateAngle);
 
 	runForwardAndCalculatteNewPosition(6.0); // g_vector may be modified to new position
 	if (g_ui8NeighborsCounter < 3)
 	{
 		//TODO: reserved
-		runForwardAndCalculatteNewPosition(-6.0);
+		runForwardWithDistance(-6.0);
 
 		// WARNING!!! This vector may be not correct
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
@@ -883,42 +878,12 @@ void StateSix_Locomotion()
 
 	notifyNewVectorToNeigbors();
 
-//	i8FirstQuadrant = calculateQuadrant(vectZero, vectOne);
-//	i8SecondQuadrant = calculateQuadrant(vectOne, g_vector);
-//
-//	if (i8FirstQuadrant == 0 || i8SecondQuadrant == 0)
-//		return;
-//
-//	if ((i8SecondQuadrant - i8FirstQuadrant) & 0x02)
-//		g_bIsCounterClockwiseOriented = true; // SAME
-//	else
-//		g_bIsCounterClockwiseOriented = false; // DIFFERENT
-//
-//	vectDiff.x = g_vector.x - vectOne.x;
-//	vectDiff.y = g_vector.y - vectOne.y;
-//	fTheta = calculateRobotOrientation(vectDiff);
-//
-//	if (vectDiff.x != 0)
-//	{
-//		if (vectDiff.x > 0) // Quadrant I & II
-//			g_fRobotOrientedAngle = fTheta;
-//		else
-//		{
-//			if (vectDiff.y > 0) // Quadrant IV
-//				g_fRobotOrientedAngle = MATH_PI + fTheta;
-//			else // Quadrant III
-//				g_fRobotOrientedAngle = fTheta - MATH_PI;
-//		}
-//	}
-
 	vectDiff.x = vectOne.x - vectZero.x;
 	vectDiff.y = vectOne.y - vectZero.y;
-	// fThetaOne = calculateRobotOrientation(vectDiff);
 	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
 
 	vectDiff.x = g_vector.x - vectOne.x;
 	vectDiff.y = g_vector.y - vectOne.y;
-	//fThetaTwo = calculateRobotOrientation(vectDiff);
 	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
 
 	g_fRobotOrientedAngle = fThetaTwo;
@@ -937,6 +902,384 @@ void StateSix_Locomotion()
 		g_bIsCounterClockwiseOriented = false; // DIFFERENT
 
 	turnOnLED(LED_GREEN);
+
+	g_eProcessState = IDLE;
+}
+
+void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
+{
+	uint16_t ui16RandomValue;
+
+	float const RESOLUTION = 18; // in cm
+	float fTotalDistance[4];
+	int8_t i8BestCase;
+	uint32_t ui32SelectedResult;
+
+	vector2_t vectDestination;
+
+	vector2_t vect[9];
+	int8_t i8VectBest[4];
+	uint8_t pointer[4];
+
+	int8_t i;
+
+	vector2_t vectZero;
+	vector2_t vectDiff;
+	float fAngleOffer = 0.2094395102; // ~12 degree
+	float fThetaDestinate;
+	float fDeltaAngle;
+	float fGramaAngle;
+	float fCompareAngle;
+	float fDistanceToDestinate;
+	float fStopCondition = 4; // in cm
+
+	if (g_ui32RobotID == g_ui32OriginID)
+	{
+		bool isSuccess;
+		uint8_t ui8RandomRfChannel;
+		uint16_t ui16RandomValue;
+
+		for(i = 0; i < g_ui8NeighborsCounter; i++)
+		{
+			if (NeighborsTable[i].ID == g_ui32RobotID)
+				continue;
+
+			g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+
+			isSuccess = false;
+
+			while(1)
+			{
+				generateRandomByte();
+				while (g_ui8RandomNumber == 0);
+
+				ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+
+				g_ui8RandomNumber =
+						(g_ui8RandomNumber < 100) ?
+								(g_ui8RandomNumber + 100) :
+								(g_ui8RandomNumber);
+
+				ui16RandomValue = g_ui8RandomNumber * 5;
+
+				delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+
+				RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
+				parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+				RF24_TX_buffer[5] = ui8RandomRfChannel;
+
+				// send request neighbor send there g_vector coordinates: <x>, <y>
+				if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
+				{
+					turnOffLED(LED_RED);
+
+					RF24_setChannel(ui8RandomRfChannel);
+					RF24_TX_flush();
+					RF24_clearIrqFlag(RF24_IRQ_MASK);
+					RF24_RX_activate();
+
+					isSuccess = getNeighborVector(NeighborsTable[i].ID);
+
+					RF24_setChannel(0);
+					RF24_TX_flush();
+					RF24_clearIrqFlag(RF24_IRQ_MASK);
+					RF24_RX_activate();
+
+					turnOnLED(LED_RED);
+
+					if (isSuccess)
+						break;
+				}
+				else if (g_ui8ReTransmitCounter == 0)
+					break;
+			}
+		}
+	}
+
+	g_bIsAllowToMove = false;
+
+	// init vectors
+	vect[0].x = 0; vect[0].y = 0;
+
+	vect[5].x = 0; vect[5].y = RESOLUTION * 2;
+	vect[1].x = 0; vect[1].y = RESOLUTION;
+	vect[3].x = 0; vect[3].y = RESOLUTION * (-1);
+	vect[7].x = 0; vect[7].y = RESOLUTION * (-2);
+
+	vect[8].x = RESOLUTION * (-2); 	vect[8].y = 0;
+	vect[4].x = RESOLUTION * (-1); 	vect[4].y = 0;
+	vect[2].x = RESOLUTION; 		vect[2].y = 0;
+	vect[6].x = RESOLUTION * 2; 	vect[6].y = 0;
+
+	// choose the best T case base on locs table
+	fTotalDistance[0] = calculateTotalDistance(vect[1], vect[3], vect[2], vect[6], &ui32SelectedResult);
+	fTotalDistance[1] = calculateTotalDistance(vect[1], vect[3], vect[4], vect[8], &ui32SelectedResult);
+	fTotalDistance[2] = calculateTotalDistance(vect[2], vect[4], vect[3], vect[7], &ui32SelectedResult);
+	fTotalDistance[3] = calculateTotalDistance(vect[2], vect[4], vect[1], vect[5], &ui32SelectedResult);
+
+	i8BestCase = 0;
+	for(i = 1; i < 4; i++)
+	{
+		if (fTotalDistance[i] < fTotalDistance[i8BestCase])
+			i8BestCase = i;
+	}
+
+	switch (i8BestCase){
+	case 0:
+		i8VectBest[0] = 1; i8VectBest[1] = 3;
+		i8VectBest[2] = 2; i8VectBest[3] = 6;
+		break;
+	case 1:
+		i8VectBest[0] = 1; i8VectBest[1] = 3;
+		i8VectBest[2] = 4; i8VectBest[3] = 8;
+		break;
+	case 2:
+		i8VectBest[0] = 2; i8VectBest[1] = 4;
+		i8VectBest[2] = 3; i8VectBest[3] = 7;
+		break;
+		i8VectBest[0] = 2; i8VectBest[1] = 4;
+		i8VectBest[2] = 1; i8VectBest[3] = 5;
+	default:
+		break;
+	}
+
+	calculateTotalDistance(vect[i8VectBest[0]], vect[i8VectBest[1]], vect[i8VectBest[2]], vect[i8VectBest[3]], &ui32SelectedResult);
+	//Note: ui32SelectedResult structure: <node1 - best0><node2 - best1><node3 - best2><node4 - best3> position in locs
+	pointer[0] = (ui32SelectedResult >> 24) & 0xFF; // best 0
+	pointer[1] = (ui32SelectedResult >> 16) & 0xFF; // best 1
+	pointer[2] = (ui32SelectedResult >> 8) & 0xFF; 	// best 2
+	pointer[3] = ui32SelectedResult & 0xFF; 		// best 3
+
+	turnOffLED(LED_ALL);
+
+	if (g_ui32RobotID == g_ui32OriginID)
+	{
+
+//		for(i = 0; i < 4; )
+//		{
+//			g_bIsRobotResponse = false;
+//			RF24_TX_buffer[0] = ROBOT_ALLOW_MOVE_TO_T_SHAPE;
+//			parse32BitTo4Bytes(locs[pointer[i]].ID, &RF24_TX_buffer[1]); // 1->4
+//
+//			if (sendMessageToOneNeighbor(locs[pointer[i]].ID, RF24_TX_buffer, 5))
+//			{
+//				while(!g_bIsRobotResponse);
+//				i++;
+//			}
+//			delayTimerNonInt(3000);
+//			toggleLED(LED_RED);
+//		}
+//		g_eProcessState = IDLE;
+//		return;
+
+//		while(1)
+//		{
+//			g_bIsRobotResponse = false;
+//			RF24_TX_buffer[0] = ROBOT_ALLOW_MOVE_TO_T_SHAPE;
+//			if (sendMessageToOneNeighbor(locs[pointer[0]].ID, RF24_TX_buffer, 1))
+//			{
+//				while(!g_bIsRobotResponse);
+//
+//				while(1)
+//				{
+//					g_bIsRobotResponse = false;
+//					RF24_TX_buffer[0] = ROBOT_ALLOW_MOVE_TO_T_SHAPE;
+//					if (sendMessageToOneNeighbor(locs[pointer[3]].ID, RF24_TX_buffer, 1))
+//					{
+//						while(!g_bIsRobotResponse);
+//
+//						while(1)
+//						{
+//							g_bIsRobotResponse = false;
+//							RF24_TX_buffer[0] = ROBOT_ALLOW_MOVE_TO_T_SHAPE;
+//							if (sendMessageToOneNeighbor(locs[pointer[2]].ID, RF24_TX_buffer, 1))
+//							{
+//								while(!g_bIsRobotResponse);
+//
+//								while(1)
+//								{
+//									g_bIsRobotResponse = false;
+//									RF24_TX_buffer[0] = ROBOT_ALLOW_MOVE_TO_T_SHAPE;
+//									if (sendMessageToOneNeighbor(locs[pointer[1]].ID, RF24_TX_buffer, 1))
+//									{
+//										g_eProcessState = IDLE;
+//										return;
+//									}
+//									toggleLED(LED_RED);
+//									delayTimerNonInt(1000);
+//								}
+//							}
+//							toggleLED(LED_RED);
+//							delayTimerNonInt(1000);
+//						}
+//					}
+//					toggleLED(LED_RED);
+//					delayTimerNonInt(1000);
+//				}
+//			}
+//			toggleLED(LED_RED);
+//			delayTimerNonInt(1000);
+//		}
+	}
+	else
+	{
+		// get my destinations
+		for(i = 0; i < 4; i++)
+		{
+			if (locs[pointer[i]].ID == g_ui32RobotID)
+			{
+				vectDestination.x = vect[i8VectBest[i]].x;
+				vectDestination.y = vect[i8VectBest[i]].y;
+
+				if (i8VectBest[i] & 0x01)
+					turnOnLED(LED_GREEN);
+				else
+					turnOffLED(LED_GREEN);
+
+				if (i8VectBest[i] & 0x02)
+					turnOnLED(LED_BLUE);
+				else
+					turnOffLED(LED_BLUE);
+
+				if (i8VectBest[i] & 0x04)
+					turnOnLED(LED_RED);
+				else
+					turnOffLED(LED_RED);
+
+				break;
+			}
+		}
+
+//		// wait for allow moving
+//		while(!g_bIsAllowToMove);
+
+		// delay random
+		generateRandomByte();
+		while (g_ui8RandomNumber == 0)
+			;
+		g_ui8RandomNumber =
+				(g_ui8RandomNumber < 100) ?
+						(g_ui8RandomNumber + 100) :
+						(g_ui8RandomNumber);
+
+		ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
+
+		ui16RandomValue = g_ui8RandomNumber * 10;
+
+		ui16RandomValue = ui16RandomValue + (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
+
+		delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+											// if received neighbor run command then redelay and wait
+
+		// delay timeout
+		g_bIsCounterClockwiseOriented = false; // DIFFERENT
+		vectZero.x = g_vector.x;
+		vectZero.y = g_vector.y;
+
+		fDistanceToDestinate = calculateDistanceBetweenTwoNode(vectDestination, g_vector);
+
+		runForwardAndCalculatteNewPosition(fDistanceToDestinate / 2); // g_vector may be modified to new position
+		while (g_ui8NeighborsCounter < 3)
+		{
+			runForwardWithDistance(fDistanceToDestinate / (-2));
+			rotateClockwiseWithAngle(MATH_PI_DIV_2);
+			runForwardAndCalculatteNewPosition(fDistanceToDestinate / 2);
+		}
+		vectDiff.x = g_vector.x - vectZero.x;
+		vectDiff.y = g_vector.y - vectZero.y;
+		g_fRobotOrientedAngle = calculateRobotAngleWithXAxis(vectDiff);
+
+		vectDiff.x = vectDestination.x - g_vector.x;
+		vectDiff.y = vectDestination.y - g_vector.y;
+		fThetaDestinate = calculateRobotAngleWithXAxis(vectDiff);
+
+		if (g_fRobotOrientedAngle > fThetaDestinate)
+			fDeltaAngle = g_fRobotOrientedAngle - fThetaDestinate;
+		else
+			fDeltaAngle = fThetaDestinate - g_fRobotOrientedAngle;
+
+		fDistanceToDestinate = calculateDistanceBetweenTwoNode(vectDestination, g_vector);
+
+		while(1)
+		{
+			if (g_bIsCounterClockwiseOriented) 	// SAME
+				rotateClockwiseWithAngle(MATH_PI_MUL_2 - fDeltaAngle);
+			else 								// DIFFERENT
+				rotateClockwiseWithAngle(fDeltaAngle);
+
+			vectZero.x = g_vector.x;
+			vectZero.y = g_vector.y;
+			runForwardAndCalculatteNewPosition(fDistanceToDestinate / 2);
+			if (g_ui8NeighborsCounter < 3)
+			{
+				runForwardWithDistance(fDistanceToDestinate / (-2));
+
+				// response done
+				RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+				sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+
+				break; //TODO: fix to run reserved
+			}
+
+			vectDiff.x = g_vector.x - vectZero.x;
+			vectDiff.y = g_vector.y - vectZero.y;
+			fGramaAngle = calculateRobotAngleWithXAxis(vectDiff);
+
+			fCompareAngle = g_fRobotOrientedAngle + 2 * fDeltaAngle;
+
+			if(fGramaAngle <= (fCompareAngle + fAngleOffer) && (fGramaAngle >= (fCompareAngle - fAngleOffer)))
+			{
+				runForwardAndCalculatteNewPosition(fDistanceToDestinate / (-2));
+				if (g_ui8NeighborsCounter < 3)
+				{
+					runForwardWithDistance(fDistanceToDestinate / (-2));
+
+					// response done
+					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+
+					break; //TODO: fix to run reserved
+				}
+
+				if (g_bIsCounterClockwiseOriented) // SAME
+				{
+					rotateClockwiseWithAngle(fDeltaAngle);
+					g_bIsCounterClockwiseOriented = false; // DIFF
+				}
+				else // DIFF
+				{
+					rotateClockwiseWithAngle(MATH_PI_MUL_2 - fDeltaAngle);
+					g_bIsCounterClockwiseOriented = true; // SAME
+				}
+			}
+			else
+			{
+				// correct
+				g_fRobotOrientedAngle = fGramaAngle;
+
+				vectDiff.x = vectDestination.x - g_vector.x;
+				vectDiff.y = vectDestination.y - g_vector.y;
+				fThetaDestinate = calculateRobotAngleWithXAxis(vectDiff);
+
+				if (g_fRobotOrientedAngle > fThetaDestinate)
+					fDeltaAngle = g_fRobotOrientedAngle - fThetaDestinate;
+				else
+					fDeltaAngle = fThetaDestinate - g_fRobotOrientedAngle;
+
+				fDistanceToDestinate = calculateDistanceBetweenTwoNode(vectDestination, g_vector);
+
+				notifyNewVectorToNeigbors();
+
+				if (fDistanceToDestinate < fStopCondition)
+				{
+					// response done
+					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+					break;
+				}
+			}
+		}
+	}
 
 	g_eProcessState = IDLE;
 }
@@ -967,6 +1310,10 @@ void RobotProcess()
 
 	case LOCOMOTION:
 		StateSix_Locomotion();
+		break;
+
+	case T_SHAPE:
+		SwarmStateOne_TShape();
 		break;
 
 	default: // IDLE state
@@ -1108,6 +1455,16 @@ inline void RF24_IntHandler()
 
 					case ROBOT_REQUEST_UPDATE_VECTOR:
 						updateNeighborVectorInLocsTableByRequest(RF24_RX_buffer);
+						break;
+
+					// T shape
+					case ROBOT_ALLOW_MOVE_TO_T_SHAPE:
+						if (construct4BytesToUint32(&RF24_RX_buffer[1]) == g_ui32RobotID)
+							g_bIsAllowToMove = true;
+						break;
+
+					case ROBOT_REPONSE_MOVE_COMPLETED:
+						g_bIsRobotResponse = true;
 						break;
 
 				    // DeBug command

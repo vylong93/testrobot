@@ -99,7 +99,7 @@ void delayRandom(uint32_t parameterUnit);
 
 typedef enum
 {
-	IDLE = 0, MEASURE_DISTANCE = 1, EXCHANGE_TABLE = 2, VOTE_ORIGIN = 3, ROTATE_NETWORK = 4, REDUCE_ERROR = 5, LOCOMOTION = 6,
+	IDLE = 0, MEASURE_DISTANCE = 1, EXCHANGE_TABLE = 2, VOTE_ORIGIN = 3, ROTATE_NETWORK = 4, REDUCE_ERROR = 5, LOCOMOTION = 6, T_SHAPE = 7,
 } ProcessState_t;
 
 typedef enum
@@ -149,6 +149,8 @@ void runForwardAndCalculatteNewPosition(float distance);
 int8_t calculateQuadrant(vector2_t vectSource, vector2_t vectDestinate);
 float calculateRobotOrientation(vector2_t vectDiff);
 float calculateRobotAngleWithXAxis(vector2_t vectDiff);
+float calculateTotalDistance(vector2_t v1, vector2_t v2, vector2_t v3, vector2_t v4, uint32_t *selectedResult);
+float calculateDistanceBetweenTwoNode(vector2_t v1, vector2_t v2);
 void notifyNewVectorToNeigbors();
 
 //-----------------------------------Robot Int functions
@@ -436,6 +438,8 @@ float generateRandomRange(float min, float max);
 #define ROBOT_REQUEST_TO_RUN				0x90
 #define ROBOT_RESPONSE_TDOA_DISTANCE		0x92
 #define ROBOT_REQUEST_UPDATE_VECTOR			0x93
+#define ROBOT_ALLOW_MOVE_TO_T_SHAPE			0x94
+#define ROBOT_REPONSE_MOVE_COMPLETED		0x95
 
 #define PC_SEND_READ_EEPROM             0xE0
 #define PC_SEND_WRITE_EEPROM            0xE1
