@@ -1833,6 +1833,109 @@ float calculateRobotAngleWithXAxis(vector2_t vectDiff)
 	return angle;
 }
 
+float calculateTotalDistance(vector2_t v1, vector2_t v2, vector2_t v3, vector2_t v4, uint32_t *selectedResult)
+{
+	uint8_t selectedNode[4];
+	float totalDistance = 0;
+
+	int8_t i;
+	int8_t j;
+	float distanceMin, distanceScan;
+
+	// Choose the First Node for v1
+	j = 0;
+	while(locs[j].ID == g_ui32OriginID)
+		j++;
+	selectedNode[0] = j;
+
+	distanceMin = calculateDistanceBetweenTwoNode(v1, locs[selectedNode[0]].vector);
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32OriginID || i == selectedNode[0])
+			continue;
+		distanceScan = calculateDistanceBetweenTwoNode(v1, locs[i].vector);
+		if (distanceScan < distanceMin)
+		{
+			distanceMin = distanceScan;
+			selectedNode[0] = i;
+		}
+	}
+	totalDistance += distanceMin;
+
+	// Choose the Second Node for v2
+	j = 0;
+	while(locs[j].ID == g_ui32OriginID || j == selectedNode[0])
+		j++;
+	selectedNode[1] = j;
+	distanceMin = calculateDistanceBetweenTwoNode(v2, locs[selectedNode[1]].vector);
+
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32OriginID || i == selectedNode[0] || i == selectedNode[1])
+			continue;
+		distanceScan = calculateDistanceBetweenTwoNode(v2, locs[i].vector);
+		if (distanceScan < distanceMin)
+		{
+			distanceMin = distanceScan;
+			selectedNode[1] = i;
+		}
+	}
+	totalDistance += distanceMin;
+
+	// Choose the Third Node for v3
+	j = 0;
+	while(locs[j].ID == g_ui32OriginID || j == selectedNode[0] || j == selectedNode[1])
+		j++;
+	selectedNode[2] = j;
+
+	distanceMin = calculateDistanceBetweenTwoNode(v3, locs[selectedNode[2]].vector);
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32OriginID || i == selectedNode[0] || i == selectedNode[1] || i == selectedNode[2])
+			continue;
+		distanceScan = calculateDistanceBetweenTwoNode(v3, locs[i].vector);
+		if (distanceScan < distanceMin)
+		{
+			distanceMin = distanceScan;
+			selectedNode[2] = i;
+		}
+	}
+	totalDistance += distanceMin;
+
+	// Last Node
+	j = 0;
+	while(locs[j].ID == g_ui32OriginID ||j == selectedNode[0] || j == selectedNode[1] || j == selectedNode[2])
+		j++;
+	selectedNode[3] = j;
+
+	distanceMin = calculateDistanceBetweenTwoNode(v4, locs[selectedNode[3]].vector);
+	for(i = 0; i < g_ui8LocsCounter; i++)
+	{
+		if (locs[i].ID == g_ui32OriginID || i == selectedNode[0] || i == selectedNode[1] || i == selectedNode[2] || i == selectedNode[3])
+			continue;
+		distanceScan = calculateDistanceBetweenTwoNode(v4, locs[i].vector);
+		if (distanceScan < distanceMin)
+		{
+			distanceMin = distanceScan;
+			selectedNode[3] = i;
+		}
+	}
+	totalDistance += distanceMin;
+
+	*selectedResult = construct4BytesToUint32(selectedNode);
+
+	return totalDistance;
+}
+
+float calculateDistanceBetweenTwoNode(vector2_t v1, vector2_t v2)
+{
+	vector2_t diff;
+	diff.x = v1.x - v2.x;
+	diff.y = v1.y - v2.y;
+
+	return vsqrtf((diff.x * diff.x) + (diff.y * diff.y));
+}
+
 void notifyNewVectorToNeigbors()
 {
 	uint8_t i;
