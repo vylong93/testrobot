@@ -371,6 +371,15 @@ uint8_t g_ui8ReBroadcastCounter;
 float g_f32Intercept = 8.5619f;
 float g_f32Slope = 3.046f;
 
+extern uint32_t g_ui32LocalLoopStop; // Debug Only
+
+void debugBreakpoint()
+{
+	g_ui32LocalLoopStop = 1;
+	while(g_ui32LocalLoopStop != 0);
+}
+
+
 void initRobotProcess()
 {
 	uint32_t temp;
@@ -401,6 +410,9 @@ void initRobotProcess()
 	g_bIsActiveCoordinatesFixing = false;
 	g_bIsGradientSearchStop = false;
 	g_ui32LocalLoop = 0;
+
+	g_fRobotOrientedAngle = 0;
+	g_bIsCounterClockwiseOriented = 0;
 
 	//==============================================
 	// IMPORTANCE: Configure Software Interrupt
@@ -660,7 +672,7 @@ void getNeighborNeighborsTable()
 	enableRF24Interrupt();
 }
 
-void sendVectorToControlBoard(const vector2_t vector)
+void sendVectorToControlBoard()
 {
 	int32_t i32TempAxix;
 	i32TempAxix = g_vector.x * 65536 + 0.5;
@@ -802,6 +814,18 @@ void forwardDistanceTest(uint8_t RxData[])
 	float distance = i32Distance / 65536.0;
 
 	runForwardWithDistance(distance);
+}
+
+void responseCorrectionAngleAndOriented()
+{
+	int32_t i32CorrectionAngle;
+
+	i32CorrectionAngle = g_fRobotOrientedAngle * 65536 + 0.5;
+	parse32BitTo4Bytes(i32CorrectionAngle, &RF24_TX_buffer[0]); // 0->3
+
+	RF24_TX_buffer[4] = (g_bIsCounterClockwiseOriented) ? (0x01) : (0x00);
+
+	sendDataToControlBoard(RF24_TX_buffer);
 }
 
 void updateOrRejectNetworkOrigin(uint8_t RxData[])
@@ -1601,7 +1625,7 @@ void updateNeighborVectorInLocsTableByRequest(uint8_t RxData[])
 	updateNeighborInLocationTable(neigborId, xAxis, yAxis);
 }
 
-void runForwardAndCalculatteNewPosition()
+void runForwardAndCalculatteNewPosition(float distance)
 {
 	uint8_t length;
 	uint8_t i;
@@ -1622,13 +1646,13 @@ void runForwardAndCalculatteNewPosition()
 	}
 	g_ui8LocsCounter = 0;
 
-	// Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
-
 	RF24_TX_buffer[0] = ROBOT_REQUEST_TO_RUN;
 	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
 	broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
 
-	runForwardWithDistance(5.0);
+	runForwardWithDistance(distance);
+
+	SysCtlDelay(2500);
 
 	// send request measure distance command
 	RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
@@ -1704,14 +1728,109 @@ void runForwardAndCalculatteNewPosition()
 		g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition);
 	}
 
+	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+
 	turnOffLED(LED_BLUE);
+}
+
+int8_t calculateQuadrant(vector2_t vectSource, vector2_t vectDestinate)
+{
+	vector2_t vectDiff;
+	vectDiff.x = vectDestinate.x - vectSource.x;
+	vectDiff.y = vectDestinate.y - vectSource.y;
+
+	if (vectDiff.x == 0 && vectDiff.y == 0)
+		return 0;
+
+	if (vectDiff.y == 0)
+	{
+		if (vectDiff.x > 0)
+			return 1;
+		else
+			return 3;
+	}
+
+	if (vectDiff.x == 0)
+	{
+		if (vectDiff.y > 0)
+			return 4;
+		else
+			return 2;
+	}
+
+	if (vectDiff.y > 0)
+	{
+		if (vectDiff.x > 0)
+			return 1;
+		else
+			return 4;
+	}
+	else
+	{
+		if (vectDiff.x > 0)
+			return 2;
+		else
+			return 3;
+	}
 }
 
 float calculateRobotOrientation(vector2_t vectDiff)
 {
+	if (vectDiff.x == 0)
+	{
+		if (vectDiff.y > 0)
+			return MATH_PI_DIV_2;
+		else
+			return MINUS_MATH_PI_DIV_2;
+	}
+
+	if (vectDiff.y == 0)
+	{
+		if (vectDiff.x > 0)
+			return 0;
+		else
+			return MATH_PI;
+	}
+
 	float fraction = vectDiff.y / vectDiff.x;
 
 	return calASin(fraction / vsqrtf(fraction * fraction + 1));
+}
+
+float calculateRobotAngleWithXAxis(vector2_t vectDiff)
+{
+	float fraction;
+	float angle;
+
+	if (vectDiff.x == 0)
+	{
+		if (vectDiff.y > 0)
+			return MATH_PI_DIV_2; 		// OY 90
+		else
+			return MATH_PI_MUL_3_DIV_2; // -OY 270
+	}
+
+	if (vectDiff.y == 0)
+	{
+		if (vectDiff.x > 0)
+			return 0; 		// OX 0
+		else
+			return MATH_PI;	// -OX 180
+	}
+
+	fraction = vectDiff.y / vectDiff.x;
+
+	angle = calASin(fraction / vsqrtf(fraction * fraction + 1));
+
+	if (vectDiff.x > 0) // Quadrant I & II
+		angle = MATH_PI_MUL_2 + angle;
+	else // Quadrant III & IV
+		angle = MATH_PI + angle;
+
+	while(angle > MATH_PI_MUL_2)
+		angle -= MATH_PI_MUL_2;
+
+	return angle;
 }
 
 void notifyNewVectorToNeigbors()

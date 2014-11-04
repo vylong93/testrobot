@@ -107,12 +107,14 @@ typedef enum
 	DONE = 0, TDOA = 1,
 } RobotResponseState_t;
 
+void debugBreakpoint();
+
 void initRobotProcess();
 void addToNeighborTable(uint32_t neighborId, uint16_t distance);
 void responseTDOAResultsToNeighbor(uint32_t neighborId);
 void storeNeighorVectorAndDistanceToTables(uint8_t RxData[]);
 void checkAndResponeMyNeighborsTableToOneRobot();
-void sendVectorToControlBoard(const vector2_t vector);
+void sendVectorToControlBoard();
 void sendNeighborsTableToControlBoard();
 void sendLocationsTableToControlBoard();
 void sendOneHopNeighborsTableToControlBoard();
@@ -120,6 +122,7 @@ void rotateClockwiseTest(uint8_t RxData[]);
 void rotateClockwiseAngleTest(uint8_t RxData[]);
 void forwardPeriodTest(uint8_t RxData[]);
 void forwardDistanceTest(uint8_t RxData[]);
+void responseCorrectionAngleAndOriented();
 void getNeighborNeighborsTable();
 void updateOrRejectNetworkOrigin(uint8_t RxData[]);
 bool isNeedRotateCoordinate(uint8_t originNumberOfNeighbors, uint32_t originID);
@@ -142,8 +145,10 @@ bool getNeighborVectorAndFlag(vector2_t *pvectReceived, bool* pIsNeighborGradien
 bool getNeighborVector(uint32_t neighborID);
 void clearRequestNeighbor(uint8_t RxData[]);
 void updateNeighborVectorInLocsTableByRequest(uint8_t RxData[]);
-void runForwardAndCalculatteNewPosition();
+void runForwardAndCalculatteNewPosition(float distance);
+int8_t calculateQuadrant(vector2_t vectSource, vector2_t vectDestinate);
 float calculateRobotOrientation(vector2_t vectDiff);
+float calculateRobotAngleWithXAxis(vector2_t vectDiff);
 void notifyNewVectorToNeigbors();
 
 //-----------------------------------Robot Int functions
@@ -151,8 +156,10 @@ void notifyNewVectorToNeigbors();
 
 //----------------Math functions-------------------
 #define MATH_PI_MUL_2			6.283185307
+#define MATH_PI_MUL_3_DIV_2	    4.71238898
 #define MATH_PI 				3.141592654
 #define MATH_PI_DIV_2			1.570796327
+#define MINUS_MATH_PI_DIV_2		-1.570796327
 #define MATH_PI_DIV_2_MUL_32768	51471.85404
 #define _180_DIV_PI				57.29577951
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080  // Block 2
@@ -399,6 +406,7 @@ float generateRandomRange(float min, float max);
 #define PC_SEND_FORWARD_DISTANCE		0xB9
 #define PC_SEND_SET_ROBOT_STATE			0xBA
 #define PC_SEND_ROTATE_CORRECTION_ANGLE	0xBB
+#define PC_SEND_READ_CORRECTION_ANGLE	0xBC
 
 #define PC_TEST_RF_TRANSMISSION         0xC0
 #define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
