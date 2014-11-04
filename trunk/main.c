@@ -524,7 +524,7 @@ void StateFour_RequestRotateNetwork()
 			RF24_clearIrqFlag(RF24_IRQ_MASK);
 			RF24_RX_activate();
 
-			SysCtlDelay(2500); // delay 150us
+			SysCtlDelay(3000); // delay 150us
 			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
 			i++;
 
@@ -802,10 +802,15 @@ void StateSix_Locomotion()
 	vector2_t vectOne;
 	vector2_t vectDiff;
 
-	float fAngleOffer = 0.1754329252; // ~ 10 degree
-	float fRotateAngle = MATH_PI_DIV_2;
+//	int8_t i8FirstQuadrant;
+//	int8_t i8SecondQuadrant;
+//	float fTheta;
+
+	float fAngleOffer = 0.2094395102; // ~12 degree
+	float fRotateAngle = MATH_PI_DIV_2; // ~90 degree
 	float fThetaOne;
 	float fThetaTwo;
+//	bool bReservedOriented;
 
 	uint16_t ui16RandomValue;
 
@@ -838,12 +843,13 @@ void StateSix_Locomotion()
 	// delay timeout
 	g_bIsValidVector = false;
 
-	runForwardAndCalculatteNewPosition(); // g_vector may be modified to new position
+	runForwardAndCalculatteNewPosition(7.0); // g_vector may be modified to new position
 	if (g_ui8NeighborsCounter < 3)
 	{
-		//TODO: runback
+		//TODO: reserved
+		runForwardAndCalculatteNewPosition(-7.0);
 
-		// Re-add my vector
+		// WARNING!!! This vector may be not correct
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
 		g_bIsValidVector = true;
 		g_eProcessState = IDLE;
@@ -853,40 +859,77 @@ void StateSix_Locomotion()
 	vectOne.x = g_vector.x;
 	vectOne.y = g_vector.y;
 
+	// Debug Only - BEGIN
+	//debugBreakpoint();
+	// Debug Only - END
+
+//	rotateClockwiseWithAngle(MATH_PI_DIV_2);
 	rotateClockwiseWithAngle(fRotateAngle);
 
-	runForwardAndCalculatteNewPosition(); // g_vector may be modified to new position
+	runForwardAndCalculatteNewPosition(6.0); // g_vector may be modified to new position
 	if (g_ui8NeighborsCounter < 3)
 	{
-		//TODO: runback
+		//TODO: reserved
+		runForwardAndCalculatteNewPosition(-6.0);
 
-		// Re-add my vector
+		// WARNING!!! This vector may be not correct
 		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
 		g_bIsValidVector = true;
 		g_eProcessState = IDLE;
 		return; // Not enough neighbors
 	}
 
-	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
-
 	g_bIsValidVector = true;
 
 	notifyNewVectorToNeigbors();
 
+//	i8FirstQuadrant = calculateQuadrant(vectZero, vectOne);
+//	i8SecondQuadrant = calculateQuadrant(vectOne, g_vector);
+//
+//	if (i8FirstQuadrant == 0 || i8SecondQuadrant == 0)
+//		return;
+//
+//	if ((i8SecondQuadrant - i8FirstQuadrant) & 0x02)
+//		g_bIsCounterClockwiseOriented = true; // SAME
+//	else
+//		g_bIsCounterClockwiseOriented = false; // DIFFERENT
+//
+//	vectDiff.x = g_vector.x - vectOne.x;
+//	vectDiff.y = g_vector.y - vectOne.y;
+//	fTheta = calculateRobotOrientation(vectDiff);
+//
+//	if (vectDiff.x != 0)
+//	{
+//		if (vectDiff.x > 0) // Quadrant I & II
+//			g_fRobotOrientedAngle = fTheta;
+//		else
+//		{
+//			if (vectDiff.y > 0) // Quadrant IV
+//				g_fRobotOrientedAngle = MATH_PI + fTheta;
+//			else // Quadrant III
+//				g_fRobotOrientedAngle = fTheta - MATH_PI;
+//		}
+//	}
+
 	vectDiff.x = vectOne.x - vectZero.x;
 	vectDiff.y = vectOne.y - vectZero.y;
-	fThetaOne = calculateRobotOrientation(vectDiff);
+	// fThetaOne = calculateRobotOrientation(vectDiff);
+	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
 
 	vectDiff.x = g_vector.x - vectOne.x;
 	vectDiff.y = g_vector.y - vectOne.y;
-	fThetaTwo = calculateRobotOrientation(vectDiff);
+	//fThetaTwo = calculateRobotOrientation(vectDiff);
+	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
 
-	if (vectDiff.x > 0)
-		g_fRobotOrientedAngle = fThetaTwo;
+	g_fRobotOrientedAngle = fThetaTwo;
+
+	if (fRotateAngle < 0)
+		fRotateAngle = fThetaOne - fRotateAngle;
 	else
-		g_fRobotOrientedAngle = MATH_PI + fThetaTwo;
+		fRotateAngle += fThetaOne;
 
-	fRotateAngle += fThetaOne;
+	while(fRotateAngle > MATH_PI_MUL_2)
+		fRotateAngle -= MATH_PI_MUL_2;
 
 	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
 		g_bIsCounterClockwiseOriented = true; // SAME
@@ -1069,8 +1112,15 @@ inline void RF24_IntHandler()
 
 				    // DeBug command
 					case PC_SEND_ROTATE_CORRECTION_ANGLE:
-						rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+						if(g_bIsCounterClockwiseOriented)
+							rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
+						else
+							rotateClockwiseWithAngle(g_fRobotOrientedAngle);
 						g_fRobotOrientedAngle = 0;
+						break;
+
+					case PC_SEND_READ_CORRECTION_ANGLE:
+						responseCorrectionAngleAndOriented();
 						break;
 
 					case PC_SEND_SET_ROBOT_STATE:
@@ -1131,7 +1181,7 @@ inline void RF24_IntHandler()
 						break;
 
 					case PC_SEND_READ_VECTOR:
-						sendVectorToControlBoard(g_vector);
+						sendVectorToControlBoard();
 						break;
 
 					case PC_SEND_READ_NEIGHBORS_TABLE:
