@@ -467,7 +467,8 @@ void responseTDOAResultsToNeighbor(uint32_t neighborId)
 	generateRandomByte();
 	while (g_ui8RandomNumber == 0);
 	g_ui8RandomNumber = (g_ui8RandomNumber < 20) ? (g_ui8RandomNumber + 20) : (g_ui8RandomNumber);
-	ui16DelayPeriod = g_ui8RandomNumber * 10;
+
+	ui16DelayPeriod = g_ui8RandomNumber;
 	delayTimerNonInt(ui16DelayPeriod);
 
 	RF24_TX_buffer[0] = ROBOT_RESPONSE_TDOA_DISTANCE;
@@ -1634,6 +1635,8 @@ void runForwardAndCalculatteNewPosition(float distance)
 	vector2_t vectEstimatePosOld;
 	vector2_t vectGradienNew;
 	vector2_t vectGradienOld;
+
+	distance = (distance > 5) ? (5) : distance;
 
 	clearNeighborTable(NeighborsTable, &g_ui8NeighborsCounter);
 	clearOneHopNeighborTable(OneHopNeighborsTable);
