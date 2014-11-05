@@ -823,19 +823,19 @@ void StateSix_Locomotion()
 	vectZero.y = g_vector.y;
 
 	// delay random
-	generateRandomByte();
-	while (g_ui8RandomNumber == 0)
-		;
-	g_ui8RandomNumber =
-			(g_ui8RandomNumber < 100) ?
-					(g_ui8RandomNumber + 100) :
-					(g_ui8RandomNumber);
+//	generateRandomByte();
+//	while (g_ui8RandomNumber == 0)
+//		;
+//	g_ui8RandomNumber =
+//			(g_ui8RandomNumber < 100) ?
+//					(g_ui8RandomNumber + 100) :
+//					(g_ui8RandomNumber);
 
-	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
+//	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
+//
+//	ui16RandomValue = g_ui8RandomNumber * 10;
 
-	ui16RandomValue = g_ui8RandomNumber * 10;
-
-	ui16RandomValue = ui16RandomValue + (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
+	ui16RandomValue = (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
 
 	delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
 										// if received neighbor run command then redelay and wait
@@ -908,8 +908,6 @@ void StateSix_Locomotion()
 
 void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 {
-	uint16_t ui16RandomValue;
-
 	float const RESOLUTION = 18; // in cm
 	float fTotalDistance[4];
 	int8_t i8BestCase;
@@ -935,65 +933,66 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 
 	if (g_ui32RobotID == g_ui32OriginID)
 	{
-		bool isSuccess;
-		uint8_t ui8RandomRfChannel;
-		uint16_t ui16RandomValue;
-
-		for(i = 0; i < g_ui8NeighborsCounter; i++)
-		{
-			if (NeighborsTable[i].ID == g_ui32RobotID)
-				continue;
-
-			g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
-
-			isSuccess = false;
-
-			while(1)
-			{
-				generateRandomByte();
-				while (g_ui8RandomNumber == 0);
-
-				ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
-
-				g_ui8RandomNumber =
-						(g_ui8RandomNumber < 100) ?
-								(g_ui8RandomNumber + 100) :
-								(g_ui8RandomNumber);
-
-				ui16RandomValue = g_ui8RandomNumber * 5;
-
-				delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
-
-				RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
-				parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
-				RF24_TX_buffer[5] = ui8RandomRfChannel;
-
-				// send request neighbor send there g_vector coordinates: <x>, <y>
-				if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
-				{
-					turnOffLED(LED_RED);
-
-					RF24_setChannel(ui8RandomRfChannel);
-					RF24_TX_flush();
-					RF24_clearIrqFlag(RF24_IRQ_MASK);
-					RF24_RX_activate();
-
-					isSuccess = getNeighborVector(NeighborsTable[i].ID);
-
-					RF24_setChannel(0);
-					RF24_TX_flush();
-					RF24_clearIrqFlag(RF24_IRQ_MASK);
-					RF24_RX_activate();
-
-					turnOnLED(LED_RED);
-
-					if (isSuccess)
-						break;
-				}
-				else if (g_ui8ReTransmitCounter == 0)
-					break;
-			}
-		}
+//		bool isSuccess;
+//		uint8_t ui8RandomRfChannel;
+//		uint16_t ui16RandomValue;
+//
+//		for(i = 0; i < g_ui8NeighborsCounter; i++)
+//		{
+//			if (NeighborsTable[i].ID == g_ui32RobotID)
+//				continue;
+//
+//			g_ui8ReTransmitCounter = 1; // set this variable to 0 to disable software reTransmit, reTransmit times = (255 - g_ui8ReTransmitCounter)
+//
+//			isSuccess = false;
+//
+//			while(1)
+//			{
+//				generateRandomByte();
+//				while (g_ui8RandomNumber == 0);
+//
+//				ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+//
+//				g_ui8RandomNumber =
+//						(g_ui8RandomNumber < 100) ?
+//								(g_ui8RandomNumber + 100) :
+//								(g_ui8RandomNumber);
+//
+//				ui16RandomValue = g_ui8RandomNumber * 5;
+//
+//				delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_MY_VECTOR command here!
+//
+//				RF24_TX_buffer[0] = ROBOT_REQUEST_VECTOR;
+//				parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+//				RF24_TX_buffer[5] = ui8RandomRfChannel;
+//
+//				// send request neighbor send there g_vector coordinates: <x>, <y>
+//				if (sendMessageToOneNeighbor(NeighborsTable[i].ID, RF24_TX_buffer, 10))
+//				{
+//					turnOffLED(LED_RED);
+//
+//					RF24_setChannel(ui8RandomRfChannel);
+//					RF24_TX_flush();
+//					RF24_clearIrqFlag(RF24_IRQ_MASK);
+//					RF24_RX_activate();
+//
+//					isSuccess = getNeighborVector(NeighborsTable[i].ID);
+//
+//					RF24_setChannel(0);
+//					RF24_TX_flush();
+//					RF24_clearIrqFlag(RF24_IRQ_MASK);
+//					RF24_RX_activate();
+//
+//					turnOnLED(LED_RED);
+//
+//					if (isSuccess)
+//						break;
+//				}
+//				else if (g_ui8ReTransmitCounter == 0)
+//					break;
+//			}
+//		}
+		return;
 	}
 
 	g_bIsAllowToMove = false;
@@ -1052,9 +1051,9 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 
 	turnOffLED(LED_ALL);
 
-	if (g_ui32RobotID == g_ui32OriginID)
-	{
-
+//	if (g_ui32RobotID == g_ui32OriginID)
+//	{
+//
 //		for(i = 0; i < 4; )
 //		{
 //			g_bIsRobotResponse = false;
@@ -1071,7 +1070,7 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 //		}
 //		g_eProcessState = IDLE;
 //		return;
-
+//
 //		while(1)
 //		{
 //			g_bIsRobotResponse = false;
@@ -1120,8 +1119,9 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 //			toggleLED(LED_RED);
 //			delayTimerNonInt(1000);
 //		}
-	}
-	else
+//	}
+
+	if (g_ui32RobotID != g_ui32OriginID)
 	{
 		// get my destinations
 		for(i = 0; i < 4; i++)
@@ -1150,34 +1150,23 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 			}
 		}
 
-//		// wait for allow moving
-//		while(!g_bIsAllowToMove);
-
-		// delay random
-		generateRandomByte();
-		while (g_ui8RandomNumber == 0)
-			;
-		g_ui8RandomNumber =
-				(g_ui8RandomNumber < 100) ?
-						(g_ui8RandomNumber + 100) :
-						(g_ui8RandomNumber);
-
-		ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
-
-		ui16RandomValue = g_ui8RandomNumber * 10;
-
-		ui16RandomValue = ui16RandomValue + (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
-
-		delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
-											// if received neighbor run command then redelay and wait
-
-		// delay timeout
 		g_bIsCounterClockwiseOriented = false; // DIFFERENT
 		vectZero.x = g_vector.x;
 		vectZero.y = g_vector.y;
 
 		fDistanceToDestinate = calculateDistanceBetweenTwoNode(vectDestination, g_vector);
 
+//		// wait for allow moving
+//		while(!g_bIsAllowToMove);
+
+		uint32_t ui32DelayPeriod;
+
+		ui32DelayPeriod = (g_ui32RobotID & 0xFF) * DELAY_T_SHAPE_PERIOD;
+
+		delayTimerB(ui32DelayPeriod, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+											// if received neighbor run command then redelay and wait
+
+		// delay timeout
 		runForwardAndCalculatteNewPosition(fDistanceToDestinate / 2); // g_vector may be modified to new position
 		while (g_ui8NeighborsCounter < 3)
 		{
@@ -1203,9 +1192,9 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 		while(1)
 		{
 			if (g_bIsCounterClockwiseOriented) 	// SAME
-				rotateClockwiseWithAngle(MATH_PI_MUL_2 - fDeltaAngle);
+				rotateClockwiseWithAngle(fDeltaAngle / (-2));
 			else 								// DIFFERENT
-				rotateClockwiseWithAngle(fDeltaAngle);
+				rotateClockwiseWithAngle(fDeltaAngle / 2);
 
 			vectZero.x = g_vector.x;
 			vectZero.y = g_vector.y;
@@ -1214,9 +1203,9 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 			{
 				runForwardWithDistance(fDistanceToDestinate / (-2));
 
-				// response done
-				RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
-				sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+//				// response done
+//				RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+//				sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
 
 				break; //TODO: fix to run reserved
 			}
@@ -1225,7 +1214,7 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 			vectDiff.y = g_vector.y - vectZero.y;
 			fGramaAngle = calculateRobotAngleWithXAxis(vectDiff);
 
-			fCompareAngle = g_fRobotOrientedAngle + 2 * fDeltaAngle;
+			fCompareAngle = g_fRobotOrientedAngle + fDeltaAngle;
 
 			if(fGramaAngle <= (fCompareAngle + fAngleOffer) && (fGramaAngle >= (fCompareAngle - fAngleOffer)))
 			{
@@ -1234,21 +1223,21 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 				{
 					runForwardWithDistance(fDistanceToDestinate / (-2));
 
-					// response done
-					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
-					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+//					// response done
+//					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+//					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
 
 					break; //TODO: fix to run reserved
 				}
 
 				if (g_bIsCounterClockwiseOriented) // SAME
 				{
-					rotateClockwiseWithAngle(fDeltaAngle);
+					rotateClockwiseWithAngle(fDeltaAngle / 2);
 					g_bIsCounterClockwiseOriented = false; // DIFF
 				}
 				else // DIFF
 				{
-					rotateClockwiseWithAngle(MATH_PI_MUL_2 - fDeltaAngle);
+					rotateClockwiseWithAngle(fDeltaAngle / (-2));
 					g_bIsCounterClockwiseOriented = true; // SAME
 				}
 			}
@@ -1272,9 +1261,9 @@ void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and th
 
 				if (fDistanceToDestinate < fStopCondition)
 				{
-					// response done
-					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
-					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
+//					// response done
+//					RF24_TX_buffer[0] = ROBOT_REPONSE_MOVE_COMPLETED;
+//					sendMessageToOneNeighbor(g_ui32OriginID, RF24_TX_buffer, 1);
 					break;
 				}
 			}
