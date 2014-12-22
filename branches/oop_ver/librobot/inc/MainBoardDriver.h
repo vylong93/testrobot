@@ -1,6 +1,11 @@
 #ifndef MAIN_BOARD_DRIVERS_H
 #define MAIN_BOARD_DRIVERS_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "libnrf24l01/inc/nRF24L01.h"
 
 #include "arm_math.h"
@@ -549,5 +554,8 @@ void goBackward();
 //-----------------------------------Smart-phone Control functions
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MAIN_BOARD_DRIVERS_H */

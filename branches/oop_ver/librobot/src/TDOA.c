@@ -155,7 +155,7 @@ void TDOA_find3LocalPeaks(float32_t *myData, float32_t* LocalPeaksStoragePointer
 }
 
 uint32_t TDOA_reachBottom(float32_t *myData, uint32_t const PeakPosition,
-		uint32_t const PointerIncreaseNumber)
+		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
 	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
@@ -175,7 +175,7 @@ uint32_t TDOA_reachBottom(float32_t *myData, uint32_t const PeakPosition,
 }
 
 uint32_t TDOA_reachPeak(float32_t *myData, uint32_t const PeakPosition,
-		uint32_t const PointerIncreaseNumber)
+		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
 	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)

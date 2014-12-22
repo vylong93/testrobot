@@ -33,6 +33,11 @@
 #ifndef _NRF24L01_H
 #define _NRF24L01_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #ifndef bool
 #define bool unsigned char
 #define true  1
@@ -545,5 +550,9 @@ unsigned char RF24_RETRANS_getLastRetransmits ();
 #define RF24_CHANNEL_123         123
 #define RF24_CHANNEL_124         124
 #define RF24_CHANNEL_125         125
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_NRF24L01_H

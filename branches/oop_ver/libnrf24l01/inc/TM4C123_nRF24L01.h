@@ -1,3 +1,11 @@
+#ifndef _TM4C123_NRF24L01_H
+#define _TM4C123_NRF24L01_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "inc/hw_memmap.h"
@@ -15,9 +23,6 @@
 #include "driverlib/systick.h"
 #include "driverlib/ssi.h"
 #include "libnrf24l01/inc/nRF24L01.h"
-
-#ifndef _TM4C123_NRF24L01_H
-#define _TM4C123_NRF24L01_H
 
 #define RF24_GLOBAL_BOARDCAST_BYTE2	0xBE
 #define RF24_GLOBAL_BOARDCAST_BYTE1	0xAD
@@ -89,5 +94,9 @@ char getCEState();
 void disableRF24Interrupt();
 
 void enableRF24Interrupt();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_TM4C123_NRF24L01_H
