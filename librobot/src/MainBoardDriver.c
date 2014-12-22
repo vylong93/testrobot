@@ -178,10 +178,12 @@ float vsqrtf(float op1)
 	if (op1 <= 0.f)
 		return 0.f;
 
-	float result;
-	__ASM
-	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
-	return (result);
+	return sqrtf(op1);
+
+//	float result;
+//	__ASM
+//	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+//	return (result);
 }
 
 float calSin(float x)
@@ -398,8 +400,8 @@ void initRobotProcess()
 	if (g_f32Intercept == 0xFFFFFFFF || g_f32Slope == 0xFFFFFFFF)
 	{
 		while(1);
-		g_f32Intercept = 8.5619f;
-		g_f32Slope = 3.046f;
+//		g_f32Intercept = 8.5619f;
+//		g_f32Slope = 3.046f;
 	}
 
 	g_eProcessState = IDLE;
@@ -896,7 +898,7 @@ void getHopOriginTableAndRotate(uint8_t RxData[])
 	float alphaJK;
 	float betaJI;
 	bool isNeedMirroring;
-	float correctionAngle;
+	float correctionAngle = 0;
 	int8_t tempValue;
 
 	g_ui32RotationHopID = (RxData[1] << 24) | (RxData[2] << 16) | (RxData[3] << 8) | RxData[4];

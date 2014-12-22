@@ -8,6 +8,11 @@
 #ifndef TDOA_H_
 #define TDOA_H_
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "librobot/inc/MainBoardDriver.h"
 
 #define FILTER_ORDER                    34
@@ -27,10 +32,10 @@ float32_t TDOA_getDistances(float32_t *myData, float32_t *peakEnvelope, float32_
 void TDOA_find3LocalPeaks(float32_t *myData, float32_t *LocalPeaksStoragePointer);
 
 uint32_t TDOA_reachBottom(float32_t *myData, uint32_t const PeakPosition,
-                uint32_t const PointerIncreaseNumber);
+                int32_t const PointerIncreaseNumber);
 
 uint32_t TDOA_reachPeak(float32_t *myData, uint32_t const PeakPosition,
-                uint32_t const PointerIncreaseNumber);
+                int32_t const PointerIncreaseNumber);
 
 void TDOA_interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t UserPosition,
                 float32_t UserMaxValue, float32_t const step, float32_t* ReturnPosition,
@@ -38,5 +43,9 @@ void TDOA_interPeak(float32_t* PositionsArray, float32_t* ValuesArray, float32_t
 
 float32_t TDOA_larange(float32_t *PositionsArray, float32_t *ValuesArray, float32_t interpolatePoint);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TDOA_H_ */
