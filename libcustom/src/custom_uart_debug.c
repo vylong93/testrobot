@@ -12,6 +12,7 @@ extern void UARTStdioConfig(uint32_t ui32PortNum, uint32_t ui32Baud, uint32_t ui
 
 void initUartDebug(void)
 {
+#ifdef DEBUG_UTILS
 	//
 	// Enable UART peripheral
 	//
@@ -34,23 +35,10 @@ void initUartDebug(void)
 	//
 	UARTClockSourceSet(UART_DEBUG_BASE, UART_CLOCK_PIOSC);
 
-#ifdef DEBUG_UTILS
 	//
 	// Initialize the UART0 for console I/O.
 	//
 	UARTStdioConfig(0, UART_DEBUG_BAUDRATE, 16000000);
-#else
-	//
-	// Initialize the UART0
-	//
-	UARTFIFOLevelSet(UART_DEBUG_BASE,UART_FIFO_TX1_8,UART_FIFO_RX1_8);
-    UARTConfigSetExpClk(UART_DEBUG_BASE, 16000000, UART_DEBUG_BAUDRATE,
-    	  (UART_CONFIG_PAR_NONE | UART_CONFIG_STOP_ONE | UART_CONFIG_WLEN_8));
-
-	//
-	// Enable UART
-	//
-	UARTEnable(UART_DEBUG_BASE);
 #endif
 }
 
