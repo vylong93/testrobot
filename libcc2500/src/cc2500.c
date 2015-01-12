@@ -354,7 +354,7 @@ extern char paTableLen = 1;
 // RF output power = 0 dBm
 // RX filterbandwidth = 540.000000 kHz
 // Deviation = 0.000000
-// Return state:  Return to RX state upon leaving either TX or RX
+// Return state:  Return to RX state upon leaving TX, Return to Idle state upon leaving RX
 // Datarate = 250.000000 kbps
 // Modulation = (7) MSK
 // Manchester enable = (0) Manchester disabled
@@ -367,22 +367,22 @@ extern char paTableLen = 1;
 // CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
 // Forward Error Correction = (1) FEC enabled
 // Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
+// Packetlength = 64
 // Preamble count = (2)  4 bytes
-// Append status = 1
+// Append status = 0
 // Address check = (0) No address check
 // FIFO autoflush = 0
 // Device address = 0
 // GDO0 signal selection = (06) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
-// GDO2 signal selection = (09) Clear Channel Assessment
+// GDO2 signal selection = (15) CRC OK
 void RfWriteSettings(void)
 {
     // Write register settings
-    RfWriteReg(TI_CCxxx0_IOCFG2,   0x09);  // GDO2 output pin config.
+    RfWriteReg(TI_CCxxx0_IOCFG2,   0x0F);  // GDO2 output pin config.
     RfWriteReg(TI_CCxxx0_IOCFG0,   0x06);  // GDO0 output pin config.
     RfWriteReg(TI_CCxxx0_PKTLEN,   TXPACKETLEN);  // Packet length.
-    RfWriteReg(TI_CCxxx0_PKTCTRL1, 0x04);  // Packet automation control.
-    RfWriteReg(TI_CCxxx0_PKTCTRL0, 0x05);  // Packet automation control.
+    RfWriteReg(TI_CCxxx0_PKTCTRL1, 0x00);  // Packet automation control.
+    RfWriteReg(TI_CCxxx0_PKTCTRL0, 0x0D);  // Packet automation control.
     RfWriteReg(TI_CCxxx0_ADDR,     0x01);  // Device address.
     RfWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
     RfWriteReg(TI_CCxxx0_FSCTRL1,  0x12); // Freq synthesizer control.
@@ -416,7 +416,7 @@ void RfWriteSettings(void)
     RfWriteReg(TI_CCxxx0_MCSM2,    0x00); // MainRadio Cntrl State Machine
 #endif /* _SWOR */
     // RXOFF_MODE=01b (RX->FSTXON: 9.6 us), TXOFF_MODE=00b (TX->IDLE, no FS calib: 0.1 us).
-    RfWriteReg(TI_CCxxx0_MCSM1,    0x3F); // MainRadio Cntrl State Machine
+    RfWriteReg(TI_CCxxx0_MCSM1,    0x33); // MainRadio Cntrl State Machine
     RfWriteReg(TI_CCxxx0_MCSM0,    0x18); // MainRadio Cntrl State Machine
     RfWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
     RfWriteReg(TI_CCxxx0_BSCFG,    0x1C); // Bit synchronization config.
@@ -436,7 +436,7 @@ void RfWriteSettings(void)
 }
 
 // PATABLE (0 dBm output power)
-extern uint8_t paTable[] = {0xFB};
+extern uint8_t paTable[] = {0xFB}; // Table 31 - Page 47 of 89
 extern uint8_t paTableLen = 1;
 
 #endif
@@ -472,9 +472,9 @@ bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
   bool bCurrentInterruptStage = TI_CC_GetInterruptState();
   TI_CC_DisableInterrupt();
 
-  RfWaitForChannelIsClear();
-
   //TODO: use Tx-if-CCA instead and return true if Tx success
+//  while((TI_CC_Strobe(TI_CCxxx0_STX) & TI_CCxxx0_STATE_MASK) != TI_CCxxx0_STATE_TX);
+
   TI_CC_Strobe(TI_CCxxx0_SIDLE);
   RfWriteBurstReg(TI_CCxxx0_TXFIFO, txBuffer, size); // Write TX data
 
@@ -525,47 +525,58 @@ bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
 //-----------------------------------------------------------------------------
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 {
-  uint8_t status[TI_CCxxx0_NUMSTATUSBYTES];
-  
-  if ((RfReadReg(TI_CCxxx0_RXBYTES) & TI_CCxxx0_NUM_RXBYTES))
+//  uint8_t status[TI_CCxxx0_NUMSTATUSBYTES];
+
+  if(TI_CC_IsCRCOK())
   {
-    // Use the appropriate library function to read the first byte in the
-    // RX FIFO, which is the length of the packet (the total remaining bytes
-    // in this packet after reading this byte).  
-    // Hint:  how many bytes are being retrieved?  One or multiple?  
-	rxBuffer[0] = RfReadReg(TI_CCxxx0_RXFIFO);
+	  if ((RfReadReg(TI_CCxxx0_RXBYTES) & TI_CCxxx0_NUM_RXBYTES))
+	  {
+		// Use the appropriate library function to read the first byte in the
+		// RX FIFO, which is the length of the packet (the total remaining bytes
+		// in this packet after reading this byte).
+		// Hint:  how many bytes are being retrieved?  One or multiple?
+		rxBuffer[0] = RfReadReg(TI_CCxxx0_RXFIFO);
 
-    // Use the appropriate library function to read the rest of the packet into
-    // rxBuffer (i.e., read pktLen bytes out of the FIFO)
-    // Hint:  how many bytes are being retrieved?  One or multiple?  
-    RfReadBurstReg(TI_CCxxx0_RXFIFO, &rxBuffer[1], rxBuffer[0]); // Pull data
+		// Use the appropriate library function to read the rest of the packet into
+		// rxBuffer (i.e., read pktLen bytes out of the FIFO)
+		// Hint:  how many bytes are being retrieved?  One or multiple?
+		RfReadBurstReg(TI_CCxxx0_RXFIFO, &rxBuffer[1], rxBuffer[0]); // Pull data
 
-    // Our initialization code configured this CC1100 to append two status
-    // bytes to the end of the received packets.  These bytes are still in the
-    // FIFO.  Use the appropriate library function to read these two bytes into
-    // the status array
-    // status[0] = RSSI[7:0]
-    // status[1] = CRC[7] & LQI[6:0]
-    RfReadBurstReg(TI_CCxxx0_RXFIFO, status, TI_CCxxx0_NUMSTATUSBYTES);
+//		// Our initialization code configured this CC1100 to append two status
+//		// bytes to the end of the received packets.  These bytes are still in the
+//		// FIFO.  Use the appropriate library function to read these two bytes into
+//		// the status array
+//		// status[0] = RSSI[7:0]
+//		// status[1] = CRC[7] & LQI[6:0]
+//		RfReadBurstReg(TI_CCxxx0_RXFIFO, status, TI_CCxxx0_NUMSTATUSBYTES);
 
-    if (status[TI_CCxxx0_LQI_RX] & TI_CCxxx0_CRC_OK)
-    {
-    	return RX_STATUS_SUCCESS;
-    }
-    else
-    {
-
-//    	turnOnLED(LED_ALL);
-//		TI_CC_Wait(10000);
-//		turnOffLED(LED_ALL);
-		RfFlushRxFifo();
-		return RX_STATUS_CRC_ERROR;
-    }
+//		if (status[TI_CCxxx0_LQI_RX] & TI_CCxxx0_CRC_OK)
+//		{
+			TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+			return RX_STATUS_SUCCESS;
+//		}
+//		else
+//		{
+//
+//	//    	turnOnLED(LED_ALL);
+//	//		TI_CC_Wait(10000);
+//	//		turnOffLED(LED_ALL);
+//
+//			RfFlushRxFifo();
+//			return RX_STATUS_CRC_ERROR;
+//		}
+	  }
+	  else
+	  {
+		  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+		  return RX_STATUS_FAILED;
+	  }
   }
-  else
-  {
-	  return RX_STATUS_FAILED;
-  }
+
+	RfFlushRxFifo();
+	TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+	return RX_STATUS_CRC_ERROR;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -892,32 +903,5 @@ void RfFlushRxFifo(void)
 	TI_CC_Strobe(TI_CCxxx0_SFRX);          // Flush the RX FIFO
 }
 
-//----------------------------------------------------------------------------
-//  bool RfWaitForChannelIsClear(void)
-//
-//  DESCRIPTION:
-//	This function will spin until channel is clear
-//----------------------------------------------------------------------------
-void RfWaitForChannelIsClear(void)
-{
-  uint8_t channelClearCount = 0;
-
-  while(true)
-  {
-	if(TI_CC_IsChannelClear())
-	{
-		channelClearCount++;
-		if(channelClearCount > 3)
-			break;
-	}
-	else
-	{
-		TI_CC_Strobe(TI_CCxxx0_SIDLE);	// Reset CCA
-		TI_CC_Strobe(TI_CCxxx0_SRX);    // Initialize CCxxxx in RX mode.
-		channelClearCount = 0;
-		TI_CC_Wait(1000);
-	}
-  }
-}
 
 

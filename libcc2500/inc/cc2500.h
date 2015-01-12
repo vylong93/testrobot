@@ -115,6 +115,10 @@ extern "C"
 #define TI_CCxxx0_NUMSTATUSBYTES  2        // Number of status bytes appended to each packet
 #define TI_CCxxx0_CRC_OK       0x80        // Mask "CRC_OK" bit within LQI byte
 
+// Masks for chip status byte
+#define TI_CCxxx0_STATE_MASK	0x70
+#define TI_CCxxx0_STATE_TX		0x20
+
 // Definitions to support burst/single access:
 #define TI_CCxxx0_WRITE_BURST  0x40
 #define TI_CCxxx0_READ_SINGLE  0x80
@@ -122,13 +126,8 @@ extern "C"
 
 // Transmission Parameters
 #define TXBUFFERSIZE         64 // Size of buffer to store Tx & Rx FIFO data
-#define TXPACKETLEN          61 // Number of Tx bytes to send in a single data transmission
+#define TXPACKETLEN  		 TXBUFFERSIZE // Number of Tx bytes to send in a single data transmission
 #define RFNUMCHANS            4 // Number of channels in frequency hop table
-
-//// RfRecieved return type
-//#define RX_STATUS_SUCCESS	   0x01
-//#define RX_STATUS_FAILED	   0x00
-//#define RX_STATUS_CRC_ERROR	   0xFF
 
 typedef enum
 {
@@ -160,8 +159,6 @@ void RfSetIdleMode(void);
 void RfSetRxMode();
 void RfFlushTxFifo();
 void RfFlushRxFifo();
-void RfWaitForChannelIsClear(void);
-
 
 #ifdef __cplusplus
 }

@@ -301,17 +301,17 @@ void TI_CC_ClearPending(void)
 }
 
 //----------------------------------------------------------------------------
-//  bool TI_CC_IsChannelClear(void)
+//  bool TI_CC_IsCRCOK(void)
 //
 //  DESCRIPTION:
-//	get CCA status form CCxxx0 at GDO2 pin
+//	get CRC return flag from CCxxx0 at GDO2 pin
 //
 //  RETURN VALUE:
 //      bool
-//			true: channel is clear
-//			false: channel busy
+//			true: CRC OK
+//			false: CRC ERROR
 //----------------------------------------------------------------------------
-bool TI_CC_IsChannelClear(void)
+bool TI_CC_IsCRCOK(void)
 {
 	return (GPIOPinRead(CC2500_INT_PORT, CC2500_CCA_Pin) == CC2500_CCA_Pin);
 }

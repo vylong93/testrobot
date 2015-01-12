@@ -55,7 +55,7 @@ void TI_CC_ClearPending(void);
 bool TI_CC_GetInterruptState(void);
 bool TI_CC_IsInterruptPinAsserted(void);
 
-bool TI_CC_IsChannelClear(void);
+bool TI_CC_IsCRCOK(void);
 
 char TI_CC_Strobe(char strobe);
 
