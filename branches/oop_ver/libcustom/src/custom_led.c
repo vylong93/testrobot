@@ -10,10 +10,10 @@
 void initLeds(void)
 {
 	// Init status led port
-	SysCtlPeripheralEnable(LED_PORT_CLOCK);
-	SysCtlDelay(2);
+	ROM_SysCtlPeripheralEnable(LED_PORT_CLOCK);
+	ROM_SysCtlDelay(2);
 
-	GPIOPinTypeGPIOOutput(LED_PORT_BASE, LED_ALL);
+	ROM_GPIOPinTypeGPIOOutput(LED_PORT_BASE, LED_ALL);
 }
 
 void turnOnLED(uint8_t LEDpin)

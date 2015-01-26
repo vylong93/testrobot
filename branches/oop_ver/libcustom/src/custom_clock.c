@@ -9,12 +9,18 @@
 
 void initSysClock(void)
 {
-	FPUEnable();
-	FPULazyStackingEnable();
+	ROM_FPUEnable();
+	ROM_FPULazyStackingEnable();
 
-	// External Crystal 16MHz source for PLL (400MHz/2)/4 = 50MHz sysclk
-	SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+	//
+	// Set the system clock to run at 50Mhz off PLL with external crystal as
+	// reference.
+	//
+	ROM_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 
-	//SysCtlClockSet(SYSCTL_SYSDIV_5 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-
+	//
+	// Set the system clock to run at 50Mhz off PLL with internal POSC
+	// reference.
+	//
+//	SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_INT);  // 50MHz
 }

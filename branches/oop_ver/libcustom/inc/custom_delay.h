@@ -18,6 +18,7 @@ extern "C"
 #include <stdarg.h>
 #include "inc/hw_memmap.h"
 #include "inc/hw_timer.h"
+#include "driverlib/rom.h"
 #include "driverlib/timer.h"
 #include "driverlib/sysctl.h"
 
@@ -27,8 +28,8 @@ typedef enum {
 } delayunit_t;
 
 // Non-Interrtup Timer
-#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER1
-#define DELAY_TIMER_BASE_NON_INT	WTIMER1_BASE
+#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER0
+#define DELAY_TIMER_BASE_NON_INT	WTIMER0_BASE
 
 //*****************************************************************************
 //

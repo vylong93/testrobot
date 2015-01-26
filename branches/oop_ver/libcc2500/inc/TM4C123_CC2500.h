@@ -34,7 +34,7 @@ extern "C"
 
 #define CC2500_SPI_CLOCK          SYSCTL_PERIPH_SSI0
 #define CC2500_SPI                SSI0_BASE
-#define CC2500_SPI_BAUDRATE       2000000
+#define CC2500_SPI_BAUDRATE       8000000
 
 inline void TI_CC_SetCSN();
 inline void TI_CC_ClearCSN();
