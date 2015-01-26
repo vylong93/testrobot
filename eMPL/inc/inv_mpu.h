@@ -41,6 +41,7 @@
  * fabsf(float x)
  * min(int a, int b)
  */
+#include "libcustom\inc\custom_delay.h"
 #include "libcustom\inc\custom_i2c.h"
 #include "libcustom\inc\custom_uart_debug.h"
 

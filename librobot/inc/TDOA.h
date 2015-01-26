@@ -23,7 +23,7 @@ extern "C"
 #define MAX_THRESHOLD					50
 #define MAX_SAMPLE_POSITION				215
 
-inline void TDOA_initFilters(float32_t* FilterCoeffs);
+inline void TDOA_initFilters();
 
 void TDOA_run(void);
 

@@ -14,7 +14,7 @@
 
 static uint32_t g_ui32SelfAddress = 0x00BD5A01;		//TODO: load EEPROM value instead of hardcode
 static uint8_t g_ui8LastTxPID = 0;
-static e_NetworkStage g_eCurrentStage = STAGE_IDLE;
+static e_NetworkState g_eCurrentState = STATE_IDLE;
 
 static uint8_t g_ui8LastRxPID = 0;
 static uint16_t g_ui16LastRxChecksum = 0x0000;
@@ -29,39 +29,39 @@ static uint16_t g_ui16LastRxChecksum = 0x0000;
 //{
 //	ui32SelfAddress = 0x00BD5A01;	//TODO: load EEPROM value instead of hardcode
 //	ui8LastUsedPID = 0;				//TODO: generate random PID instead of hardcode
-//	eCurrentStage = Network::STAGE_IDLE;
+//	eCurrentState = Network::STATE_IDLE;
 //}
 
 //-----------------------------------------------------------------------------
-//  void Network::changeStage(Network::e_NetworkStage newStage)
+//  void Network::changeState(Network::e_NetworkState newState)
 //
 //  DESCRIPTION:
-//  This function set current network stage to newStage.
+//  This function set current network state to newState.
 //
 //  ARGUMENTS:
-//      Network::e_NetworkStage newStage
-//          New network protocol stage
+//      Network::e_NetworkState newState
+//          New network protocol state
 //-----------------------------------------------------------------------------
-void Network_changeStage(e_NetworkStage newStage)
+void Network_changeState(e_NetworkState newState)
 {
-	g_eCurrentStage = newStage;
+	g_eCurrentState = newState;
 }
 
 //-----------------------------------------------------------------------------
-//  Network::e_NetworkStage Network::getStage()
+//  Network::e_NetworkState Network::getState()
 //
 //  DESCRIPTION:
-//  This function return current network stage.
+//  This function return current network state.
 //
 //  RETURN VALUE:
-//      Network::e_NetworkStage
-//			STAGE_IDLE				: The protocol is free
-//			STAGE_WAIT_FOR_DATA 	: The protocol is waitting for new packet
-//			STAGE_DATA_AVAILABLE 	: The protocol is fully received a message.
+//      Network::e_NetworkState
+//			STATE_IDLE				: The protocol is free
+//			STATE_WAIT_FOR_DATA 	: The protocol is waitting for new packet
+//			STATE_DATA_AVAILABLE 	: The protocol is fully received a message.
 //-----------------------------------------------------------------------------
-e_NetworkStage Network_getStage()
+e_NetworkState Network_getState()
 {
-	return g_eCurrentStage;
+	return g_eCurrentState;
 }
 
 //-----------------------------------------------------------------------------
@@ -245,6 +245,7 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 	uint8_t ui8PacketSize;
 	uint32_t ui32MessagePointer = 0;
 	int32_t i32RemainMessSize = ui32MessSize;
+	uint16_t ui16Checksum;
 
 	// Create packet holder
 	uint8_t pui8TxBuffer[RF_PACKET_LENGTH] = {0};
@@ -258,12 +259,12 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 	header.ui32DestinationAddress = ui32DestAddr;
 	if (ui32MessSize > RF_DATA_LENGTH)
 	{
-		header.ui8Length = RF_PACKET_LENGTH - 1;
+		header.ui8Length = (RF_PACKET_LENGTH - 1);
 		header.status.ePacketType = PACKET_FIRST;
 	}
 	else
 	{
-		header.ui8Length = ui32MessSize + RF_HEADER_LENGTH - 1 + RF_MESSAGE_SIZE_LENGTH;
+		header.ui8Length = ui32MessSize + (RF_HEADER_LENGTH - 1);
 		header.status.ePacketType = PACKET_SINGLE;
 	}
 	Network_setLastTxPID(Network_generateNextPID(Network_getLastTxPID()));
@@ -283,8 +284,7 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 		}
 
 		// Fill message
-		if(header.status.ePacketType == PACKET_SINGLE ||
-				header.status.ePacketType == PACKET_FIRST)
+		if(header.status.ePacketType == PACKET_FIRST)
 		{
 			// Fill message size only for Sigle/First packet
 			parse32bitTo4Bytes(&pui8TxBuffer[RF_HEADER_LENGTH], ui32MessSize);
@@ -296,7 +296,7 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 				ui8PacketSize++;
 			}
 		}
-		else
+		else // Single, middle, last packet
 		{
 			ui8PacketSize = RF_HEADER_LENGTH;
 			for(i = 0; i < i32RemainMessSize && ui8PacketSize < RF_PACKET_LENGTH; i++)
@@ -309,9 +309,10 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 		i32RemainMessSize = (i32RemainMessSize < 0) ? (0) : (i32RemainMessSize);
 
 		// Generate checksum
+		ui16Checksum = 0;
 		for(i = 0; i < ui8PacketSize; i++)
-			header.ui16Checksum += pui8TxBuffer[i];
-		header.ui16Checksum = ~(header.ui16Checksum) + 1;
+			ui16Checksum += pui8TxBuffer[i];
+		header.ui16Checksum = ~(ui16Checksum) + 1;
 
 		// Refill checksum at header
 		pui8TxBuffer[RF_HEADER_CHECKSUM_LOW] = (uint8_t)(header.ui16Checksum);
@@ -383,7 +384,7 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 				}
 				else
 				{
-					header.ui8Length = i32RemainMessSize + RF_HEADER_LENGTH - 1;
+					header.ui8Length = i32RemainMessSize + (RF_HEADER_LENGTH - 1);
 					header.status.ePacketType = PACKET_LAST;
 				}
 				Network_setLastTxPID(Network_generateNextPID(Network_getLastTxPID()));
@@ -464,6 +465,7 @@ bool Network_receivedMessage(uint8_t** ppui8MessBuffer, uint32_t* pui32MessSize)
 	// Packet manipulation variables
 	Header* pRxHeader = 0;
 	e_RxStatus eRxStatus;
+	uint8_t ui8DataStartIndex;
 
 	// Message manipulation variables
 	uint32_t ui32MessSize;
@@ -485,16 +487,28 @@ bool Network_receivedMessage(uint8_t** ppui8MessBuffer, uint32_t* pui32MessSize)
 			if(pRxHeader->status.ePacketType == PACKET_SINGLE || pRxHeader->status.ePacketType == PACKET_FIRST)
 			{
 				// Get message size
-				ui32MessSize = construct4Byte(&pui8RxBuffer[RF_DATA_START_INDEX]);
+				if(pRxHeader->status.ePacketType == PACKET_FIRST)
+				{
+					ui32MessSize = construct4Byte(&pui8RxBuffer[RF_DATA_START_INDEX]);
+					ui32ReceivedSize = pRxHeader->ui8Length - (RF_HEADER_LENGTH - 1) - RF_MESSAGE_SIZE_LENGTH;
+
+					ui8DataStartIndex = RF_MESSAGE_SIZE_LENGTH + RF_DATA_START_INDEX;
+				}
+				else // Single
+				{
+					ui32MessSize = pui8RxBuffer[RF_HEADER_LEN] - (RF_HEADER_LENGTH - 1);
+					ui32ReceivedSize = pRxHeader->ui8Length - (RF_HEADER_LENGTH - 1);
+
+					ui8DataStartIndex = RF_DATA_START_INDEX;
+				}
 
 				// Allocated message buffer space
 				(*ppui8MessBuffer) = new uint8_t[ui32MessSize];
 
 				// Fill message content
-				ui32ReceivedSize = pRxHeader->ui8Length - (RF_HEADER_LENGTH - 1) - RF_MESSAGE_SIZE_LENGTH;
 				for(i = 0; i < ui32ReceivedSize; i++)
 				{
-					(*ppui8MessBuffer)[ui32MessPointer++] = pui8RxBuffer[i + RF_MESSAGE_SIZE_LENGTH + RF_DATA_START_INDEX];
+					(*ppui8MessBuffer)[ui32MessPointer++] = pui8RxBuffer[i + ui8DataStartIndex];
 				}
 
 				// Signel or multi packet process
@@ -692,6 +706,7 @@ void Network_sendACK(Header RxHeader)
 {
 	uint8_t i;
 	Header AckHeader;
+	uint16_t ui16Checksum;
 
 	// Construct Ack packet header
 	AckHeader.ui8Length = ACK_PACKET_LENGTH - 1;
@@ -703,15 +718,21 @@ void Network_sendACK(Header RxHeader)
 	AckHeader.ui16Checksum = RF_CHECKSUM_PREOFFSET;
 
 	// Generate checksum
+	ui16Checksum = 0;
 	for(i = 0; i < ACK_PACKET_LENGTH; i++)
-		AckHeader.ui16Checksum += *((uint8_t*)(&AckHeader) + i);
-	AckHeader.ui16Checksum = ~(AckHeader.ui16Checksum) + 1;
+		ui16Checksum += *((uint8_t*)(&AckHeader) + i);
+	AckHeader.ui16Checksum = ~(ui16Checksum) + 1;
 
 	// Delay before transmit ACK
 	delay_us(ACK_PACKET_DELAY_USEC);
 
 	// Transmit ack packet
 	RfSendPacket((uint8_t*)(&AckHeader), ACK_PACKET_LENGTH);
+}
+
+void Network_deleteBuffer(uint8_t *pui8Buff)
+{
+	delete[] pui8Buff;
 }
 
 #endif /* NETWORK_CPP_ */

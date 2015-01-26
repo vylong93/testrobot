@@ -46,7 +46,7 @@ extern void TI_CC_IRQ_handler();
 //----------------------------------------------------------------------------
 inline void TI_CC_SetCSN()
 {
-  GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, CC2500_CSN);
+	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, CC2500_CSN);
 }
 
 //----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ inline void TI_CC_SetCSN()
 //----------------------------------------------------------------------------
 inline void TI_CC_ClearCSN()
 {
-  GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, 0);
+	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, 0);
 }
 
 //----------------------------------------------------------------------------
@@ -70,52 +70,52 @@ inline void TI_CC_ClearCSN()
 void TI_CC_Setup()
 {
   // Enable the ports used by the RF board
-  SysCtlPeripheralEnable(CC2500_SPI_PORT_CLOCK);
+  ROM_SysCtlPeripheralEnable(CC2500_SPI_PORT_CLOCK);
   TI_CC_Wait(1);
 
   if(CC2500_SPI_PORT_CLOCK != CC2500_INT_PORT_CLOCK)
   {
-	SysCtlPeripheralEnable(CC2500_INT_PORT_CLOCK);
+	ROM_SysCtlPeripheralEnable(CC2500_INT_PORT_CLOCK);
 	TI_CC_Wait(1);
   }
 
   // Enable the SSI module used by the RF board
-  SysCtlPeripheralEnable(CC2500_SPI_CLOCK);
+  ROM_SysCtlPeripheralEnable(CC2500_SPI_CLOCK);
   TI_CC_Wait(3);
 
   // Disable the SSI to config
-  SSIDisable(CC2500_SPI);
+  ROM_SSIDisable(CC2500_SPI);
   TI_CC_Wait(2);
 
   // Connect mux pins to the targeted SSI module
-  GPIOPinConfigure(CC2500_SCK_CONFIGURE);
-  GPIOPinConfigure(CC2500_MISO_CONFIGURE);
-  GPIOPinConfigure(CC2500_MOSI_CONFIGURE);
+  ROM_GPIOPinConfigure(CC2500_SCK_CONFIGURE);
+  ROM_GPIOPinConfigure(CC2500_MISO_CONFIGURE);
+  ROM_GPIOPinConfigure(CC2500_MOSI_CONFIGURE);
 
   // Cofigure SSI pins
-  GPIOPinTypeSSI(CC2500_SPI_PORT, CC2500_SCK | CC2500_MISO | CC2500_MOSI);
+  ROM_GPIOPinTypeSSI(CC2500_SPI_PORT, CC2500_SCK | CC2500_MISO | CC2500_MOSI);
 
   // Configure the SSI port for SPI master mode.
-  SSIConfigSetExpClk(CC2500_SPI, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, CC2500_SPI_BAUDRATE, 8);
+  ROM_SSIConfigSetExpClk(CC2500_SPI, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, CC2500_SPI_BAUDRATE, 8);
 
   // Configure the interrupt pin as input
-  GPIOPinTypeGPIOInput(CC2500_INT_PORT, CC2500_INT_Pin);
+  ROM_GPIOPinTypeGPIOInput(CC2500_INT_PORT, CC2500_INT_Pin);
 
   // Configure GDO2
-  GPIOPinTypeGPIOInput(CC2500_INT_PORT, CC2500_CCA_Pin);
+  ROM_GPIOPinTypeGPIOInput(CC2500_INT_PORT, CC2500_CCA_Pin);
 
   // We use soft SPI
-  GPIOPinTypeGPIOOutput(CC2500_SPI_PORT, CC2500_CSN);
+  ROM_GPIOPinTypeGPIOOutput(CC2500_SPI_PORT, CC2500_CSN);
 
   // Clear interrupt flag
   GPIOIntClear(CC2500_INT_PORT, CC2500_INT_Pin);
 
   // Enable the SSI module.
-  SSIEnable(CC2500_SPI);
+  ROM_SSIEnable(CC2500_SPI);
 
   uint32_t dataRx;
   // Read any residual data from the SSI port.
-  while(SSIDataGetNonBlocking(CC2500_SPI, &dataRx))
+  while(ROM_SSIDataGetNonBlocking(CC2500_SPI, &dataRx))
   {
   }
 }
@@ -140,10 +140,10 @@ void TI_CC_ConfigIRQPin(bool enable)
   if(enable)
   {
 	  // Set the type of interrupt
-	  GPIOIntTypeSet(CC2500_INT_PORT, CC2500_INT_Pin, GPIO_FALLING_EDGE);
+	  ROM_GPIOIntTypeSet(CC2500_INT_PORT, CC2500_INT_Pin, GPIO_FALLING_EDGE);
 
 	  // Set the interrupt priorities.
-	  IntPrioritySet(CC2500_INT, 0x00);
+	  ROM_IntPrioritySet(CC2500_INT, 0x00);
 
 	  // Register IRQ function handler
 	  IntRegister(CC2500_INT, TI_CC_IRQ_handler);
@@ -152,7 +152,7 @@ void TI_CC_ConfigIRQPin(bool enable)
 	  GPIOIntEnable(CC2500_INT_PORT, CC2500_INT_Channel);
 
 	  // Clear pending interrupt request
-	  IntPendClear(CC2500_INT);
+	  ROM_IntPendClear(CC2500_INT);
 
 	  // Enable the interrupts.
 	  TI_CC_EnableInterrupt();
@@ -177,9 +177,9 @@ void TI_CC_ConfigIRQPin(bool enable)
 //----------------------------------------------------------------------------
 char TI_CC_SendAndGetData(char inData)
 {
-    SSIDataPut(CC2500_SPI, (uint32_t)inData);
+	ROM_SSIDataPut(CC2500_SPI, (uint32_t)inData);
     uint32_t outData;
-    SSIDataGet(CC2500_SPI, &outData);
+    ROM_SSIDataGet(CC2500_SPI, &outData);
     return (char)outData;
 }
 
@@ -196,7 +196,7 @@ char TI_CC_SendAndGetData(char inData)
 //----------------------------------------------------------------------------
 void TI_CC_Wait(unsigned int cycles)
 {
-	SysCtlDelay((SysCtlClockGet() / (1000000 * 3)) * cycles);
+	ROM_SysCtlDelay((ROM_SysCtlClockGet() / (1000000 * 3)) * cycles);
 }
 
 //----------------------------------------------------------------------------
@@ -207,7 +207,7 @@ void TI_CC_Wait(unsigned int cycles)
 //----------------------------------------------------------------------------
 void TI_CC_WaitForCCxxxxReady(void)
 {
-	while (GPIOPinRead(CC2500_SPI_PORT, CC2500_MISO));	// Wait for CCxxxx ready
+	while (ROM_GPIOPinRead(CC2500_SPI_PORT, CC2500_MISO));	// Wait for CCxxxx ready
 }
 
 //----------------------------------------------------------------------------
@@ -218,7 +218,7 @@ void TI_CC_WaitForCCxxxxReady(void)
 //----------------------------------------------------------------------------
 void TI_CC_WaitForIntGoHigh(void)
 {
-	while (!GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to go hi -> sync TX'ed
+	while (!ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to go hi -> sync TX'ed
 }
 
 //----------------------------------------------------------------------------
@@ -229,7 +229,7 @@ void TI_CC_WaitForIntGoHigh(void)
 //----------------------------------------------------------------------------
 void TI_CC_WaitForIntGoLow(void)
 {
-	while (GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to clear -> end of pkt
+	while (ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to clear -> end of pkt
 }
 
 //----------------------------------------------------------------------------
@@ -240,7 +240,7 @@ void TI_CC_WaitForIntGoLow(void)
 //----------------------------------------------------------------------------
 void TI_CC_EnableInterrupt(void)
 {
-	IntEnable(CC2500_INT);
+	ROM_IntEnable(CC2500_INT);
 	g_bIsIntEnable = true;
 }
 
@@ -252,7 +252,7 @@ void TI_CC_EnableInterrupt(void)
 //----------------------------------------------------------------------------
 void TI_CC_DisableInterrupt(void)
 {
-	IntDisable(CC2500_INT);
+	ROM_IntDisable(CC2500_INT);
 	g_bIsIntEnable = false;
 }
 
@@ -297,7 +297,7 @@ void TI_CC_ClearIntFlag(void)
 //----------------------------------------------------------------------------
 void TI_CC_ClearPending(void)
 {
-	IntPendClear(CC2500_INT);
+	ROM_IntPendClear(CC2500_INT);
 }
 
 //----------------------------------------------------------------------------
@@ -313,7 +313,7 @@ void TI_CC_ClearPending(void)
 //----------------------------------------------------------------------------
 bool TI_CC_IsCRCOK(void)
 {
-	return (GPIOPinRead(CC2500_INT_PORT, CC2500_CCA_Pin) == CC2500_CCA_Pin);
+	return (ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_CCA_Pin) == CC2500_CCA_Pin);
 }
 
 //----------------------------------------------------------------------------

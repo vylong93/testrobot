@@ -1,9 +1,8 @@
 /*
- * network.h 
+ * network.h
  *
  *  Created on: Jan 4, 2015
  *      Author: VyLong
- *		Version: 1.0
  */
 
 #ifndef NETWORK_H_
@@ -53,7 +52,7 @@ extern "C"
 //
 //			<HeaderPointer> = (Network::Header*)buffer;
 //===============================================================
-//#define RF_HEADER_LEN					0
+#define RF_HEADER_LEN					0
 //#define RF_HEADER_STATUS				1	// (RF_HEADER_LEN + 1)
 #define RF_HEADER_CHECKSUM_LOW			2	// (RF_HEADER_STATUS + 1)
 #define RF_HEADER_CHECKSUM_HIGH			3	// (RF_HEADER_CHECKSUM_LOW + 1)
@@ -76,8 +75,14 @@ extern "C"
 
 #define RF_CHECKSUM_PREOFFSET	0x0000	// This value, should be zero, is add to the sum result before generate checksum
 
+//*****************************************************************************
+// Convert 4 bytes of an array to a 32-bit value
+// @param x: The converted byte array
+// @return : a 32-bit value.
+//*****************************************************************************
 #define construct4Byte(x)	((*x << 24) | (*(x+1) << 16) |	\
 							(*(x+2) << 8) | *(x+3))
+
 
 #define parse32bitTo4Bytes(x, y)	{*(x) = y >> 24; \
 									 *(x + 1) = y >> 16; \
@@ -91,12 +96,12 @@ extern "C"
 #define ACK_PACKET_LENGTH			RF_HEADER_LENGTH	// Ack response packet length, this packet not contain data field
 #define MULTIPACKET_TIMEOUT_USEC	10000	// Waiting for Middle/Last packet period in mircosecond
 
-typedef enum tag_NetworkStage
+typedef enum tag_NetworkState
 {
-	STAGE_IDLE,
-	STAGE_WAIT_FOR_DATA,
-	STAGE_DATA_AVAILABLE
-}e_NetworkStage;
+	STATE_IDLE,
+	STATE_WAIT_FOR_DATA,
+	STATE_DATA_AVAILABLE
+}e_NetworkState;
 
 typedef enum tag_HandShake
 {
@@ -143,8 +148,8 @@ typedef struct tag_Header {
 } Header;
 
 
-void Network_changeStage(e_NetworkStage stage);
-e_NetworkStage Network_getStage();
+void Network_changeState(e_NetworkState state);
+e_NetworkState Network_getState();
 
 void Network_setSelfAddress(uint32_t ui32Addr);
 uint32_t Network_getSelfAddress();
@@ -167,6 +172,8 @@ e_HandShakeReturn Network_isHandShakeProcessSuccess(Header** ppRxHeader, uint8_t
 bool Network_isNextPacket(uint8_t* pRxBuff, va_list argp);
 
 void Network_sendACK(Header RxHeader);
+
+void Network_deleteBuffer(uint8_t *pui8Buff);
 
 #ifdef __cplusplus
 }

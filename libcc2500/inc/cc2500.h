@@ -18,7 +18,7 @@ extern "C"
 #include <stdbool.h>
 #include <stdarg.h>
 
-#define TI_CCxxx0_COMMON_ADDRESS 0xA0
+#define TI_CCxxx0_COMMON_ADDRESS 0x00
 
 // Configuration Registers
 #define TI_CCxxx0_IOCFG2       0x00        // GDO2 output pin configuration
@@ -124,10 +124,30 @@ extern "C"
 #define TI_CCxxx0_READ_SINGLE  0x80
 #define TI_CCxxx0_READ_BURST   0xC0
 
+// PATABLE Tx power
+#define TI_CCxxx0_OUTPUT_POWER_1DB	0xFF	// 1 dBm
+#define TI_CCxxx0_OUTPUT_POWER_0DB	0xFB	// 0 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_2DB	0xBB	// -2 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_4DB	0xA9	// -4 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_6DB	0x7F	// -6 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_8DB	0x6E	// -8 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_10DB	0x97	// -10 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_12DB	0xC6	// -12 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_14DB	0x8D	// -14 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_16DB	0x55	// -16 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_18DB	0x93	// -18 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_20DB	0x46	// -20 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_22DB	0x81	// -22 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_24DB	0x84	// -24 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_26DB	0xC0	// -26 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_28DB	0x44	// -28 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_30DB	0x50	// -30 dBm
+#define TI_CCxxx0_OUTPUT_POWER_MINUS_55DB	0x00	// -55 dBm
+
 // Transmission Parameters
 #define TXBUFFERSIZE         64 // Size of buffer to store Tx & Rx FIFO data
 #define TXPACKETLEN  		 TXBUFFERSIZE // Number of Tx bytes to send in a single data transmission
-#define RFNUMCHANS            4 // Number of channels in frequency hop table
+#define RFNUMCHANS           5 // Number of channels in frequency hop table
 
 typedef enum
 {
@@ -153,7 +173,7 @@ void RfWriteReg(uint8_t addr, uint8_t value);
 void RfWriteBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count);
 
 // CCxxx0 Application methods
-void initRfModule(void);
+void initRfModule(bool isEnableInt);
 void RfSetChannel(uint8_t chanNum);
 void RfSetIdleMode(void);
 void RfSetRxMode();

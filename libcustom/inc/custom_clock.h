@@ -17,6 +17,7 @@ extern "C"
 #include <stdbool.h>
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
+#include "driverlib/rom.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/fpu.h"
 

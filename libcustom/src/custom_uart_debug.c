@@ -10,6 +10,11 @@
 
 extern void UARTStdioConfig(uint32_t ui32PortNum, uint32_t ui32Baud, uint32_t ui32SrcClock);
 
+//*****************************************************************************
+//
+// Configure the UART and its pins.  This must be called before UARTprintf().
+//
+//*****************************************************************************
 void initUartDebug(void)
 {
 #ifdef DEBUG_UTILS
@@ -39,6 +44,10 @@ void initUartDebug(void)
 	// Initialize the UART0 for console I/O.
 	//
 	UARTStdioConfig(0, UART_DEBUG_BAUDRATE, 16000000);
+
+	SysCtlDelay(SysCtlClockGet() / (3 * 1000)); // delay 1ms
+
+	DEBUG_PRINT("init UART DEBUG: OK\n");
 #endif
 }
 

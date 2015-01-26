@@ -14,328 +14,14 @@
 #include "libcc2500/inc/cc2500.h"
 #include "libcc2500/inc/TM4C123_CC2500.h"
 
-static uint8_t freqTab[RFNUMCHANS][3] = { {0xB1, 0x53, 0x5C},  // 2.4005 GHz
-                                   {0x13, 0x3B, 0x5D},  // 2.4240 GHz
-                                   {0x13, 0xBB, 0x5D},  // 2.4370 GHz
-                                   {0x76, 0x62, 0x5F},  // 2.4800 GHz
-                                  };
 
-#define TI_CC_RF_FREQ  2400  // 315, 433, 868, 915, 2400
-
-//-------------------------------------------------------------------------------------------------------
-//  void RfWriteSettings(void)
-//
-//  DESCRIPTION:
-//  Used to configure the CCxxxx registers.  There are five instances of this
-//  function, one for each available carrier frequency.  The instance compiled
-//  is chosen according to the system variable TI_CC_RF_FREQ, assigned within
-//  the header file "TI_CC_hardware_board.h".
-//
-//  ARGUMENTS:
-//      none
-//-------------------------------------------------------------------------------------------------------
-
-#if TI_CC_RF_FREQ == 315                          // 315 MHz
-// Product = CC1100
-// Crystal accuracy = 40 ppm
-// X-tal frequency = 26 MHz
-// RF output power = 0 dBm
-// RX filterbandwidth = 540.000000 kHz
-// Deviation = 0.000000
-// Return state:  Return to RX state upon leaving either TX or RX
-// Datarate = 250.000000 kbps
-// Modulation = (7) MSK
-// Manchester enable = (0) Manchester disabled
-// RF Frequency = 315.000000 MHz
-// Channel spacing = 199.951172 kHz
-// Channel number = 0
-// Optimization = Sensitivity
-// Sync mode = (3) 30/32 sync word bits detected
-// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
-// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (0) FEC disabled
-// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
-// Preamble count = (2)  4 bytes
-// Append status = 1
-// Address check = (1)  address check
-// FIFO autoflush = 0
-// Device address = 1
-// GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
-// GDO2 signal selection = (11) Serial Clock
-void RfWriteSettings(void)
-{
-    // Write register settings
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG2,   0x0B); // GDO2 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG0,   0x06); // GDO0 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTLEN,   0xFF); // Packet length.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL1, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL0, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_ADDR,     0x04); // Device address.
-    TI_CC_SPIWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL1,  0x0B); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ2,    0x0C); // Freq control word, high byte
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ1,    0x1D); // Freq control word, mid byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ0,    0x89); // Freq control word, low byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG2,  0x73); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG1,  0x22); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM1 ,   0x3F); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM0 ,   0x18); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compense. Config
-    TI_CC_SPIWriteReg(TI_CCxxx0_BSCFG,    0x1C); //  Bit synchronization config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL0, 0xB2); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
-}
-
-// PATABLE (0 dBm output power)
-extern char paTable[] = {0x51};
-extern char paTableLen = 1;
-
-#endif
+//uint8_t freqTab[RFNUMCHANS][3] = { {0xB1, 0x53, 0x5C},  // 2.4005 GHz
+//                                   {0x13, 0x3B, 0x5D},  // 2.4240 GHz
+//                                   {0x13, 0xBB, 0x5D},  // 2.4370 GHz
+//                                   {0x76, 0x62, 0x5F},  // 2.4800 GHz
+//                                  };
 
 
-#if TI_CC_RF_FREQ == 433                          // 433 MHz
-// Product = CC1100
-// Crystal accuracy = 40 ppm
-// X-tal frequency = 26 MHz
-// RF output power = 0 dBm
-// RX filterbandwidth = 540.000000 kHz
-// Deviation = 0.000000
-// Return state:  Return to RX state upon leaving either TX or RX
-// Datarate = 250.000000 kbps
-// Modulation = (7) MSK
-// Manchester enable = (0) Manchester disabled
-// RF Frequency = 433.000000 MHz
-// Channel spacing = 199.951172 kHz
-// Channel number = 0
-// Optimization = Sensitivity
-// Sync mode = (3) 30/32 sync word bits detected
-// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
-// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (0) FEC disabled
-// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
-// Preamble count = (2)  4 bytes
-// Append status = 1
-// Address check = (0) No address check
-// FIFO autoflush = 0
-// Device address = 0
-// GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
-// GDO2 signal selection = (11) Serial Clock
-void RfWriteSettings(void)
-{
-    // Write register settings
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG2,   0x0B); // GDO2 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG0,   0x06); // GDO0 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTLEN,   0xFF); // Packet length.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL1, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL0, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_ADDR,     0x01); // Device address.
-    TI_CC_SPIWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL1,  0x0B); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ2,    0x10); // Freq control word, high byte
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ1,    0xA7); // Freq control word, mid byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ0,    0x62); // Freq control word, low byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG2,  0x73); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG1,  0x22); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM1 ,   0x3F); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM0 ,   0x18); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
-    TI_CC_SPIWriteReg(TI_CCxxx0_BSCFG,    0x1C); //  Bit synchronization config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL0, 0xB2); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
-}
-
-// PATABLE (0 dBm output power)
-extern char paTable[] = {0x51};
-extern char paTableLen = 1;
-
-#endif
-
-
-#if TI_CC_RF_FREQ == 868                          // 868 MHz
-// Product = CC1100
-// Crystal accuracy = 40 ppm
-// X-tal frequency = 26 MHz
-// RF output power = 0 dBm
-// RX filterbandwidth = 540.000000 kHz
-// Deviation = 0.000000
-// Return state:  Return to RX state upon leaving either TX or RX
-// Datarate = 250.000000 kbps
-// Modulation = (7) MSK
-// Manchester enable = (0) Manchester disabled
-// RF Frequency = 868.000000 MHz
-// Channel spacing = 199.951172 kHz
-// Channel number = 0
-// Optimization = Sensitivity
-// Sync mode = (3) 30/32 sync word bits detected
-// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
-// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (0) FEC disabled
-// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
-// Preamble count = (2)  4 bytes
-// Append status = 1
-// Address check = (0) No address check
-// FIFO autoflush = 0
-// Device address = 0
-// GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
-// GDO2 signal selection = (11) Serial Clock
-void RfWriteSettings(void)
-{
-    // Write register settings
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG2,   0x0B); // GDO2 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG0,   0x06); // GDO0 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTLEN,   0xFF); // Packet length.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL1, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL0, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_ADDR,     0x06); // Device address.
-    TI_CC_SPIWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL1,  0x0A); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ2,    0x21); // Freq control word, high byte
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ1,    0x62); // Freq control word, mid byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ0,    0x76); // Freq control word, low byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG2,  0x73); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG1,  0x22); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM1 ,   0x3F); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM0 ,   0x18); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
-    TI_CC_SPIWriteReg(TI_CCxxx0_BSCFG,    0x1C); //  Bit synchronization config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL0, 0xB2); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
-}
-
-// PATABLE (0 dBm output power)
-extern char paTable[] = {0x60};
-extern char paTableLen = 1;
-
-#endif
-
-
-#if TI_CC_RF_FREQ == 915                          // 915 MHz
-// Product = CC1100
-// Crystal accuracy = 40 ppm
-// X-tal frequency = 26 MHz
-// RF output power = 0 dBm
-// RX filterbandwidth = 540.000000 kHz
-// Deviation = 0.000000
-// Return state:  Return to RX state upon leaving either TX or RX
-// Datarate = 250.000000 kbps
-// Modulation = (7) MSK
-// Manchester enable = (0) Manchester disabled
-// RF Frequency = 915.000000 MHz
-// Channel spacing = 199.951172 kHz
-// Channel number = 0
-// Optimization = Sensitivity
-// Sync mode = (3) 30/32 sync word bits detected
-// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
-// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (0) FEC disabled
-// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 255
-// Preamble count = (2)  4 bytes
-// Append status = 1
-// Address check = (0) No address check
-// FIFO autoflush = 0
-// Device address = 0
-// GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
-// GDO2 signal selection = (11) Serial Clock
-void RfWriteSettings(void)
-{
-    // Write register settings
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG2,   0x0B); // GDO2 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_IOCFG0,   0x06); // GDO0 output pin config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTLEN,   0xFF); // Packet length.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL1, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_PKTCTRL0, 0x05); // Packet automation control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_ADDR,     0x01); // Device address.
-    TI_CC_SPIWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL1,  0x0B); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ2,    0x23); // Freq control word, high byte
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ1,    0x31); // Freq control word, mid byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREQ0,    0x3B); // Freq control word, low byte.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG2,  0x73); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG1,  0x22); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM1 ,   0x3F); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_MCSM0 ,   0x18); //MainRadio Cntrl State Machine
-    TI_CC_SPIWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
-    TI_CC_SPIWriteReg(TI_CCxxx0_BSCFG,    0x1C); //  Bit synchronization config.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_AGCCTRL0, 0xB2); // AGC control.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
-    TI_CC_SPIWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
-}
-
-// PATABLE (0 dBm output power)
-extern char paTable[] = {0x50};
-extern char paTableLen = 1;
-
-#endif
-
-
-#if TI_CC_RF_FREQ == 2400                          // 2.4GHz
 //-----------------------------------------------------------------------------
 // void RfWriteSettings(void)
 //
@@ -352,22 +38,22 @@ extern char paTableLen = 1;
 // Crystal accuracy = 40 ppm
 // X-tal frequency = 26 MHz
 // RF output power = 0 dBm
-// RX filterbandwidth = 540.000000 kHz
+// RX filterbandwidth = 812.500000 kHz
 // Deviation = 0.000000
-// Return state:  Return to RX state upon leaving TX, Return to Idle state upon leaving RX
-// Datarate = 250.000000 kbps
+// Return state:  Return to Idle state upon leaving TX either RX
+// Datarate = 500.000000 kbps
 // Modulation = (7) MSK
 // Manchester enable = (0) Manchester disabled
-// RF Frequency = 2400.500000 MHz
+// RF Frequency = 2433.000000 MHz
 // Channel spacing = 199.950000 kHz
 // Channel number = 0
 // Optimization = Sensitivity
 // Sync mode = (3) 30/32 sync word bits detected
 // Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
 // CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
-// Forward Error Correction = (1) FEC enabled
+// Forward Error Correction = (0) FEC disabled
 // Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
-// Packetlength = 64
+// Packetlength = 255
 // Preamble count = (2)  4 bytes
 // Append status = 0
 // Address check = (0) No address check
@@ -380,20 +66,20 @@ void RfWriteSettings(void)
     // Write register settings
     RfWriteReg(TI_CCxxx0_IOCFG2,   0x0F);  // GDO2 output pin config.
     RfWriteReg(TI_CCxxx0_IOCFG0,   0x06);  // GDO0 output pin config.
-    RfWriteReg(TI_CCxxx0_PKTLEN,   TXPACKETLEN);  // Packet length.
+    RfWriteReg(TI_CCxxx0_PKTLEN,   0xFF);  // Packet length.
     RfWriteReg(TI_CCxxx0_PKTCTRL1, 0x00);  // Packet automation control.
-    RfWriteReg(TI_CCxxx0_PKTCTRL0, 0x0D);  // Packet automation control.
-    RfWriteReg(TI_CCxxx0_ADDR,     0x01);  // Device address.
+    RfWriteReg(TI_CCxxx0_PKTCTRL0, 0x0D);  // *Packet automation control.
+    RfWriteReg(TI_CCxxx0_ADDR,     0x00);  // Device address.
     RfWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
-    RfWriteReg(TI_CCxxx0_FSCTRL1,  0x12); // Freq synthesizer control.
+    RfWriteReg(TI_CCxxx0_FSCTRL1,  0x0C); // Freq synthesizer control.
     RfWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
-    RfWriteReg(TI_CCxxx0_FREQ2,    0x5C); // Freq control word, high byte
-    RfWriteReg(TI_CCxxx0_FREQ1,    0x53); // Freq control word, mid byte.
+    RfWriteReg(TI_CCxxx0_FREQ2,    0x5D); // Freq control word, high byte
+    RfWriteReg(TI_CCxxx0_FREQ1,    0x93); // Freq control word, mid byte.
     RfWriteReg(TI_CCxxx0_FREQ0,    0xB1); // Freq control word, low byte.
-    RfWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
+    RfWriteReg(TI_CCxxx0_MDMCFG4,  0x0E); // Modem configuration.
     RfWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
-    RfWriteReg(TI_CCxxx0_MDMCFG2,  0xF3); // Modem configuration.
-    RfWriteReg(TI_CCxxx0_MDMCFG1,  0xB2); // Modem configuration.
+    RfWriteReg(TI_CCxxx0_MDMCFG2,  0x73); // Modem configuration.
+    RfWriteReg(TI_CCxxx0_MDMCFG1,  0x42); // Modem configuration.
     RfWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
     RfWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
 #ifdef _SWOR
@@ -416,30 +102,85 @@ void RfWriteSettings(void)
     RfWriteReg(TI_CCxxx0_MCSM2,    0x00); // MainRadio Cntrl State Machine
 #endif /* _SWOR */
     // RXOFF_MODE=01b (RX->FSTXON: 9.6 us), TXOFF_MODE=00b (TX->IDLE, no FS calib: 0.1 us).
-    RfWriteReg(TI_CCxxx0_MCSM1,    0x33); // MainRadio Cntrl State Machine
+    RfWriteReg(TI_CCxxx0_MCSM1,    0x30); // MainRadio Cntrl State Machine
     RfWriteReg(TI_CCxxx0_MCSM0,    0x18); // MainRadio Cntrl State Machine
     RfWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
     RfWriteReg(TI_CCxxx0_BSCFG,    0x1C); // Bit synchronization config.
     RfWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
-    RfWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
-    RfWriteReg(TI_CCxxx0_AGCCTRL0, 0xB2); // AGC control.
+    RfWriteReg(TI_CCxxx0_AGCCTRL1, 0x40); // AGC control.
+    RfWriteReg(TI_CCxxx0_AGCCTRL0, 0xB0); // AGC control.
     RfWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
     RfWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
     RfWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
     RfWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
     RfWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
-    RfWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
+    RfWriteReg(TI_CCxxx0_FSCAL0,   0x19); // Frequency synthesizer cal.
     RfWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
     RfWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
     RfWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
     RfWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
+
+//    // Write register settings
+//    RfWriteReg(TI_CCxxx0_IOCFG2,   0x0F);  // GDO2 output pin config.
+//    RfWriteReg(TI_CCxxx0_IOCFG0,   0x06);  // GDO0 output pin config.
+//    RfWriteReg(TI_CCxxx0_PKTLEN,   0xFF);  // Packet length.
+//    RfWriteReg(TI_CCxxx0_PKTCTRL1, 0x00);  // Packet automation control.
+//    RfWriteReg(TI_CCxxx0_PKTCTRL0, 0x0D);  // *Packet automation control.
+//    RfWriteReg(TI_CCxxx0_ADDR,     0x00);  // Device address.
+//    RfWriteReg(TI_CCxxx0_CHANNR,   0x00); // Channel number.
+//    RfWriteReg(TI_CCxxx0_FSCTRL1,  0x12); // Freq synthesizer control.
+//    RfWriteReg(TI_CCxxx0_FSCTRL0,  0x00); // Freq synthesizer control.
+//    RfWriteReg(TI_CCxxx0_FREQ2,    0x5C); // Freq control word, high byte
+//    RfWriteReg(TI_CCxxx0_FREQ1,    0x53); // Freq control word, mid byte.
+//    RfWriteReg(TI_CCxxx0_FREQ0,    0xB1); // Freq control word, low byte.
+//    RfWriteReg(TI_CCxxx0_MDMCFG4,  0x2D); // Modem configuration.
+//    RfWriteReg(TI_CCxxx0_MDMCFG3,  0x3B); // Modem configuration.
+//    RfWriteReg(TI_CCxxx0_MDMCFG2,  0xF3); // Modem configuration.
+//    RfWriteReg(TI_CCxxx0_MDMCFG1,  0x22); // Modem configuration.
+//    RfWriteReg(TI_CCxxx0_MDMCFG0,  0xF8); // Modem configuration.
+//    RfWriteReg(TI_CCxxx0_DEVIATN,  0x00); // Modem dev (when FSK mod en)
+//#ifdef _SWOR
+//    // Set Event0 timeout = 300 ms (RX polling interval)
+//    // WOR_RES = 0
+//    // T_event0 = 750 / f_xosc * EVENT0 * 2^(5*WOR_RES) = 300 ms    // Assuming f_xosc = 26 MHz
+//    // =>  EVENT0 = 10400 = 0x28A0
+//    RfWriteReg(TI_CCxxx0_WOREVT1,  0x28); // WOR High byte Event Timeout.
+//    RfWriteReg(TI_CCxxx0_WOREVT0,  0xA0); // WOR Low byte Event Timeout.
+//    // Enable automatic initial calibration of RCosc.
+//    // Set T_event1 ~ 345 us, enough for XOSC stabilize before starting calibration.
+//    // Enable RC oscillator before starting with WOR (or else it will not wake up).
+//    // Not using AUTO_SYNC function.
+//    RfWriteReg(TI_CCxxx0_WORCTRL,  0x38); // WOR control
+//    // Setting Rx_timeout < 0.5 %.
+//    // => MCSM2.RX_TIME = 101b
+//    // => Rx_timeout = (EVENT0 * 0.1127) = (10400 * 0.1127) =  1.172 ms, i.e.  0.391% RX duty cycle
+//    // => MCSM2.RX_TIME = 000b
+//    // => Rx_timeout = (EVENT0 * 3.6029) = (10400 * 3.6029) = 37.471 ms, i.e. 12.500% RX duty cycle
+//    RfWriteReg(TI_CCxxx0_MCSM2,    0x00); // MainRadio Cntrl State Machine
+//#endif /* _SWOR */
+//    // RXOFF_MODE=01b (RX->FSTXON: 9.6 us), TXOFF_MODE=00b (TX->IDLE, no FS calib: 0.1 us).
+//    RfWriteReg(TI_CCxxx0_MCSM1,    0x30); // MainRadio Cntrl State Machine
+//    RfWriteReg(TI_CCxxx0_MCSM0,    0x18); // MainRadio Cntrl State Machine
+//    RfWriteReg(TI_CCxxx0_FOCCFG,   0x1D); // Freq Offset Compens. Config
+//    RfWriteReg(TI_CCxxx0_BSCFG,    0x1C); // Bit synchronization config.
+//    RfWriteReg(TI_CCxxx0_AGCCTRL2, 0xC7); // AGC control.
+//    RfWriteReg(TI_CCxxx0_AGCCTRL1, 0x00); // AGC control.
+//    RfWriteReg(TI_CCxxx0_AGCCTRL0, 0xB0); // AGC control.
+//    RfWriteReg(TI_CCxxx0_FREND1,   0xB6); // Front end RX configuration.
+//    RfWriteReg(TI_CCxxx0_FREND0,   0x10); // Front end RX configuration.
+//    RfWriteReg(TI_CCxxx0_FSCAL3,   0xEA); // Frequency synthesizer cal.
+//    RfWriteReg(TI_CCxxx0_FSCAL2,   0x0A); // Frequency synthesizer cal.
+//    RfWriteReg(TI_CCxxx0_FSCAL1,   0x00); // Frequency synthesizer cal.
+//    RfWriteReg(TI_CCxxx0_FSCAL0,   0x11); // Frequency synthesizer cal.
+//    RfWriteReg(TI_CCxxx0_FSTEST,   0x59); // Frequency synthesizer cal.
+//    RfWriteReg(TI_CCxxx0_TEST2,    0x88); // Various test settings.
+//    RfWriteReg(TI_CCxxx0_TEST1,    0x31); // Various test settings.
+//    RfWriteReg(TI_CCxxx0_TEST0,    0x0B); // Various test settings.
 }
 
-// PATABLE (0 dBm output power)
-extern uint8_t paTable[] = {0xFB}; // Table 31 - Page 47 of 89
-extern uint8_t paTableLen = 1;
-
-#endif
+//// PATABLE (0 dBm output power)
+//extern uint8_t paTable[] = {0xFB}; // Table 31 - Page 47 of 89
+//extern uint8_t paTableLen = 1;
 
 //-----------------------------------------------------------------------------
 //  bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
@@ -494,6 +235,10 @@ bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
   if (bCurrentInterruptStage)
 	 TI_CC_EnableInterrupt();
 
+  TI_CC_Strobe(TI_CCxxx0_SFRX);
+  TI_CC_Strobe(TI_CCxxx0_SFTX);
+  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+
   return true;
 }
 
@@ -525,8 +270,6 @@ bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
 //-----------------------------------------------------------------------------
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 {
-//  uint8_t status[TI_CCxxx0_NUMSTATUSBYTES];
-
   if(TI_CC_IsCRCOK())
   {
 	  if ((RfReadReg(TI_CCxxx0_RXBYTES) & TI_CCxxx0_NUM_RXBYTES))
@@ -542,29 +285,8 @@ e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 		// Hint:  how many bytes are being retrieved?  One or multiple?
 		RfReadBurstReg(TI_CCxxx0_RXFIFO, &rxBuffer[1], rxBuffer[0]); // Pull data
 
-//		// Our initialization code configured this CC1100 to append two status
-//		// bytes to the end of the received packets.  These bytes are still in the
-//		// FIFO.  Use the appropriate library function to read these two bytes into
-//		// the status array
-//		// status[0] = RSSI[7:0]
-//		// status[1] = CRC[7] & LQI[6:0]
-//		RfReadBurstReg(TI_CCxxx0_RXFIFO, status, TI_CCxxx0_NUMSTATUSBYTES);
-
-//		if (status[TI_CCxxx0_LQI_RX] & TI_CCxxx0_CRC_OK)
-//		{
-			TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-			return RX_STATUS_SUCCESS;
-//		}
-//		else
-//		{
-//
-//	//    	turnOnLED(LED_ALL);
-//	//		TI_CC_Wait(10000);
-//	//		turnOffLED(LED_ALL);
-//
-//			RfFlushRxFifo();
-//			return RX_STATUS_CRC_ERROR;
-//		}
+		TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+		return RX_STATUS_SUCCESS;
 	  }
 	  else
 	  {
@@ -573,10 +295,9 @@ e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 	  }
   }
 
-	RfFlushRxFifo();
-	TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-	return RX_STATUS_CRC_ERROR;
-
+  RfFlushRxFifo();
+  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+  return RX_STATUS_CRC_ERROR;
 }
 
 //-----------------------------------------------------------------------------
@@ -789,14 +510,21 @@ void RfWriteBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count)
 }
 
 //-----------------------------------------------------------------------------
-//  void initRfModule(void)
+//  void initRfModule(bool isEnableInt)
 //
 //  DESCRIPTION:
 //  configure SSI peripheral and initialize CC2500
 //  set to first channel in freqTab, enable RxMode before return
+//
+//  ARGUMENTS:
+//		bool isEnableInt
+//			True for enable interrupt pin at GPO0, false for disable
 //-----------------------------------------------------------------------------
-void initRfModule(void)
+void initRfModule(bool isEnableInt)
 {
+  uint8_t paTable[] = { TI_CCxxx0_OUTPUT_POWER_0DB }; // Table 31 - Page 47 of 89
+  uint8_t paTableLen = 1;
+
   TI_CC_Setup();           			// Initialize SPI port with interrupt enable
 
   RfPowerupCSnSequence();
@@ -805,16 +533,15 @@ void initRfModule(void)
   RfWriteBurstReg(TI_CCxxx0_PATABLE, // Write the PATABLE
                          paTable, paTableLen);
 
-
   char commonAddress = 0;			// Set my own device address
   while (commonAddress != TI_CCxxx0_COMMON_ADDRESS) {
 	RfWriteReg(TI_CCxxx0_ADDR, TI_CCxxx0_COMMON_ADDRESS);
 	commonAddress = RfReadReg(TI_CCxxx0_ADDR);
   }
 
-  RfSetChannel(0);		  			// Set to channel 0
+  RfSetChannel(0);		  			// Set to default channel
 
-  TI_CC_ConfigIRQPin(true);			// Enable interrupt GDO0
+  TI_CC_ConfigIRQPin(isEnableInt);		// Configre interrupt GDO0
 
   TI_CC_Strobe(TI_CCxxx0_SIDLE);	// Idle mode
   TI_CC_Strobe(TI_CCxxx0_SFRX);		// Flush RX FIFO
@@ -836,11 +563,22 @@ void initRfModule(void)
 //-----------------------------------------------------------------------------
 void RfSetChannel(uint8_t chanNum)
 {
+  uint8_t freqTab[RFNUMCHANS][3] = {
+		  {0x13, 0xBB, 0x5D},  // 2.4370 GHz (default)
+		  {0xB1, 0x53, 0x5C},  // 2.4005 GHz
+		  {0x13, 0x3B, 0x5D},  // 2.4240 GHz
+		  {0xB1, 0x93, 0x5D},  // 2.4329 GHz
+		  {0x76, 0x62, 0x5F},  // 2.4800 GHz
+  	  	  };
+
   uint8_t data, freq2, freq1, freq0;
 
-  freq2 = freqTab[chanNum][2];
-  freq1 = freqTab[chanNum][1];
+
   freq0 = freqTab[chanNum][0];
+  freq1 = freqTab[chanNum][1];
+  freq2 = freqTab[chanNum][2];
+
+
   data = 0;
   while (data != freq2) {
     RfWriteReg(TI_CCxxx0_FREQ2, freq2);

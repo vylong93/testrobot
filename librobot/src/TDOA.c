@@ -37,8 +37,19 @@ float32_t g_f32MaxEnvelopeB;
 
 bool g_bIsNewTDOAResults;
 
-void TDOA_initFilters(float32_t* FilterCoeffs)
+void TDOA_initFilters()
 {
+	float32_t FilterCoeffs[FILTER_ORDER] =
+	{ -0.0029093551f, 0.0004931756f, 0.0055870397f, 0.0128101468f, 0.0204126528f,
+			0.0242806916f, 0.0194602352f, 0.0028870622f, -0.0239973079f,
+			-0.0542697369f, -0.0771116411f, -0.0816930439f, -0.0618794434f,
+			-0.0196709112f, 0.0343706554f, 0.0842319561f, 0.1140602871f,
+			0.1140602871f, 0.0842319561f, 0.0343706554f, -0.0196709112f,
+			-0.0618794434f, -0.0816930439f, -0.0771116411f, -0.0542697369f,
+			-0.0239973079f, 0.0028870622f, 0.0194602352f, 0.0242806916f,
+			0.0204126528f, 0.0128101468f, 0.0055870397f, 0.0004931756f,
+			-0.0029093551f };
+
 	// Call FIR init function to initialize the instance structure.
 	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
 	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);

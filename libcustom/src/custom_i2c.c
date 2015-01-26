@@ -202,11 +202,6 @@ int i2c_read(unsigned char slave_addr,
 	return 0;
 }
 
-void delay_ms(unsigned int n)
-{
-	SysCtlDelay(n * SysCtlClockGet()/3000);
-}
-
 void get_ms(unsigned long *time)
 {
 
