@@ -41,12 +41,12 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 {
 	switch (ui8Cmd)
 	{
-	case HOST_COMMAND_TEST_RF_TRANSMISSION_RX:
-		testRfTransmissionRx(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+	case HOST_COMMAND_TEST_RF_TRANSMISTER:
+		testRfTransmister();
 		break;
 
-	case HOST_COMMAND_TEST_RF_TRANSMISSION_TX:
-		testRfTransmissionTx();
+	case HOST_COMMAND_TEST_RF_RECEIVER:
+		testRfReceiver(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
 	case HOST_COMMAND_TOGGLE_ALL_STATUS_LEDS:
@@ -105,49 +105,87 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 	}
 }
 
-void testRfTransmissionRx(uint8_t* pui8Data)
+void testRfReceiver(uint8_t* pui8Data)
 {
-	uint16_t i;
-	uint8_t ui8TestValue = 0;
 	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
-	uint32_t ui32ReceivedDataSize = 0;
-	uint8_t* pui8DataHolder = 0;
 
 	turnOnLED(LED_GREEN);
+
+	if(RfTryToCaptureRfSignal(1000000, checkForCorrectRxDataStream, ui32TestDataSize))
+	{
+		//TODO: send ROBOT_RESPONSE_OK to Control Board
+		MessageHeader header;
+		header.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
+		header.ui8Cmd = ROBOT_RESPONSE_OK;
+
+		sendDataToControlBoard((uint8_t *)(&header), 2);
+
+		turnOffLED(LED_GREEN);
+
+		DEBUG_PRINT("Test RF Transmission RX: OK\n");
+	}
+	else
+	{
+		DEBUG_PRINT("Test RF Transmission RX: Connection failed...\n");
+	}
+}
+
+bool checkForCorrectRxDataStream(va_list argp)
+{
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt one argument in order:
+	//				1/ uint32_t ui32TestDataSize
+
+	// Get the input arguments
+	uint32_t ui32TestDataSize;
+	ui32TestDataSize = va_arg(argp, uint32_t);
+
+	uint16_t i;
+	uint8_t ui8TestValue = 0;
+	uint32_t ui32ReceivedDataSize = 0;
+	uint8_t* pui8DataHolder = 0;
 
 	if (Network_receivedMessage(&pui8DataHolder, &ui32ReceivedDataSize))
 	{
 		if (ui32ReceivedDataSize == ui32TestDataSize)
 		{
-			for (i = 0; i < 1000; i++)
+			for (i = 0; i < ui32TestDataSize; i++)
 			{
 				if (ui8TestValue != pui8DataHolder[i])
 				{
-					DEBUG_PRINT("Test RF Transmission Rx: Invalid data...\n");
+					DEBUG_PRINT("checkForCorrectRxDataStream: Invalid data...\n");
+
 					if(pui8DataHolder != 0)
 						Network_deleteBuffer(pui8DataHolder);
-					return;
+
+					return false;
 				}
 				else
 				{
 					ui8TestValue++;
 				}
-			} DEBUG_PRINT("Test RF Transmission Rx: OK\n");
+			}
+
+			return true;
 		}
 		else
 		{
-			DEBUG_PRINT("Test RF Transmission Rx: Invalid size...\n");
+			DEBUG_PRINT("checkForCorrectRxDataStream: Invalid size...\n");
 		}
 	}
 	else
 	{
-		DEBUG_PRINT("Test RF Transmission Rx: Connection failed...\n");
+		DEBUG_PRINT("Network_receivedMessage: Timeout...\n");
 	}
+
 	if(pui8DataHolder != 0)
 		Network_deleteBuffer(pui8DataHolder);
+
+	return false;
 }
 
-void testRfTransmissionTx(void)
+void testRfTransmister(void)
 {
 	uint16_t i;
 	uint16_t pui16TestData[1000] =
@@ -160,7 +198,7 @@ void testRfTransmissionTx(void)
 
 	turnOnLED(LED_GREEN);
 
-	if (sendDataToControlBoard((uint8_t *) pui16TestData, 1000))
+	if (sendDataToControlBoard((uint8_t *) pui16TestData, 1000 * 2))
 	{
 		turnOffLED(LED_GREEN);
 		DEBUG_PRINT("Test RF Transmission TX: OK\n");
@@ -174,9 +212,7 @@ void testRfTransmissionTx(void)
 bool sendDataToControlBoard(uint8_t * pui8Data, uint32_t ui32Length)
 {
 	if (Network_sendMessage(RF_CONTOLBOARD_ADDR, pui8Data, ui32Length, true))
-	{
 		return true;
-	}
 	return false;
 }
 

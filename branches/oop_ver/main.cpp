@@ -190,7 +190,6 @@ int main(void)
 	initRfModule(true);
 	DEBUG_PRINT("init RF module: OK, in rx mode.\n");
 
-
 	turnOffLED(LED_ALL);
 
 	Network_setSelfAddress(RF_DEFAULT_ROBOT_ID);
@@ -480,6 +479,8 @@ void TI_CC_IRQ_handler(void)
 	{
 		TI_CC_ClearIntFlag();
 
+		TI_CC_DisableInterrupt();
+
 		turnOnLED(LED_RED);
 
 		if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
@@ -493,10 +494,13 @@ void TI_CC_IRQ_handler(void)
 			pui8RxBuffer = 0;
 		}
 
+		TI_CC_EnableInterrupt();
+
 		turnOffLED(LED_RED);
 	}
 
-	returnSleep();
+	if(getCpuMode() != CPU_MODE_RUN)
+		returnSleep();
 }
 
 // Updated ========================================

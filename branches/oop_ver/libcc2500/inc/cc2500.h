@@ -162,6 +162,8 @@ bool RfSendPacket(uint8_t *txBuffer, uint8_t size);
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer);
 bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...);
+bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
+			bool (*pfnHandler)(va_list argp), ...);
 
 void RfPowerupCSnSequence(void);
 void RfResetChip(void);

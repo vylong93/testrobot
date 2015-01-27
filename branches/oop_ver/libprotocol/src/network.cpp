@@ -447,6 +447,8 @@ bool Network_isAckPacket(uint8_t* pRxBuff, va_list argp)
 //  The first 4 byte in the message buffer must hold the message size.
 //  This is valid message format for the transmission.
 //
+//  WARNING!!! Only use this function in interrupt handler
+//
 //  ARGUMENTS:
 //		uint8_t** ppui8MessBuffer
 //			Pointer point to the pointer point to the return message storage
