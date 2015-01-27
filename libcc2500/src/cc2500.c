@@ -366,6 +366,46 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 	return bReturn;
 }
 
+bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
+			bool (*pfnHandler)(va_list argp), ...)
+{
+	bool bCurrentInterruptStage = TI_CC_GetInterruptState();
+	TI_CC_DisableInterrupt();
+
+	bool bReturn = false;
+
+	va_list argp;
+	va_start(argp, pfnHandler);	// Start the varargs processing.
+
+	uint64_t i;
+	for(i = 0; i < ui64PeriodInUs; i++)
+	{
+		if (TI_CC_IsInterruptPinAsserted())
+		{
+			TI_CC_ClearIntFlag();
+
+			// Call handler
+			if((*pfnHandler)(argp))
+			{
+				// if decode success then terminal this process
+				bReturn = true;
+				break;
+			}
+		}
+		TI_CC_Wait(1); // delay for 1us
+	}
+
+	va_end(argp);	// We're finished with the varargs now.
+
+	// Because previous action may have assert interrupt flag
+    TI_CC_ClearIntFlag();
+    TI_CC_ClearPending();
+	if (bCurrentInterruptStage)
+		TI_CC_EnableInterrupt();	// recover last interrupt state
+
+	return bReturn;
+}
+
 //----------------------------------------------------------------------------
 //  void RfPowerupCSnSequence(void)
 //

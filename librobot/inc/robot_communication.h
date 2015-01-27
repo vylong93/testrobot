@@ -47,8 +47,8 @@ typedef struct tag_MessageHeader {
 #define	HOST_COMMAND_DEEP_SLEEP		0x03
 #define	HOST_COMMAND_WAKE_UP		0x04
 
-#define	HOST_COMMAND_TEST_RF_TRANSMISSION_RX	0x05
-#define	HOST_COMMAND_TEST_RF_TRANSMISSION_TX	0x06
+#define	HOST_COMMAND_TEST_RF_TRANSMISTER		0x05
+#define	HOST_COMMAND_TEST_RF_RECEIVER			0x06
 #define	HOST_COMMAND_TOGGLE_ALL_STATUS_LEDS		0x07
 //#define	HOST_COMMAND_CHANGE_MOTORS_SPEED	0x08
 //#define	HOST_COMMAND_STOP_MOTOR_LEFT		0x09
@@ -62,11 +62,15 @@ typedef struct tag_MessageHeader {
 //#define	HOST_COMMAND_WRITE_EEPROM			0x11
 //#define	HOST_COMMAND_SET_ADDRESS_EEPROM		0x12
 
+#define ROBOT_RESPONSE_OK 			0x0A
+
 bool decodeBasicHostCommand(uint8_t ui8Cmd);
 void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer);
 
-void testRfTransmissionRx(uint8_t* pui8Data);
-void testRfTransmissionTx(void);
+void testRfReceiver(uint8_t* pui8Data);
+bool checkForCorrectRxDataStream(va_list argp);
+
+void testRfTransmister(void);
 bool sendDataToControlBoard(uint8_t * pui8Data, uint32_t ui32Length);
 
 //=============================================================================
