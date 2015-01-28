@@ -31,12 +31,7 @@ typedef enum {
 #define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER0
 #define DELAY_TIMER_BASE_NON_INT	WTIMER0_BASE
 
-//*****************************************************************************
-//
-// Configure timer for custom delay
-//
-//*****************************************************************************
-void initDelayTimers(void);
+void initDelay(void);
 
 void delay_unit(uint32_t period, delayunit_t unit);
 void delay1_unit(uint32_t period, delayunit_t unit);

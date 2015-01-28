@@ -7,6 +7,7 @@
 
 #include "librobot/inc/robot_communication.h"
 #include "librobot/inc/robot_lpm.h"
+#include "librobot/inc/robot_speaker.h"
 
 #include "libcustom/inc/custom_led.h"
 #include "libcustom/inc/custom_uart_debug.h"
@@ -42,22 +43,35 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 	switch (ui8Cmd)
 	{
 	case HOST_COMMAND_TEST_RF_TRANSMISTER:
+		DEBUG_PRINT("Test: Rf Transmitter\n");
 		testRfTransmister();
 		break;
 
 	case HOST_COMMAND_TEST_RF_RECEIVER:
+		DEBUG_PRINT("Test: Rf Receiver\n");
 		testRfReceiver(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
 	case HOST_COMMAND_TOGGLE_ALL_STATUS_LEDS:
+		DEBUG_PRINT("Test: Toggle all status leds\n");
 		toggleLED(LED_ALL);
 		break;
 
-//	case PC_CHANGE_MOTORS_SPEED:
-////		configureMotors((MotorDirection_t)(RF24_RX_buffer[1]), RF24_RX_buffer[2],
-////						(MotorDirection_t)(RF24_RX_buffer[3]), RF24_RX_buffer[4]);
-//		break;
-//
+	case HOST_COMMAND_START_SAMPLING_MIC:
+		DEBUG_PRINT("unimplemented\n");
+//				startSamplingMicSignals();
+		break;
+
+	case HOST_COMMAND_START_SPEAKER:
+		DEBUG_PRINT("Start speaker\n");
+		triggerSpeaker();
+		break;
+
+	case PC_CHANGE_MOTORS_SPEED:
+//		configureMotors((MotorDirection_t)(RF24_RX_buffer[1]), RF24_RX_buffer[2],
+//						(MotorDirection_t)(RF24_RX_buffer[3]), RF24_RX_buffer[4]);
+		break;
+
 //	case PC_SEND_STOP_MOTOR_LEFT:
 ////		stopMotorLeft();
 //		break;
@@ -78,14 +92,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 ////		startSamplingBatteryVoltage();
 //		break;
 //
-//	case PC_START_SAMPLING_MIC:
-////		startSamplingMicSignals();
-//		break;
-//
-//	case PC_START_SPEAKER:
-////		ROM_SysCtlDelay(DELAY_START_SPEAKER);
-////		startSpeaker();
-//		break;
+
 //
 ////	case PC_SEND_READ_EEPROM:
 ////		readFormEEPROM();
@@ -111,14 +118,14 @@ void testRfReceiver(uint8_t* pui8Data)
 
 	turnOnLED(LED_GREEN);
 
-	if(RfTryToCaptureRfSignal(1000000, checkForCorrectRxDataStream, ui32TestDataSize))
+	if (RfTryToCaptureRfSignal(1000000, checkForCorrectRxDataStream,
+			ui32TestDataSize))
 	{
-		//TODO: send ROBOT_RESPONSE_OK to Control Board
-		MessageHeader header;
-		header.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
-		header.ui8Cmd = ROBOT_RESPONSE_OK;
+		MessageHeader responseReader;
+		responseReader.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
+		responseReader.ui8Cmd = ROBOT_RESPONSE_OK;
 
-		sendDataToControlBoard((uint8_t *)(&header), 2);
+		sendDataToControlBoard((uint8_t *) (&responseReader), 2);
 
 		turnOffLED(LED_GREEN);
 
@@ -154,9 +161,10 @@ bool checkForCorrectRxDataStream(va_list argp)
 			{
 				if (ui8TestValue != pui8DataHolder[i])
 				{
-					DEBUG_PRINT("checkForCorrectRxDataStream: Invalid data...\n");
+					DEBUG_PRINT(
+							"checkForCorrectRxDataStream: Invalid data...\n");
 
-					if(pui8DataHolder != 0)
+					if (pui8DataHolder != 0)
 						Network_deleteBuffer(pui8DataHolder);
 
 					return false;
@@ -179,7 +187,7 @@ bool checkForCorrectRxDataStream(va_list argp)
 		DEBUG_PRINT("Network_receivedMessage: Timeout...\n");
 	}
 
-	if(pui8DataHolder != 0)
+	if (pui8DataHolder != 0)
 		Network_deleteBuffer(pui8DataHolder);
 
 	return false;
