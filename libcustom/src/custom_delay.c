@@ -12,12 +12,12 @@ static bool g_bIsTimer1Busy = true;
 static bool g_bIsTimer2Busy = true;
 
 //-----------------------------------------------------------------------------
-//  void initDelayTimers(void)
+//  void initDelay(void)
 //
 //  DESCRIPTION:
 //	initialize timer for delay purpose
 //-----------------------------------------------------------------------------
-void initDelayTimers(void)
+void initDelay(void)
 {
 	// Non-interrupt timer delay and delay2
 	ROM_SysCtlPeripheralEnable(DELAY_TIMER_CLOCK_NON_INT);

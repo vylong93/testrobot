@@ -112,13 +112,17 @@
 // Updated ========================================
 #include <stdint.h>
 #include <stdbool.h>
-#include "libcustom/inc/custom_clock.h"
-#include "libcustom/inc/custom_led.h"
-#include "libcustom/inc/custom_delay.h"
-#include "libcustom/inc/custom_uart_debug.h"
+#include "libcustom\inc\custom_clock.h"
+#include "libcustom\inc\custom_led.h"
+#include "libcustom\inc\custom_delay.h"
+#include "libcustom\inc\custom_uart_debug.h"
 
-#include "librobot/inc/robot_lpm.h"
-#include "librobot/inc/robot_communication.h"
+#include "librobot\inc\robot_lpm.h"
+#include "librobot\inc\robot_speaker.h"
+#include "librobot\inc\robot_communication.h"
+
+
+#include "librobot\inc\robot_timer_delay.h"
 
 #include "interrupt_definition.h"
 
@@ -184,8 +188,14 @@ int main(void)
 
 	initLowPowerMode();
 
-	initDelayTimers();
-	DEBUG_PRINT("init Delay timers: OK\n");
+	initRobotTimerDelay();
+	DEBUG_PRINT("init Robot timer delay: OK\n");
+
+	initSpeaker();
+	DEBUG_PRINT("init Speaker: OK\n");
+
+	initDelay();
+	DEBUG_PRINT("init Delay: OK\n");
 
 	initRfModule(true);
 	DEBUG_PRINT("init RF module: OK, in rx mode.\n");

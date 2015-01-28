@@ -8,7 +8,12 @@
 #ifndef INTERRUPT_DEFINITION_H_
 #define INTERRUPT_DEFINITION_H_
 
-#include "inc/hw_ints.h"
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include "inc\hw_ints.h"
 
 // Priority level definition, High to Low:
 #define LEVEL_0		0x00
@@ -38,5 +43,8 @@
 #define INT_SW_TRIGGER_LPM				INT_I2C1
 #define INT_SW_TRIGGER_ROBOT_RESPONSE	INT_I2C2
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INTERRUPT_DEFINITION_H_ */
