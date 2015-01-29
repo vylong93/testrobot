@@ -5,12 +5,13 @@
  *      Author: VyLong
  */
 
-#include "librobot/inc/robot_communication.h"
-#include "librobot/inc/robot_lpm.h"
-#include "librobot/inc/robot_speaker.h"
+#include "librobot\inc\robot_communication.h"
+#include "librobot\inc\robot_lpm.h"
+#include "librobot\inc\robot_speaker.h"
+#include "librobot\inc\robot_analog.h"
 
-#include "libcustom/inc/custom_led.h"
-#include "libcustom/inc/custom_uart_debug.h"
+#include "libcustom\inc\custom_led.h"
+#include "libcustom\inc\custom_uart_debug.h"
 
 bool decodeBasicHostCommand(uint8_t ui8Cmd)
 {
@@ -43,12 +44,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 	switch (ui8Cmd)
 	{
 	case HOST_COMMAND_TEST_RF_TRANSMISTER:
-		DEBUG_PRINT("Test: Rf Transmitter\n");
 		testRfTransmister();
 		break;
 
 	case HOST_COMMAND_TEST_RF_RECEIVER:
-		DEBUG_PRINT("Test: Rf Receiver\n");
 		testRfReceiver(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
@@ -58,18 +57,22 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		break;
 
 	case HOST_COMMAND_START_SAMPLING_MIC:
-		DEBUG_PRINT("unimplemented\n");
-//				startSamplingMicSignals();
+		DEBUG_PRINT("Start sampling two microphones !!!\n");
+		triggerSamplingMicSignals();
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:
-		DEBUG_PRINT("Start speaker\n");
+		DEBUG_PRINT("Start speaker )))\n");
 		triggerSpeaker();
 		break;
 
-	case PC_CHANGE_MOTORS_SPEED:
+	case HOST_COMMAND_CHANGE_MOTORS_SPEED:
 //		configureMotors((MotorDirection_t)(RF24_RX_buffer[1]), RF24_RX_buffer[2],
 //						(MotorDirection_t)(RF24_RX_buffer[3]), RF24_RX_buffer[4]);
+		break;
+
+	case HOST_COMMAND_REQUEST_BATT_VOLT:
+		sendBatteryVoltageToHost();
 		break;
 
 //	case PC_SEND_STOP_MOTOR_LEFT:
@@ -86,10 +89,6 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 //
 //	case PC_SEND_DATA_ADC1_TO_PC:
 ////		sendDataToControlBoard((uint8_t *) g_pui16ADC1Result);
-//		break;
-//
-//	case PC_SEND_BATT_VOLT_TO_PC:
-////		startSamplingBatteryVoltage();
 //		break;
 //
 
@@ -114,6 +113,8 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 
 void testRfReceiver(uint8_t* pui8Data)
 {
+	DEBUG_PRINT("Test: Rf Receiver\n");
+
 	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
 
 	turnOnLED(LED_GREEN);
@@ -125,7 +126,7 @@ void testRfReceiver(uint8_t* pui8Data)
 		responseReader.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
 		responseReader.ui8Cmd = ROBOT_RESPONSE_OK;
 
-		sendDataToControlBoard((uint8_t *) (&responseReader), 2);
+		sendDataToHost((uint8_t *) (&responseReader), 2);
 
 		turnOffLED(LED_GREEN);
 
@@ -195,6 +196,8 @@ bool checkForCorrectRxDataStream(va_list argp)
 
 void testRfTransmister(void)
 {
+	DEBUG_PRINT("Test: Rf Transmitter\n");
+
 	uint16_t i;
 	uint16_t pui16TestData[1000] =
 	{ 0 };
@@ -206,7 +209,7 @@ void testRfTransmister(void)
 
 	turnOnLED(LED_GREEN);
 
-	if (sendDataToControlBoard((uint8_t *) pui16TestData, 1000 * 2))
+	if (sendDataToHost((uint8_t *) pui16TestData, 1000 * 2))
 	{
 		turnOffLED(LED_GREEN);
 		DEBUG_PRINT("Test RF Transmission TX: OK\n");
@@ -217,11 +220,47 @@ void testRfTransmister(void)
 	}
 }
 
-bool sendDataToControlBoard(uint8_t * pui8Data, uint32_t ui32Length)
+bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
+		uint8_t* pui8Data, uint32_t ui32Size)
+{
+	uint32_t i;
+	bool bReturn;
+
+	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32Size;
+
+	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
+
+	//TODO: construct MessageHeader instead
+	puiMessageBuffer[MESSAGE_TYPE_IDX] = eMessType;
+	puiMessageBuffer[MESSAGE_COMMAND_IDX] = ui8Command;
+
+	// Fill data
+	for (i = 0; i < ui32Size; i++)
+	{
+		puiMessageBuffer[i + MESSAGE_DATA_START_IDX] = pui8Data[i];
+	}
+
+	bReturn = sendDataToHost(puiMessageBuffer, ui32TotalSize);
+
+	free(puiMessageBuffer);
+
+	return bReturn;
+}
+
+bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length)
 {
 	if (Network_sendMessage(RF_CONTOLBOARD_ADDR, pui8Data, ui32Length, true))
 		return true;
 	return false;
+}
+
+void sendBatteryVoltageToHost(void)
+{
+	DEBUG_PRINT("Sampling battery voltage\n");
+
+	turnOnLED(LED_GREEN);
+
+	triggerSamplingBatteryVoltage(true);
 }
 
 //=========================================================

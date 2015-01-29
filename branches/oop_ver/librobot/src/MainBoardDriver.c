@@ -34,8 +34,7 @@ uint8_t RF24_RX_buffer[32] =
 uint8_t RF24_TX_buffer[32] =
 { 0 };
 
-uint8_t g_pui8RandomBuffer[8];
-uint8_t g_ui8RandomNumber = 0;
+
 
 uint8_t g_ui8ReTransmitCounter; //NOTE: set this variable to 0 to disable software reTransmit
 

@@ -10,11 +10,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/rom.h"
-#include "driverlib/pwm.h"
+#include "inc\hw_memmap.h"
+#include "inc\hw_types.h"
+#include "driverlib\sysctl.h"
+#include "driverlib\rom.h"
+#include "driverlib\pwm.h"
 
 #define MIN_MOTOR_DUTYCYCLE		1
 #define MAX_MOTOR_DUTYCYCLE		90

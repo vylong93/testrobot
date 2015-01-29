@@ -5,14 +5,13 @@
  *      Author: VyLong
  */
 
-#include "librobot/inc/robot_lpm.h"
+#include "librobot\inc\robot_lpm.h"
 
-#include "libcc2500/inc/TM4C123_CC2500.h"
+#include "libcc2500\inc\TM4C123_CC2500.h"
 
-#include "libcustom/inc/custom_led.h"
-#include "libcustom/inc/custom_delay.h"
-
-#include "libcustom/inc/custom_uart_debug.h"
+#include "libcustom\inc\custom_led.h"
+#include "libcustom\inc\custom_delay.h"
+#include "libcustom\inc\custom_uart_debug.h"
 
 static e_CpuMode g_eCpuMode = CPU_MODE_RUN;
 

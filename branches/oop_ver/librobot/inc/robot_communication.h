@@ -15,10 +15,11 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "libcc2500/inc/CC2500.h"
-#include "libcc2500/inc/TM4C123_CC2500.h"
+#include <stdlib.h>
+#include "libcc2500\inc\CC2500.h"
+#include "libcc2500\inc\TM4C123_CC2500.h"
 
-#include "libprotocol/inc/network.h"
+#include "libprotocol\inc\network.h"
 
 #define RF_DEFAULT_ROBOT_ID		0x00BEADFF
 #define RF_CONTOLBOARD_ADDR		0x00C1AC02
@@ -33,13 +34,16 @@ typedef enum tag_MessageType
 	MESSAGE_TYPE_SMARTPHONE_COMMAND = 0x05
 } e_MessageType;
 
-typedef struct tag_MessageHeader {
+typedef struct tag_MessageHeader
+{
 	// WARNING!!! Do not change this order unless you know what you are doing!
-	e_MessageType eMessageType : 8;
-	uint8_t	ui8Cmd;
+	e_MessageType eMessageType :8;
+	uint8_t ui8Cmd;
 } MessageHeader;
 
 #define MESSAGE_HEADER_LENGTH		2
+#define MESSAGE_TYPE_IDX			0
+#define MESSAGE_COMMAND_IDX			1
 #define MESSAGE_DATA_START_IDX		MESSAGE_HEADER_LENGTH
 
 #define HOST_COMMAND_RESET			0x01
@@ -53,16 +57,17 @@ typedef struct tag_MessageHeader {
 #define	HOST_COMMAND_START_SAMPLING_MIC			0x08
 #define	HOST_COMMAND_START_SPEAKER				0x09
 #define	HOST_COMMAND_CHANGE_MOTORS_SPEED		0x0A
+#define HOST_COMMAND_REQUEST_BATT_VOLT			0x0B
 
-//#define	HOST_COMMAND_STOP_MOTOR_LEFT		0x09
-//#define	HOST_COMMAND_STOP_MOTOR_RIGHT		0x0A
-//#define	HOST_COMMAND_DATA_ADC0_TO_HOST		0x0B
-//#define	HOST_COMMAND_DATA_ADC1_TO_HOST		0x0C
-//#define	HOST_COMMAND_BATT_VOLT_TO_HOST		0x0D
+//#define	HOST_COMMAND_STOP_MOTOR_LEFT
+//#define	HOST_COMMAND_STOP_MOTOR_RIGHT
+//#define	HOST_COMMAND_DATA_ADC0_TO_HOST
+//#define	HOST_COMMAND_DATA_ADC1_TO_HOST
+//#define	HOST_COMMAND_BATT_VOLT_TO_HOST
 
-//#define	HOST_COMMAND_READ_EEPROM			0x10
-//#define	HOST_COMMAND_WRITE_EEPROM			0x11
-//#define	HOST_COMMAND_SET_ADDRESS_EEPROM		0x12
+//#define	HOST_COMMAND_READ_EEPROM
+//#define	HOST_COMMAND_WRITE_EEPROM
+//#define	HOST_COMMAND_SET_ADDRESS_EEPROM
 
 #define ROBOT_RESPONSE_OK 			0x0A
 
@@ -73,7 +78,11 @@ void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
 
 void testRfTransmister(void);
-bool sendDataToControlBoard(uint8_t * pui8Data, uint32_t ui32Length);
+bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
+		uint8_t* pui8Data, uint32_t ui32Size);
+bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
+
+void sendBatteryVoltageToHost(void);
 
 //=============================================================================
 
@@ -147,14 +156,12 @@ bool sendDataToControlBoard(uint8_t * pui8Data, uint32_t ui32Length);
 #define SP_SEND_SPIN_COUNTERCLOCKWISE	0xF4
 #define SP_SEND_RESERVED				0xF5
 
-
-
-void sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer, uint32_t length);
+void sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
+		uint32_t length);
 void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* ROBOT_COMMUNICATION_H_ */

@@ -13,7 +13,7 @@ extern "C"
 {
 #endif
 
-#include "librobot/inc/MainBoardDriver.h"
+#include "librobot\inc\MainBoardDriver.h"
 
 void Tri_clearLocs(location_t locsTable[], uint8_t *length);
 void Tri_addLocation(uint32_t ID, float x, float y);

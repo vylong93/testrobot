@@ -54,13 +54,7 @@ extern uint32_t __STACK_TOP;
 // External declarations for the interrupt handlers used by the application.
 //
 //*****************************************************************************
-extern void ADC0IntHandler(void);
-extern void ADC1IntHandler(void);
-extern void uDMAErrorHandler(void);
 extern void RobotResponseIntHandler(void);
-extern void SpeakerTimerIntHandler(void);
-extern void BatterySequenceIntHandler(void);
-extern void RandomGeneratorIntHandler(void);
 
 //*****************************************************************************
 //
@@ -105,12 +99,12 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Quadrature Encoder 0
     IntDefaultHandler,                      // ADC Sequence 0
     IntDefaultHandler,                      // ADC Sequence 1
-    BatterySequenceIntHandler,                      // ADC Sequence 2
-    ADC0IntHandler,                      // ADC Sequence 3
+    IntDefaultHandler,                      // ADC Sequence 2
+    IntDefaultHandler,                      // ADC Sequence 3
     IntDefaultHandler,                      // Watchdog timer
     IntDefaultHandler,                      // Timer 0 subtimer A
     IntDefaultHandler,                      // Timer 0 subtimer B
-    SpeakerTimerIntHandler,                      // Timer 1 subtimer A
+    IntDefaultHandler,                      // Timer 1 subtimer A
     IntDefaultHandler,                      // Timer 1 subtimer B
     IntDefaultHandler,                      // Timer 2 subtimer A
     IntDefaultHandler,                      // Timer 2 subtimer B
@@ -136,11 +130,11 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // USB0
     IntDefaultHandler,                      // PWM Generator 3
     IntDefaultHandler,                      // uDMA Software Transfer
-    uDMAErrorHandler,                      // uDMA Error
-    RandomGeneratorIntHandler,                      // ADC1 Sequence 0
+    IntDefaultHandler,                      // uDMA Error
+    IntDefaultHandler,                      // ADC1 Sequence 0
     IntDefaultHandler,                      // ADC1 Sequence 1
     IntDefaultHandler,                      // ADC1 Sequence 2
-    ADC1IntHandler,                      // ADC1 Sequence 3
+    IntDefaultHandler,                      // ADC1 Sequence 3
     0,                                      // Reserved
     0,                                      // Reserved
     IntDefaultHandler,                      // GPIO Port J

@@ -15,10 +15,10 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc/hw_memmap.h"
-#include "driverlib/rom.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/eeprom.h"
+#include "inc\hw_memmap.h"
+#include "driverlib\rom.h"
+#include "driverlib\sysctl.h"
+#include "driverlib\eeprom.h"
 
 #define EEPROM_ADDR_ROBOT_ID			0x0040
 

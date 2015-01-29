@@ -5,21 +5,40 @@
  *      Author: VyLong
  */
 
-
 #include "librobot\inc\robot_analog.h"
+#include "librobot\inc\robot_timer_delay.h"
+#include "librobot\inc\robot_communication.h"
+#include "libcustom\inc\custom_led.h"
+#include "interrupt_definition.h"
 
-unsigned char countAdcDMAsStopped = 0;
-
+//*****************************************************************************
+// Random generator's variabless
+//*****************************************************************************
+static bool g_bIsGenerateRandomByteDone = false;
+static uint8_t g_pui8RandomBuffer[8] =
+{ 0 };
+static uint8_t g_ui8RandomNumber = 0;
 static uint32_t g_ui32uDMAErrCount = 0;
 
 //*****************************************************************************
-// The buffers for ADCs
+// Microphones signal's vairables
 //*****************************************************************************
-uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE];
-uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE];
+static bool g_bIsSamplingMic0Done = false;
+static bool g_bIsSamplingMic1Done = false;
+static uint16_t g_pui16ADC0Result[NUMBER_OF_SAMPLE] =
+{ 0 };
+static uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE] =
+{ 0 };
 
-uint16_t g_ui16BatteryVoltage;
+//*****************************************************************************
+// Battery monitoring's vairables
+//*****************************************************************************
+static bool g_bSendToHost = false;
+static uint16_t g_ui16BatteryVoltage = 0;
 
+//*****************************************************************************
+// uDMA's vairables
+//*****************************************************************************
 #ifdef gcc
 static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 #else
@@ -27,45 +46,46 @@ static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 static uint8_t ui8ControlTable[1024];
 #endif
 
-inline void initPeripheralsForAnalogFunction(void)
+void initPeripheralsForAnalogFunction(void)
 {
-
 	/*
 	 * Configure GPIO to analog type
 	 *  ground adjacent pin to eliminate noise
 	 */
-	SysCtlPeripheralEnable(ADC_PORT_CLOCK);
-	SysCtlDelay(2);
-	GPIOPinTypeADC(ADC_PORT, ADC0_IN);
-	GPIOPinTypeADC(ADC_PORT, ADC1_IN);
+	ROM_SysCtlPeripheralEnable(ADC_PORT_CLOCK);
+	ROM_SysCtlDelay(2);
+	ROM_GPIOPinTypeADC(ADC_PORT, ADC0_IN);
+	ROM_GPIOPinTypeADC(ADC_PORT, ADC1_IN);
 
-	GPIOPinTypeGPIOOutput(ADC_PORT, ADC_ADJACENT_PINS);
-	GPIOPinWrite(ADC_PORT, ADC_ADJACENT_PINS, 0);
+	ROM_GPIOPinTypeGPIOOutput(ADC_PORT, ADC_ADJACENT_PINS);
+	ROM_GPIOPinWrite(ADC_PORT, ADC_ADJACENT_PINS, 0);
 
-	SysCtlPeripheralEnable(BATTERY_PORT_CLOCK);
-	SysCtlDelay(2);
-	GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
+	/*
+	 * Configure GPIO pin for battery monitoring
+	 */
+	ROM_SysCtlPeripheralEnable(BATTERY_PORT_CLOCK);
+	ROM_SysCtlDelay(2);
+	ROM_GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
 
 	/*
 	 * Initialize ADC0
 	 *  Sequence Type 2 use for sampling battery level
 	 * 	Sequence Type 3 use for sampling microphone 1
 	 */
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-	ADCHardwareOversampleConfigure(ADC0_BASE, ADC_AVERAGING_FACTOR);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+	ROM_ADCHardwareOversampleConfigure(ADC0_BASE, ADC_AVERAGING_FACTOR);
 
-	ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
+	ROM_ADCSequenceConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE,
 	ADC_TRIGGER_PROCESSOR, BATTERY_MEASURENMENT_PRIORITY);
-	ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
+	ROM_ADCSequenceStepConfigure(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, 0,
 	BATTERY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-	ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-	//ADCIntClear(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
+	ROM_ADCSequenceEnable(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 
-	ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
+	ROM_ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
 	DISTANCE_SENSING_PRIORITY);
-	ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, 0,
+	ROM_ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCE_TYPE, 0,
 	ADC0_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-	ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCE_TYPE);
+	ROM_ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC0_BASE, ADC_SEQUENCE_TYPE);
 
 	/*
@@ -73,35 +93,36 @@ inline void initPeripheralsForAnalogFunction(void)
 	 *  Sequence type 0 use for generate random number
 	 *	Sequence Type 3 use for sampling microphone 2
 	 */
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
-	ADCHardwareOversampleConfigure(ADC1_BASE, ADC_AVERAGING_FACTOR);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
+	ROM_ADCHardwareOversampleConfigure(ADC1_BASE, ADC_AVERAGING_FACTOR);
 
-	ADCSequenceConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
+	ROM_ADCSequenceConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
 	ADC_TRIGGER_PROCESSOR, RANDOM_GEN_PRIORITY);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			0, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			1, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			2, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			3, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			4, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			5, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			6, RANDOM_GEN_CHANNEL);
-	ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-			7, RANDOM_GEN_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-	ADCSequenceEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 0, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 1, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 2, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 3, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 4, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 5, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 6, RANDOM_GEN_CHANNEL);
+	ROM_ADCSequenceStepConfigure(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE, 7,
+			RANDOM_GEN_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+	ROM_ADCSequenceEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 
-	ADCSequenceConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
+	ROM_ADCSequenceConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
 	DISTANCE_SENSING_PRIORITY);
-	ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, 0,
+	ROM_ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, 0,
 	ADC1_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
-	ADCSequenceEnable(ADC1_BASE, ADC_SEQUENCE_TYPE);
+	ROM_ADCSequenceEnable(ADC1_BASE, ADC_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC1_BASE, ADC_SEQUENCE_TYPE);
 
 	/*
@@ -111,106 +132,127 @@ inline void initPeripheralsForAnalogFunction(void)
 	 *	Channel 24 handle ADC1 Sequence type 0 - random number generator
 	 *  Channel 27 handle ADC1 Sequence type 3 - microphone 2
 	 */
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-	uDMAEnable();
-	uDMAControlBaseSet(ui8ControlTable);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+	ROM_uDMAEnable();
+	ROM_uDMAControlBaseSet(ui8ControlTable);
 
-	uDMAChannelAssign(DMA_BATT_CHANNEL);
-	uDMAChannelAttributeDisable(BATT_DMA_CHANNEL,
+	ROM_uDMAChannelAssign(DMA_BATT_CHANNEL);
+	ROM_uDMAChannelAttributeDisable(BATT_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-	uDMAChannelControlSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
+	ROM_uDMAChannelControlSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_NONE | UDMA_ARB_1);
-	uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+	ROM_uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
+			UDMA_MODE_BASIC,
 			(void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
 			&g_ui16BatteryVoltage, 1);
-	uDMAChannelEnable(BATT_DMA_CHANNEL);
+	ROM_uDMAChannelEnable(BATT_DMA_CHANNEL);
 
-	uDMAChannelAssign(DMA_ADC0_CHANNEL);
-	uDMAChannelAttributeDisable(ADC0_DMA_CHANNEL,
+	ROM_uDMAChannelAssign(DMA_ADC0_CHANNEL);
+	ROM_uDMAChannelAttributeDisable(ADC0_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-	uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
+	ROM_uDMAChannelControlSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-	uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-			(void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS), g_pui16ADC0Result,
+	ROM_uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
+			UDMA_MODE_BASIC, (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS),
+			g_pui16ADC0Result,
 			NUMBER_OF_SAMPLE);
-	uDMAChannelEnable(ADC0_DMA_CHANNEL);
+	ROM_uDMAChannelEnable(ADC0_DMA_CHANNEL);
 
-	uDMAChannelAssign(DMA_RANDOM_GEN_CHANNEL);
-	uDMAChannelAttributeDisable(RANDOM_GEN_DMA_CHANNEL,
+	ROM_uDMAChannelAssign(DMA_RANDOM_GEN_CHANNEL);
+	ROM_uDMAChannelAttributeDisable(RANDOM_GEN_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-	uDMAChannelControlSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
+	ROM_uDMAChannelControlSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_8);
-	uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
+	ROM_uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_MODE_BASIC,
 			(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS),
 			g_pui8RandomBuffer, 8);
-	uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
+	ROM_uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
 
-	uDMAChannelAssign(DMA_ADC1_CHANNEL);
-	uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
+	ROM_uDMAChannelAssign(DMA_ADC1_CHANNEL);
+	ROM_uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
-	uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
+	ROM_uDMAChannelControlSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
 	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_1);
-	uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
-			(void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS), g_pui16ADC1Result,
+	ROM_uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
+			UDMA_MODE_BASIC, (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS),
+			g_pui16ADC1Result,
 			NUMBER_OF_SAMPLE);
-	uDMAChannelEnable(ADC1_DMA_CHANNEL);
+	ROM_uDMAChannelEnable(ADC1_DMA_CHANNEL);
 
 	/*
 	 * Configure Interrupts
 	 */
-	IntPrioritySet(ADC0_INT, PRIORITY_DMA_MIC1);
-	IntPrioritySet(ADC1_INT, PRIORITY_DMA_MIC2);
-	IntPrioritySet(ADC_BATT_INT, PRIORITY_DMA_BATT);
-	IntPrioritySet(RANDOM_GEN_INT, PRIORITY_DMA_RANDOM_GEN);
+	ROM_IntPrioritySet(ADC0_INT, PRIORITY_DMA_MIC1);
+	ROM_IntPrioritySet(ADC1_INT, PRIORITY_DMA_MIC2);
+	ROM_IntPrioritySet(ADC_BATT_INT, PRIORITY_DMA_BATT);
+	ROM_IntPrioritySet(RANDOM_GEN_INT, PRIORITY_DMA_RANDOM_GEN);
 
-	IntEnable(ADC0_INT);
-	IntEnable(ADC1_INT);
-	IntEnable(ADC_BATT_INT);
-	IntEnable(RANDOM_GEN_INT);
+	IntRegister(ADC0_INT, ADC0IntHandler);
+	IntRegister(ADC1_INT, ADC1IntHandler);
+	IntRegister(ADC_BATT_INT, BatterySequenceIntHandler);
+	IntRegister(RANDOM_GEN_INT, RandomGeneratorIntHandler);
+	IntRegister(INT_UDMAERR, uDMAErrorHandler);
 
-	IntEnable(INT_UDMAERR);
+	ROM_IntEnable(ADC0_INT);
+	ROM_IntEnable(ADC1_INT);
+	ROM_IntEnable(ADC_BATT_INT);
+	ROM_IntEnable(RANDOM_GEN_INT);
+	ROM_IntEnable(INT_UDMAERR);
 
 	/*
-	 * Configure Timer to trigger ADC0 Seq3 and ADC1 Seq3
+	 * Configure Timer0 to trigger ADC0 Seq3 and ADC1 Seq3
 	 */
-	SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
-	TimerDisable(ADC_TIMER, TIMER_A);
+	ROM_SysCtlPeripheralEnable(ADC_TIMER_CLOCK);
+	ROM_TimerDisable(ADC_TIMER, TIMER_A);
 	TimerClockSourceSet(ADC_TIMER, TIMER_CLOCK_SYSTEM);
-	TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
-	TimerLoadSet(ADC_TIMER, TIMER_A, (SysCtlClockGet() / SAMPLE_FREQUENCY));
-	TimerControlTrigger(ADC_TIMER, TIMER_A, true);
+	ROM_TimerConfigure(ADC_TIMER, TIMER_CFG_PERIODIC);
+	ROM_TimerLoadSet(ADC_TIMER, TIMER_A,
+			(ROM_SysCtlClockGet() / SAMPLE_FREQUENCY));
+	ROM_TimerControlTrigger(ADC_TIMER, TIMER_A, true);
 }
 
-inline void startSamplingMicSignals()
+void triggerSamplingMicSignals(void)
 {
-	disableMOTOR();
-	countAdcDMAsStopped = 0;
-	ROM_SysCtlDelay(DELAY_SAMPING_MIC);
-	TimerEnable(ADC_TIMER, TIMER_A);
-}
-inline void startSamplingBatteryVoltage()
-{
-	disableMOTOR();
-	ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
-}
-inline void generateRandomByte()
-{
-	g_ui8RandomNumber = 0;
-	ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
+	//TODO: uncomment
+//	disableMOTOR();
+
+	g_bIsSamplingMic0Done = false;
+	g_bIsSamplingMic1Done = false;
+
+	delay_timer_us(DELAY_SAMPING_MICS_US);
+
+	ROM_TimerEnable(ADC_TIMER, TIMER_A);
 }
 
-float generateRandomRange(float min, float max)
+void triggerSamplingBatteryVoltage(bool bIsSendToHost)
+{
+	g_bSendToHost = bIsSendToHost;
+
+	//TODO: uncomment
+//	disableMOTOR();
+
+	ROM_ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
+}
+
+float generateRandomFloatInRange(float min, float max)
 {
 	if (max <= min)
 		return 0;
 
 	float fResolution = 255.0f / (max - min);
 
-	generateRandomByte();
-	while (g_ui8RandomNumber == 0);
+	triggerGenerateRandomByte();
+	while (!g_bIsGenerateRandomByteDone)
+		;
 
-	return ((float)(g_ui8RandomNumber / fResolution) + min);
+	return ((float) (g_ui8RandomNumber / fResolution) + min);
+}
+
+void triggerGenerateRandomByte(void)
+{
+	g_bIsGenerateRandomByteDone = false;
+	ROM_ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 }
 
 void ADC0IntHandler(void)
@@ -218,117 +260,143 @@ void ADC0IntHandler(void)
 	uint32_t ui32Status;
 	uint32_t ui32Mode;
 
-	ui32Status = ADCIntStatus(ADC0_BASE, ADC_SEQUENCE_TYPE, true);
-	ADCIntClear(ADC0_BASE, ui32Status);
+	ui32Status = ROM_ADCIntStatus(ADC0_BASE, ADC_SEQUENCE_TYPE, true);
+	ROM_ADCIntClear(ADC0_BASE, ui32Status);
 
-	ui32Mode = uDMAChannelModeGet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT);
+	ui32Mode = ROM_uDMAChannelModeGet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT);
 	if (ui32Mode == UDMA_MODE_STOP)
 	{
-		TimerDisable(ADC_TIMER, TIMER_A);
+		ROM_TimerDisable(ADC_TIMER, TIMER_A);
 		// Setup for a future request
-		uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
+		ROM_uDMAChannelTransferSet(ADC0_DMA_CHANNEL | UDMA_PRI_SELECT,
 		UDMA_MODE_BASIC, (void *) (ADC0_BASE + ADC_SEQUENCE_ADDRESS),
 				g_pui16ADC0Result,
 				NUMBER_OF_SAMPLE);
-		uDMAChannelEnable(ADC0_DMA_CHANNEL);
+		ROM_uDMAChannelEnable(ADC0_DMA_CHANNEL);
 
-		countAdcDMAsStopped++;
-		if (countAdcDMAsStopped == 2)
+		g_bIsSamplingMic0Done = true;
+		if (g_bIsSamplingMic1Done)
 		{
-			enableMOTOR();
-			TDOA_run();
+			//TODO: uncomment
+//			enableMOTOR();
+//			TDOA_run();
 		}
 	}
 }
+
 void ADC1IntHandler(void)
 {
 	uint32_t ui32Status;
 	uint32_t ui32Mode;
 
-	ui32Status = ADCIntStatus(ADC1_BASE, ADC_SEQUENCE_TYPE, true);
-	ADCIntClear(ADC1_BASE, ui32Status);
+	ui32Status = ROM_ADCIntStatus(ADC1_BASE, ADC_SEQUENCE_TYPE, true);
+	ROM_ADCIntClear(ADC1_BASE, ui32Status);
 
-	ui32Mode = uDMAChannelModeGet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT);
+	ui32Mode = ROM_uDMAChannelModeGet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT);
 	if (ui32Mode == UDMA_MODE_STOP)
 	{
-		TimerDisable(ADC_TIMER, TIMER_A);
+		ROM_TimerDisable(ADC_TIMER, TIMER_A);
 		// Setup for a future request
-		uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
+		ROM_uDMAChannelTransferSet(ADC1_DMA_CHANNEL | UDMA_PRI_SELECT,
 		UDMA_MODE_BASIC, (void *) (ADC1_BASE + ADC_SEQUENCE_ADDRESS),
 				g_pui16ADC1Result,
 				NUMBER_OF_SAMPLE);
-		uDMAChannelEnable(ADC1_DMA_CHANNEL);
+		ROM_uDMAChannelEnable(ADC1_DMA_CHANNEL);
 
-		countAdcDMAsStopped++;
-		if (countAdcDMAsStopped == 2)
+		g_bIsSamplingMic1Done = true;
+
+		if (g_bIsSamplingMic0Done)
 		{
-			enableMOTOR();
-			TDOA_run();
+			//TODO: uncomment
+//			enableMOTOR();
+//			TDOA_run();
 		}
 	}
 }
+
 void BatterySequenceIntHandler(void)
 {
 	uint32_t ui32Status;
 	uint32_t ui32Mode;
 
-	ui32Status = ADCIntStatus(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, true);
-	ADCIntClear(ADC_BATT_BASE, ui32Status);
+	ui32Status = ROM_ADCIntStatus(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE, true);
+	ROM_ADCIntClear(ADC_BATT_BASE, ui32Status);
 
-	ui32Mode = uDMAChannelModeGet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT);
+	ui32Mode = ROM_uDMAChannelModeGet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT);
 	if (ui32Mode == UDMA_MODE_STOP)
 	{
 		// Setup for a future request
-		uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
+		ROM_uDMAChannelTransferSet(BATT_DMA_CHANNEL | UDMA_PRI_SELECT,
 		UDMA_MODE_BASIC, (void *) (ADC_BATT_BASE + ADC_BATT_SEQUENCE_ADDRESS),
 				&g_ui16BatteryVoltage, 1);
-		uDMAChannelEnable(BATT_DMA_CHANNEL);
-		sendDataToControlBoard((uint8_t *) &g_ui16BatteryVoltage);
-		enableMOTOR();
+		ROM_uDMAChannelEnable(BATT_DMA_CHANNEL);
+
+		if (g_bSendToHost)
+		{
+			sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK,
+					(uint8_t *) &g_ui16BatteryVoltage, 2);
+
+			g_bSendToHost = false;
+
+			turnOffLED(LED_GREEN);
+		}
+
+		//TODO: uncomment
+//		enableMOTOR();
 	}
 }
+
 void RandomGeneratorIntHandler(void)
 {
 	uint32_t ui32Status;
 	uint32_t ui32Mode;
 
-	ui32Status = ADCIntStatus(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE,
-	true);
-	ADCIntClear(ADC_RANDOM_GEN_BASE, ui32Status);
+	ui32Status = ROM_ADCIntStatus(ADC_RANDOM_GEN_BASE,
+			ADC_RANDOM_GEN_SEQUENCE_TYPE,
+			true);
+	ROM_ADCIntClear(ADC_RANDOM_GEN_BASE, ui32Status);
 
-	ui32Mode = uDMAChannelModeGet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT);
+	ui32Mode = ROM_uDMAChannelModeGet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT);
 	if (ui32Mode == UDMA_MODE_STOP)
 	{
 		// Setup for a future request
-		uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
+		ROM_uDMAChannelTransferSet(RANDOM_GEN_DMA_CHANNEL | UDMA_PRI_SELECT,
 		UDMA_MODE_BASIC,
 				(void *) (ADC_RANDOM_GEN_BASE + RANDOM_GEN_SEQUENCE_ADDRESS),
 				g_pui8RandomBuffer, 8);
-		uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
+		ROM_uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
 
+		// Construct random byte from 8 samples
+		g_ui8RandomNumber = 0;
 		int i;
 		for (i = 0; i < 8; i++)
 		{
 			g_ui8RandomNumber |= ((g_pui8RandomBuffer[i] & 0x01) << i);
 		}
 
+		// Perform random byte valid check
 		if (g_ui8RandomNumber == 0 || g_ui8RandomNumber == 0xFF)
 		{
-			g_ui8RandomNumber = 0;
-			ADCProcessorTrigger(ADC_RANDOM_GEN_BASE,
+			// Invalid randome byte, Trigger again
+			ROM_ADCProcessorTrigger(ADC_RANDOM_GEN_BASE,
 			ADC_RANDOM_GEN_SEQUENCE_TYPE);
+		}
+		else
+		{
+			g_bIsGenerateRandomByteDone = true;
 		}
 	}
 }
+
 void uDMAErrorHandler(void)
 {
 	uint32_t ui32Status;
 
-	ui32Status = uDMAErrorStatusGet();
+	ui32Status = ROM_uDMAErrorStatusGet();
 
 	if (ui32Status)
 	{
-		uDMAErrorStatusClear();
+		ROM_uDMAErrorStatusClear();
 		g_ui32uDMAErrCount++;
 	}
 }
