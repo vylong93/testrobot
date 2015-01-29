@@ -27,7 +27,7 @@
 //#include "libnrf24l01/inc/nRF24L01.h"
 //#include "librobot/inc/TDOA.h"
 //#include "librobot/inc/Trilateration.h"
-
+//
 //extern float32_t g_f32PeakEnvelopeA;
 //extern float32_t g_f32MaxEnvelopeA;
 //extern float32_t g_f32PeakEnvelopeB;
@@ -109,7 +109,6 @@
 //bool g_bIsRobotResponse; // T shape
 //bool g_bIsAllowToMove;	// T shape
 
-// Updated ========================================
 #include <stdint.h>
 #include <stdbool.h>
 #include "libcustom\inc\custom_clock.h"
@@ -118,11 +117,10 @@
 #include "libcustom\inc\custom_uart_debug.h"
 
 #include "librobot\inc\robot_lpm.h"
-#include "librobot\inc\robot_speaker.h"
-#include "librobot\inc\robot_communication.h"
-
-
 #include "librobot\inc\robot_timer_delay.h"
+#include "librobot\inc\robot_speaker.h"
+#include "librobot\inc\robot_analog.h"
+#include "librobot\inc\robot_communication.h"
 
 #include "interrupt_definition.h"
 
@@ -130,36 +128,12 @@ extern "C"
 {
 void TI_CC_IRQ_handler();
 
-void ADC0IntHandler(void);
-void ADC1IntHandler(void);
-void uDMAErrorHandler(void);
 void RobotResponseIntHandler(void);
-void SpeakerTimerIntHandler(void);
-void BatterySequenceIntHandler(void);
-void RandomGeneratorIntHandler(void);
 }
 
 void decodeMessage(uint8_t* pui8Message, uint32_t ui32MessSize);
 
-void ADC0IntHandler(void)
-{
-}
-void ADC1IntHandler(void)
-{
-}
-void uDMAErrorHandler(void)
-{
-}
 void RobotResponseIntHandler(void)
-{
-}
-void SpeakerTimerIntHandler(void)
-{
-}
-void BatterySequenceIntHandler(void)
-{
-}
-void RandomGeneratorIntHandler(void)
 {
 }
 
@@ -190,6 +164,9 @@ int main(void)
 
 	initRobotTimerDelay();
 	DEBUG_PRINT("init Robot timer delay: OK\n");
+
+	initPeripheralsForAnalogFunction();
+	DEBUG_PRINT("init Peripherals for analog feature: OK\n");
 
 	initSpeaker();
 	DEBUG_PRINT("init Speaker: OK\n");
@@ -513,7 +490,6 @@ void TI_CC_IRQ_handler(void)
 		returnSleep();
 }
 
-// Updated ========================================
 
 //void StateOne_MeasureDistance()
 //{
@@ -628,7 +604,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = EXCHANGE_TABLE;
 //}
-
+//
 //void StateTwo_ExchangeTableAndCalculateLocsTable()
 //{
 //	uint16_t ui16RandomValue;
@@ -728,7 +704,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = VOTE_ORIGIN;
 //}
-
+//
 //void StateThree_VoteOrigin()
 //{
 //	if(g_ui32OriginID == g_ui32RobotID) // haven't update
@@ -794,7 +770,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = ROTATE_NETWORK;
 //}
-
+//
 //void StateFour_RequestRotateNetwork()
 //{
 //	uint8_t ui8RandomRfChannel;
@@ -922,7 +898,7 @@ void TI_CC_IRQ_handler(void)
 //	turnOffLED(LED_ALL);
 //	g_eProcessState = REDUCE_ERROR;
 //}
-
+//
 //void StateFive_ReduceCoordinatesError()
 //{
 //	int8_t i;
@@ -1167,7 +1143,7 @@ void TI_CC_IRQ_handler(void)
 //	//g_eProcessState = LOCOMOTION;
 //	g_eProcessState = IDLE;
 //}
-
+//
 //void StateSix_Locomotion()
 //{
 //	vector2_t vectZero;
@@ -1289,7 +1265,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-
+//
 //void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 //{
 //	float const RESOLUTION = 18; // in cm
@@ -1656,7 +1632,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-
+//
 //void RobotResponseIntHandler(void)
 //{
 //	switch (g_eRobotResponseState)
@@ -1671,17 +1647,4 @@ void TI_CC_IRQ_handler(void)
 //	}
 //}
 
-//void DelayTimerAIntHanler()
-//{
-//	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-//	g_bDelayTimerAFlagAssert = true;
-//}
-
-//void DelayTimerBIntHanler()
-//{
-//	TimerIntClear(DELAY_TIMER_BASE, TIMER_TIMB_TIMEOUT);
-//	g_bDelayTimerBFlagAssert = true;
-//}
-
-// Updated!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

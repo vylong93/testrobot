@@ -14,7 +14,7 @@ extern "C"
 #define DISTANCE_BETWEEN_TWO_MICS_SQR	25.0
 
 #define DELAY_START_SPEAKER	1000
-#define DELAY_SAMPING_MIC	1
+
 
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)

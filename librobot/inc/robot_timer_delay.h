@@ -21,8 +21,8 @@ extern "C"
 #include "driverlib\rom.h"
 #include "driverlib\timer.h"
 
-#define TIMER_DELAY_CLOCK             SYSCTL_PERIPH_TIMER0
-#define TIMER_DELAY_BASE              TIMER0_BASE
+#define TIMER_DELAY_CLOCK             SYSCTL_PERIPH_TIMER1
+#define TIMER_DELAY_BASE              TIMER1_BASE
 
 typedef enum {
 	TIMER_MILISECOND_DIV = 1000,

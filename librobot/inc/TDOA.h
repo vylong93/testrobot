@@ -13,7 +13,7 @@ extern "C"
 {
 #endif
 
-#include "librobot/inc/MainBoardDriver.h"
+#include "librobot\inc\MainBoardDriver.h"
 
 #define FILTER_ORDER                    34
 #define BLOCK_SIZE                      10

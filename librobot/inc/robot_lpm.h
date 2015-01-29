@@ -15,12 +15,12 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "inc/hw_nvic.h"
-#include "driverlib/rom.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/interrupt.h"
+#include "inc\hw_memmap.h"
+#include "inc\hw_types.h"
+#include "inc\hw_nvic.h"
+#include "driverlib\rom.h"
+#include "driverlib\sysctl.h"
+#include "driverlib\interrupt.h"
 #include "interrupt_definition.h"
 
 typedef enum
