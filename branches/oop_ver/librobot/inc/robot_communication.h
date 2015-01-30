@@ -63,6 +63,11 @@ typedef struct tag_MessageHeader
 #define	HOST_COMMAND_STOP_MOTOR_LEFT			0x0E
 #define	HOST_COMMAND_STOP_MOTOR_RIGHT			0x0F
 
+#define HOST_COMMAND_EEPROM_DATA_READ			0x10
+#define HOST_COMMAND_EEPROM_DATA_WRITE			0x11
+#define HOST_COMMAND_EEPROM_TABLE_READ			0x12
+#define HOST_COMMAND_EEPROM_TABLE_UPDATE		0x13
+
 //#define	HOST_COMMAND_READ_EEPROM
 //#define	HOST_COMMAND_WRITE_EEPROM
 //#define	HOST_COMMAND_SET_ADDRESS_EEPROM
@@ -74,15 +79,15 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer);
 
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
-
 void testRfTransmister(uint8_t* pui8Data);
+void sendBatteryVoltageToHost(void);
+void modifyMotorsConfiguration(uint8_t* pui8Data);
+void transmitRequestDataInEeprom(uint8_t* pui8Data);
+void synchronousEepromData(uint8_t* pui8Data);
+
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size);
 bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
-
-void sendBatteryVoltageToHost(void);
-
-void modifyMotorsConfiguration(uint8_t* pui8Data);
 
 //=============================================================================
 

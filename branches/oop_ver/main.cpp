@@ -121,6 +121,7 @@
 #include "librobot\inc\robot_speaker.h"
 #include "librobot\inc\robot_analog.h"
 #include "librobot\inc\robot_motor.h"
+#include "librobot\inc\robot_eeprom.h"
 #include "librobot\inc\robot_communication.h"
 
 #include "interrupt_definition.h"
@@ -174,6 +175,9 @@ int main(void)
 
 	initMotors();
 	DEBUG_PRINT("init Motors: OK\n");
+
+	initEEPROM();
+	DEBUG_PRINT("init EEPROM: OK\n");
 
 	initDelay();
 	DEBUG_PRINT("init Delay: OK\n");
@@ -608,7 +612,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = EXCHANGE_TABLE;
 //}
-//
+
 //void StateTwo_ExchangeTableAndCalculateLocsTable()
 //{
 //	uint16_t ui16RandomValue;
@@ -708,7 +712,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = VOTE_ORIGIN;
 //}
-//
+
 //void StateThree_VoteOrigin()
 //{
 //	if(g_ui32OriginID == g_ui32RobotID) // haven't update
@@ -774,7 +778,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = ROTATE_NETWORK;
 //}
-//
+
 //void StateFour_RequestRotateNetwork()
 //{
 //	uint8_t ui8RandomRfChannel;
@@ -902,7 +906,7 @@ void TI_CC_IRQ_handler(void)
 //	turnOffLED(LED_ALL);
 //	g_eProcessState = REDUCE_ERROR;
 //}
-//
+
 //void StateFive_ReduceCoordinatesError()
 //{
 //	int8_t i;
@@ -1147,7 +1151,7 @@ void TI_CC_IRQ_handler(void)
 //	//g_eProcessState = LOCOMOTION;
 //	g_eProcessState = IDLE;
 //}
-//
+
 //void StateSix_Locomotion()
 //{
 //	vector2_t vectZero;
@@ -1269,7 +1273,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-//
+
 //void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 //{
 //	float const RESOLUTION = 18; // in cm
@@ -1636,7 +1640,7 @@ void TI_CC_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-//
+
 //void RobotResponseIntHandler(void)
 //{
 //	switch (g_eRobotResponseState)
