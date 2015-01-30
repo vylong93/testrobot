@@ -10,6 +10,7 @@
 #include "librobot\inc\robot_speaker.h"
 #include "librobot\inc\robot_analog.h"
 #include "librobot\inc\robot_motor.h"
+#include "librobot\inc\robot_eeprom.h"
 
 #include "libcustom\inc\custom_led.h"
 #include "libcustom\inc\custom_uart_debug.h"
@@ -106,18 +107,21 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 			DEBUG_PRINT("Failed to sent ADC1 data...\n");
 		break;
 
-//
-////	case PC_SEND_READ_EEPROM:
-////		readFormEEPROM();
-////		break;
-////
-////	case PC_SEND_WRITE_EEPROM:
-////		writeToEEPROM();
-////		break;
-////
-////	case PC_SEND_SET_ADDRESS_EEPROM:
-////		setAddressEEPROM();
-////		break;
+	case HOST_COMMAND_EEPROM_DATA_READ:
+		transmitRequestDataInEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		break;
+
+	case HOST_COMMAND_EEPROM_DATA_WRITE:
+		synchronousEepromData(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		break;
+
+	case HOST_COMMAND_EEPROM_TABLE_READ:
+		DEBUG_PRINT("Unimplement...");
+		break;
+
+	case HOST_COMMAND_EEPROM_TABLE_UPDATE:
+		DEBUG_PRINT("Unimplement...");
+		break;
 
 	default:
 		decodeBasicHostCommand(ui8Cmd);
@@ -237,6 +241,90 @@ void testRfTransmister(uint8_t* pui8Data)
 	free(pui16TestData);
 }
 
+void sendBatteryVoltageToHost(void)
+{
+	turnOnLED(LED_GREEN);
+
+	triggerSamplingBatteryVoltage(true);
+}
+
+void modifyMotorsConfiguration(uint8_t* pui8Data)
+{
+	DEBUG_PRINT("Configure motors\n");
+
+	Motor_t mLeftMotor;
+	Motor_t mRightMotor;
+
+	mLeftMotor.eDirection = (e_MotorDirection)pui8Data[0];
+	mLeftMotor.ui8Speed = pui8Data[1];
+
+	mRightMotor.eDirection = (e_MotorDirection)pui8Data[2];
+	mRightMotor.ui8Speed = pui8Data[3];
+
+	configureMotors(mLeftMotor, mRightMotor);
+}
+
+void transmitRequestDataInEeprom(uint8_t* pui8Data)
+{
+	uint32_t ui32DataCount = pui8Data[0];
+
+	DEBUG_PRINTS("Host request read %d word(s) in EEPROM\n", ui32DataCount);
+
+	uint8_t ui8ResponseSize = ui32DataCount * 6 + 1;
+	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui8ResponseSize);
+
+	pui8ResponseBuffer[0] = ui32DataCount;
+
+	uint16_t ui16WordIndex;
+	uint32_t ui32Data;
+	uint32_t ui32Pointer = 1;
+	uint16_t i;
+	for (i = 1; i <= ui32DataCount * 2; i += 2)
+	{
+		ui16WordIndex = (uint16_t)((pui8Data[i] << 8) | pui8Data[i + 1]);
+		ui32Data = readWordFormEEPROM(ui16WordIndex);
+
+		pui8ResponseBuffer[ui32Pointer++] = pui8Data[i];
+		pui8ResponseBuffer[ui32Pointer++] = pui8Data[i + 1];
+		parse32bitTo4Bytes(&pui8ResponseBuffer[ui32Pointer], ui32Data);
+		ui32Pointer += 4;
+	}
+
+	turnOnLED(LED_GREEN);
+
+	if (sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK, (uint8_t *) pui8ResponseBuffer, ui8ResponseSize))
+	{
+		turnOffLED(LED_GREEN);
+		DEBUG_PRINT("Send eeprom data to host: OK!\n");
+	}
+	else
+	{
+		DEBUG_PRINT("Send eeprom data to host: Failed...\n");
+	}
+
+	free(pui8ResponseBuffer);
+}
+
+void synchronousEepromData(uint8_t* pui8Data)
+{
+	DEBUG_PRINT("Synchronous EEPROM Data");
+	uint8_t ui8DataNum = pui8Data[0];
+	uint32_t ui32WordIndex;
+	uint32_t ui32Data;
+	uint8_t i;
+	for(i = 1; i <= ui8DataNum * 6; i += 6)
+	{
+		ui32WordIndex = (pui8Data[i] << 8) | pui8Data[i + 1];
+		ui32Data = construct4Byte(&pui8Data[i + 2]);
+		if(!writeWordToEEPROM(ui32WordIndex, ui32Data))
+		{
+			DEBUG_PRINT("Failed to write to EEPROM...");
+			return;
+		}
+	}
+	DEBUG_PRINT("EEPROM Data Synchronized!");
+}
+
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size)
 {
@@ -269,28 +357,6 @@ bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length)
 	if (Network_sendMessage(RF_CONTOLBOARD_ADDR, pui8Data, ui32Length, true))
 		return true;
 	return false;
-}
-
-void sendBatteryVoltageToHost(void)
-{
-	turnOnLED(LED_GREEN);
-
-	triggerSamplingBatteryVoltage(true);
-}
-void modifyMotorsConfiguration(uint8_t* pui8Data)
-{
-	DEBUG_PRINT("Configure motors\n");
-
-	Motor_t mLeftMotor;
-	Motor_t mRightMotor;
-
-	mLeftMotor.eDirection = (e_MotorDirection)pui8Data[0];
-	mLeftMotor.ui8Speed = pui8Data[1];
-
-	mRightMotor.eDirection = (e_MotorDirection)pui8Data[2];
-	mRightMotor.ui8Speed = pui8Data[3];
-
-	configureMotors(mLeftMotor, mRightMotor);
 }
 
 //=========================================================

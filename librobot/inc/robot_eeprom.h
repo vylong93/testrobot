@@ -20,17 +20,28 @@ extern "C"
 #include "driverlib\sysctl.h"
 #include "driverlib\eeprom.h"
 
-#define EEPROM_ADDR_ROBOT_ID			0x0040
+//#define PROGRAM_TABLE_TO_EEPROM
 
-//#define EEPROM_ADDR_MOTOR_OFFSET		0x0044	// EEPROM_ADDR_ROBOT_ID + 4
-//
-//#define EEPROM_INTERCEPT				0x0048
-//#define EEPROM_SLOPE					0x004C
+/* Block 1 */
+#define EEPROM_ROBOT_ID_ADDRESS			0x0040	// Word 16
+#define EEPROM_INTERCEPT_ADDRESS		0x0044	// Word 17
+#define EEPROM_SLOPE_ADDRESS			0x0048	// Word 18
 
-void initEEPROM();
-void writeToEEPROM();
-void readFormEEPROM();
-void setAddressEEPROM();
+/* Block 2 - 3 - 4 - 5 - 6 - 7 */
+#define EPPROM_SINE_TABLE_ADDRESS       0x0080
+
+/* Block 8 - 9 - 10 - 11 - 12 - 13 */
+#define EPPROM_ARC_SINE_TABLE_ADDRESS   0x0200
+
+//#define EEPROM_ADDR_MOTOR_OFFSET	0x004C	// EEPROM_ADDR_ROBOT_ID + 4
+
+void initEEPROM(void);
+uint32_t getRobotIDInEEPROM(void);
+
+bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data);
+uint32_t readWordFormEEPROM(uint32_t ui32WordIndex);
+
+void programEEPROM(bool bIsUpdate);
 
 #ifdef __cplusplus
 }
