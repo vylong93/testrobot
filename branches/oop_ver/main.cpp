@@ -120,6 +120,7 @@
 #include "librobot\inc\robot_timer_delay.h"
 #include "librobot\inc\robot_speaker.h"
 #include "librobot\inc\robot_analog.h"
+#include "librobot\inc\robot_motor.h"
 #include "librobot\inc\robot_communication.h"
 
 #include "interrupt_definition.h"
@@ -170,6 +171,9 @@ int main(void)
 
 	initSpeaker();
 	DEBUG_PRINT("init Speaker: OK\n");
+
+	initMotors();
+	DEBUG_PRINT("init Motors: OK\n");
 
 	initDelay();
 	DEBUG_PRINT("init Delay: OK\n");

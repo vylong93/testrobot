@@ -55,15 +55,13 @@ typedef struct tag_MessageHeader
 #define	HOST_COMMAND_TEST_RF_RECEIVER			0x06
 #define	HOST_COMMAND_TOGGLE_ALL_STATUS_LEDS		0x07
 #define	HOST_COMMAND_START_SAMPLING_MIC			0x08
-#define	HOST_COMMAND_START_SPEAKER				0x09
-#define	HOST_COMMAND_CHANGE_MOTORS_SPEED		0x0A
+#define	HOST_COMMAND_DATA_ADC0_TO_HOST			0x09
+#define	HOST_COMMAND_DATA_ADC1_TO_HOST			0x0A
 #define HOST_COMMAND_REQUEST_BATT_VOLT			0x0B
-
-//#define	HOST_COMMAND_STOP_MOTOR_LEFT
-//#define	HOST_COMMAND_STOP_MOTOR_RIGHT
-//#define	HOST_COMMAND_DATA_ADC0_TO_HOST
-//#define	HOST_COMMAND_DATA_ADC1_TO_HOST
-//#define	HOST_COMMAND_BATT_VOLT_TO_HOST
+#define	HOST_COMMAND_START_SPEAKER				0x0C
+#define	HOST_COMMAND_CHANGE_MOTORS_SPEED		0x0D
+#define	HOST_COMMAND_STOP_MOTOR_LEFT			0x0E
+#define	HOST_COMMAND_STOP_MOTOR_RIGHT			0x0F
 
 //#define	HOST_COMMAND_READ_EEPROM
 //#define	HOST_COMMAND_WRITE_EEPROM
@@ -77,12 +75,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer);
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
 
-void testRfTransmister(void);
+void testRfTransmister(uint8_t* pui8Data);
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size);
 bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
 
 void sendBatteryVoltageToHost(void);
+
+void modifyMotorsConfiguration(uint8_t* pui8Data);
 
 //=============================================================================
 

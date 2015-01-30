@@ -81,6 +81,9 @@ extern "C"
 #define DMA_RANDOM_GEN_CHANNEL			UDMA_CH24_ADC1_0
 #define RANDOM_GEN_INT                	INT_ADC1SS0
 
+uint8_t* getMicrophone0BufferPointer(void);
+uint8_t* getMicrophone1BufferPointer(void);
+
 void initPeripheralsForAnalogFunction(void);
 void triggerSamplingMicSignals(void);
 
