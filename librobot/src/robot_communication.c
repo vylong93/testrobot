@@ -9,6 +9,7 @@
 #include "librobot\inc\robot_lpm.h"
 #include "librobot\inc\robot_speaker.h"
 #include "librobot\inc\robot_analog.h"
+#include "librobot\inc\robot_motor.h"
 
 #include "libcustom\inc\custom_led.h"
 #include "libcustom\inc\custom_uart_debug.h"
@@ -44,7 +45,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 	switch (ui8Cmd)
 	{
 	case HOST_COMMAND_TEST_RF_TRANSMISTER:
-		testRfTransmister();
+		testRfTransmister(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
 	case HOST_COMMAND_TEST_RF_RECEIVER:
@@ -61,36 +62,49 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		triggerSamplingMicSignals();
 		break;
 
+	case HOST_COMMAND_REQUEST_BATT_VOLT:
+		DEBUG_PRINT("Sampling battery voltage\n");
+		sendBatteryVoltageToHost();
+		break;
+
 	case HOST_COMMAND_START_SPEAKER:
 		DEBUG_PRINT("Start speaker )))\n");
 		triggerSpeaker();
 		break;
 
 	case HOST_COMMAND_CHANGE_MOTORS_SPEED:
-//		configureMotors((MotorDirection_t)(RF24_RX_buffer[1]), RF24_RX_buffer[2],
-//						(MotorDirection_t)(RF24_RX_buffer[3]), RF24_RX_buffer[4]);
+		modifyMotorsConfiguration(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
-	case HOST_COMMAND_REQUEST_BATT_VOLT:
-		sendBatteryVoltageToHost();
+	case HOST_COMMAND_STOP_MOTOR_LEFT:
+		MotorLeft_stop();
 		break;
 
-//	case PC_SEND_STOP_MOTOR_LEFT:
-////		stopMotorLeft();
-//		break;
-//
-//	case PC_SEND_STOP_MOTOR_RIGHT:
-////		stopMotorRight();
-//		break;
-//
-//	case PC_SEND_DATA_ADC0_TO_PC:
-////		sendDataToControlBoard((uint8_t *) g_pui16ADC0Result);
-//		break;
-//
-//	case PC_SEND_DATA_ADC1_TO_PC:
-////		sendDataToControlBoard((uint8_t *) g_pui16ADC1Result);
-//		break;
-//
+	case HOST_COMMAND_STOP_MOTOR_RIGHT:
+		MotorRight_stop();
+		break;
+
+	case HOST_COMMAND_DATA_ADC0_TO_HOST:
+		turnOnLED(LED_BLUE);
+		if (sendDataToHost(getMicrophone0BufferPointer(), NUMBER_OF_SAMPLE * 2))
+		{
+			turnOffLED(LED_BLUE);
+			DEBUG_PRINT("ADC0 data Transmitted!\n");
+		}
+		else
+			DEBUG_PRINT("Failed to sent ADC0 data...\n");
+		break;
+
+	case HOST_COMMAND_DATA_ADC1_TO_HOST:
+		turnOnLED(LED_BLUE);
+		if (sendDataToHost(getMicrophone1BufferPointer(), NUMBER_OF_SAMPLE * 2))
+		{
+			turnOffLED(LED_BLUE);
+			DEBUG_PRINT("ADC1 data Transmitted!\n");
+		}
+		else
+			DEBUG_PRINT("Failed to sent ADC1 data...\n");
+		break;
 
 //
 ////	case PC_SEND_READ_EEPROM:
@@ -194,22 +208,23 @@ bool checkForCorrectRxDataStream(va_list argp)
 	return false;
 }
 
-void testRfTransmister(void)
+void testRfTransmister(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Test: Rf Transmitter\n");
 
-	uint16_t i;
-	uint16_t pui16TestData[1000] =
-	{ 0 };
+	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
 
-	for (i = 0; i < 1000; i++)
+	uint16_t* pui16TestData = malloc(sizeof(uint16_t) * (ui32TestDataSize >> 1));
+
+	uint16_t i;
+	for (i = 0; i < (ui32TestDataSize >> 1); i++)
 	{
 		pui16TestData[i] = i;
 	}
 
 	turnOnLED(LED_GREEN);
 
-	if (sendDataToHost((uint8_t *) pui16TestData, 1000 * 2))
+	if (sendDataToHost((uint8_t *) pui16TestData, ui32TestDataSize))
 	{
 		turnOffLED(LED_GREEN);
 		DEBUG_PRINT("Test RF Transmission TX: OK\n");
@@ -218,6 +233,8 @@ void testRfTransmister(void)
 	{
 		DEBUG_PRINT("Test RF Transmission TX: Connection failed...\n");
 	}
+
+	free(pui16TestData);
 }
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
@@ -256,11 +273,24 @@ bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length)
 
 void sendBatteryVoltageToHost(void)
 {
-	DEBUG_PRINT("Sampling battery voltage\n");
-
 	turnOnLED(LED_GREEN);
 
 	triggerSamplingBatteryVoltage(true);
+}
+void modifyMotorsConfiguration(uint8_t* pui8Data)
+{
+	DEBUG_PRINT("Configure motors\n");
+
+	Motor_t mLeftMotor;
+	Motor_t mRightMotor;
+
+	mLeftMotor.eDirection = (e_MotorDirection)pui8Data[0];
+	mLeftMotor.ui8Speed = pui8Data[1];
+
+	mRightMotor.eDirection = (e_MotorDirection)pui8Data[2];
+	mRightMotor.ui8Speed = pui8Data[3];
+
+	configureMotors(mLeftMotor, mRightMotor);
 }
 
 //=========================================================

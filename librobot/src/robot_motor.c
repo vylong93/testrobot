@@ -5,195 +5,208 @@
  *      Author: VyLong
  */
 
-
 #include "librobot\inc\robot_motor.h"
+#include "pwm_definition.h"
 
 static uint32_t ui32PWMPeriod;
 
-inline void initMotor()
+void initMotors(void)
 {
 	// Initilize PWM generator module 0
-	SysCtlPWMClockSet(PWM_CLOCK_SELECT);
-	SysCtlDelay(2);
-	SysCtlPeripheralEnable(MOTOR_PWM_CLOCK);
+	ROM_SysCtlPWMClockSet(PWM_CLOCK_SELECT);
+	ROM_SysCtlDelay(2);
+	ROM_SysCtlPeripheralEnable(MOTOR_PWM_CLOCK);
 
-	uint32_t pwmClock = SysCtlClockGet() / PWM_CLOCK_PRESCALE;
+	uint32_t pwmClock = ROM_SysCtlClockGet() / PWM_CLOCK_PRESCALE;
 	ui32PWMPeriod = (pwmClock / MOTOR_PWM_FREQUENCY);
 
 	// Configure GPIO pin to control Motor driver IC
-	SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
-	SysCtlDelay(2);
-	GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
+	ROM_SysCtlPeripheralEnable(MOTOR_SLEEP_PIN_CLOCK);
+	ROM_SysCtlDelay(2);
+	ROM_GPIOPinTypeGPIOOutput(MOTOR_SLEEP_PIN_BASE, MOTOR_SLEEP_PIN);
 
 	// Left motor (1) pin configure
-	SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
-	SysCtlDelay(2);
+	ROM_SysCtlPeripheralEnable(LEFT_MOTOR_PORT_CLOCK);
+	ROM_SysCtlDelay(2);
 
-	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
-	GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
+	ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
 
 	// left - M0PWM4
-	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
-	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2, 0);
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
+	ROM_PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	ROM_PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2, 0);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
 	// left - M0PWM5
-	PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-	PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
-	PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+	ROM_PWMGenConfigure(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	ROM_PWMGenPeriodSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, 0);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
 
 	// Right motor (2) pin configure
-	SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
-	SysCtlDelay(2);
+	ROM_SysCtlPeripheralEnable(RIGHT_MOTOR_PORT_CLOCK);
+	ROM_SysCtlDelay(2);
 
-	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
-	GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
+	ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
 	// right - M0PWM2
-	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
-	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2, 0);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	ROM_PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	ROM_PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2, 0);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
 	// right - M0PWM3
-	PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
-	PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
-	PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+	ROM_PWMGenConfigure(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, PWM_GEN_MODE_DOWN);
+	ROM_PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
+	ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
 }
 
-inline void enableMOTOR()
+void stopMotors(void)
+{
+	disableMOTOR();
+	MotorLeft_stop();
+	MotorRight_stop();
+}
+
+void enableMOTOR(void)
 {
 	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
 	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
 			0x01;
 }
 
-inline void disableMOTOR()
+void disableMOTOR(void)
 {
 	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
 	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
 			0x00;
 }
 
-void setMotorLeftDirectionAndSpeed(MotorDirection_t direction, uint8_t speed)
+void configureMotors(Motor_t mLeftMotor, Motor_t mRightMotor)
 {
-	if (direction == FORWARD)
-	{
-		// left - E5
-		GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
-		GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1, LEFT_MOTOR_IN1);
-
-		// left - M0PWM4
-		GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
-		GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG2);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2,
-				(speed * ui32PWMPeriod) / 100);
-
-		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
-		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
-	}
-	else if (direction == REVERSE)
-	{
-		// left - M0PWM5
-		GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
-		GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG1);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1,
-				(speed * ui32PWMPeriod) / 100);
-
-		// left - E4
-		GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
-		GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
-
-		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-		PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
-	}
-}
-
-void setMotorRightDirectionAndSpeed(MotorDirection_t direction, uint8_t speed)
-{
-	if (direction == FORWARD)
-	{
-		// right - B5
-		GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
-		GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1, RIGHT_MOTOR_IN1);
-
-		// right - M0PWM2
-		GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
-		GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG2);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2,
-				(speed * ui32PWMPeriod) / 100);
-
-		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
-		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, true);
-	}
-	else if (direction == REVERSE)
-	{
-		// right - M0PWM3
-		GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
-		GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG1);
-		PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1,
-				(speed * ui32PWMPeriod) / 100);
-
-		// right - B4
-		GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
-		GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2, RIGHT_MOTOR_IN2);
-
-		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
-		PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
-	}
-}
-
-void configureMotors(MotorDirection_t leftDir, uint8_t leftDutyCycle, MotorDirection_t rightDir, uint8_t rightDutyCycle)
-{
-	if (leftDutyCycle > 99)
-		leftDutyCycle = 99;
-	if (rightDutyCycle > 99)
-		rightDutyCycle = 99;
-
-	leftDutyCycle = 100 - leftDutyCycle;
-	rightDutyCycle = 100 - rightDutyCycle;
-
 	disableMOTOR();
 
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
-	setMotorLeftDirectionAndSpeed(leftDir, leftDutyCycle);
-	setMotorRightDirectionAndSpeed(rightDir, rightDutyCycle);
+	MotorLeft_assignActiveParameter(mLeftMotor);
+	MotorRight_assignActiveParameter(mRightMotor);
 
-	PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	ROM_PWMGenEnable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	ROM_PWMGenEnable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
 
 	enableMOTOR();
 }
 
-void stopMotorLeft()
+void MotorLeft_assignActiveParameter(Motor_t mMotor)
 {
-	PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-	PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
-	GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
-	GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
+	uint32_t ui32DutyCycle;
 
+	if(mMotor.ui8Speed < MOTOR_SPEED_MINIMUM)
+	{
+		MotorLeft_stop();
+		return;
+	}
+
+	if(mMotor.ui8Speed > MOTOR_SPEED_MAXIMUM)
+		mMotor.ui8Speed = MOTOR_SPEED_MAXIMUM;
+
+	ui32DutyCycle = ((256 - mMotor.ui8Speed) * ui32PWMPeriod) / 256;
+
+	if (mMotor.eDirection == FORWARD)
+	{
+		// left - E5
+		ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+		ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1, LEFT_MOTOR_IN1);
+
+		// left - M0PWM4
+		ROM_GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+		ROM_GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG2);
+		ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2, ui32DutyCycle);
+
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, false);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
+	}
+	else if (mMotor.eDirection == REVERSE)
+	{
+		// left - M0PWM5
+		ROM_GPIOPinTypePWM(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN1);
+		ROM_GPIOPinConfigure(LEFT_MOTOR_PWM_CONFIG1);
+		ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1, ui32DutyCycle);
+
+		// left - E4
+		ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2);
+		ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2, LEFT_MOTOR_IN2);
+
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
+	}
 }
 
-void stopMotorRight()
+void MotorRight_assignActiveParameter(Motor_t mMotor)
 {
-	PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
-	PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
-	GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
-	GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+	uint32_t ui32DutyCycle;
 
+	if(mMotor.ui8Speed < MOTOR_SPEED_MINIMUM)
+	{
+		MotorRight_stop();
+		return;
+	}
+
+	if(mMotor.ui8Speed > MOTOR_SPEED_MAXIMUM)
+		mMotor.ui8Speed = MOTOR_SPEED_MAXIMUM;
+
+	ui32DutyCycle = ((256 - mMotor.ui8Speed) * ui32PWMPeriod) / 256;
+
+	if (mMotor.eDirection == FORWARD)
+	{
+		// right - B5
+		ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+		ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1, RIGHT_MOTOR_IN1);
+
+		// right - M0PWM2
+		ROM_GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+		ROM_GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG2);
+		ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2, ui32DutyCycle);
+
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, true);
+	}
+	else if (mMotor.eDirection == REVERSE)
+	{
+		// right - M0PWM3
+		ROM_GPIOPinTypePWM(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN1);
+		ROM_GPIOPinConfigure(RIGHT_MOTOR_PWM_CONFIG1);
+		ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, ui32DutyCycle);
+
+		// right - B4
+		ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2);
+		ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2, RIGHT_MOTOR_IN2);
+
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	}
 }
 
-void stopMotors()
+void MotorLeft_stop()
 {
-	disableMOTOR();
-	stopMotorLeft();
-	stopMotorRight();
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
+	ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
+	ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
 }
+
+void MotorRight_stop()
+{
+	ROM_PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+	ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
+	ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+}
+
 

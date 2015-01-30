@@ -8,13 +8,25 @@
 #ifndef ROBOT_MOTOR_H_
 #define ROBOT_MOTOR_H_
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc\hw_memmap.h"
 #include "inc\hw_types.h"
+#include "inc\hw_gpio.h"
+#include "driverlib\debug.h"
+#include "driverlib\pin_map.h"
 #include "driverlib\sysctl.h"
 #include "driverlib\rom.h"
 #include "driverlib\pwm.h"
+#include "driverlib\gpio.h"
+
+#define MOTOR_SPEED_MINIMUM		45
+#define MOTOR_SPEED_MAXIMUM		250
 
 #define MIN_MOTOR_DUTYCYCLE		1
 #define MAX_MOTOR_DUTYCYCLE		90
@@ -59,25 +71,32 @@
 #define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT2_BIT        PWM_OUT_2_BIT
 
-typedef enum
+typedef enum tag_MotorDirection
 {
   FORWARD = 0,
   REVERSE = 1,
-} MotorDirection_t;
+} e_MotorDirection;
 
-inline void initMotor();
-inline void enableMOTOR();
-inline void disableMOTOR();
+typedef struct tag_Motor
+{
+	e_MotorDirection	eDirection;
+	uint8_t	ui8Speed;
+} Motor_t;
 
-void setMotorLeftDirectionAndSpeed(uint8_t direction, uint8_t speed);
-void setMotorRightDirectionAndSpeed(uint8_t direction, uint8_t speed);
+void initMotors(void);
+void stopMotors(void);
+void enableMOTOR(void);
+void disableMOTOR(void);
 
-void configureMotors(uint8_t left_Direction, uint8_t left_dutyCycles, uint8_t right_Direction, uint8_t right_dutyCycles);
+void configureMotors(Motor_t mLeftMotor, Motor_t mRightMotor);
+void MotorLeft_assignActiveParameter(Motor_t motor);
+void MotorRight_assignActiveParameter(Motor_t motor);
 
-void stopMotorLeft();
-void stopMotorRight();
-void stopMotors();
+void MotorLeft_stop(void);
+void MotorRight_stop(void);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ROBOT_MOTOR_H_ */

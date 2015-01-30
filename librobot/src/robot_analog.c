@@ -46,6 +46,15 @@ static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 static uint8_t ui8ControlTable[1024];
 #endif
 
+uint8_t* getMicrophone0BufferPointer(void)
+{
+	return (uint8_t*)g_pui16ADC0Result;
+}
+uint8_t* getMicrophone1BufferPointer(void)
+{
+	return (uint8_t*)g_pui16ADC1Result;
+}
+
 void initPeripheralsForAnalogFunction(void)
 {
 	/*
