@@ -1,5 +1,4 @@
-#ifndef _TM4C123_NRF24L01_H
-#define _TM4C123_NRF24L01_H
+#ifdef RF_USE_nRF24L01
 
 #ifdef __cplusplus
 extern "C"
@@ -24,19 +23,8 @@ extern "C"
 #include "driverlib/ssi.h"
 #include "libnrf24l01/inc/nRF24L01.h"
 
-#define RF24_GLOBAL_BOARDCAST_BYTE2	0xBE
-#define RF24_GLOBAL_BOARDCAST_BYTE1	0xAD
-#define RF24_GLOBAL_BOARDCAST_BYTE0	0xFF
-
-#define RF24_LOCAL_BOARDCAST_BYTE2	0xBE
-#define RF24_LOCAL_BOARDCAST_BYTE1	0xAD
-#define RF24_LOCAL_BOARDCAST_BYTE0	0x00
-
-// Settings for 50MHz System Clock
-#define DELAY_CYCLES_5MS       250000
-#define DELAY_CYCLES_1MS5      75000
-#define DELAY_CYCLES_130US     6500
-#define DELAY_CYCLES_15US      750
+#ifndef _TM4C123_NRF24L01_H
+#define _TM4C123_NRF24L01_H
 
 #define RF24_SPI_PORT_CLOCK     SYSCTL_PERIPH_GPIOA
 #define RF24_SPI_PORT           GPIO_PORTA_BASE
@@ -60,43 +48,33 @@ extern "C"
 #define RF24_SPI_CLOCK          SYSCTL_PERIPH_SSI0
 #define RF24_SPI                SSI0_BASE
 #define RF24_SPI_BAUDRATE       2000000
-// There are two ways to implement RF24 interrupt handler:
-// 1) (Recommend!) the interupt handler make a call to this function.
-// 2) (Not recommend) put this directly to the NVIC table in the startup file.
-extern void RF24_IntHandler(void);
 
-// Init the spi peripheral used by the RF board
-inline void initSpiForRF (bool interruptEnable);
+void MCU_RF_InitSpiForRf(void);
+void MCU_RF_ConfigIRQPin(bool enable);
+void MCU_RF_WaitUs(unsigned int cycles);
 
-// Pull the RF24_CSN pin to logic high
-inline void setRfCSN();
+bool MCU_RF_GetInterruptState(void);
+void MCU_RF_EnableInterrupt(void);
+void MCU_RF_DisableInterrupt(void);
+bool MCU_RF_IsInterruptPinAsserted(void);
+void MCU_RF_ClearIntFlag(void);
+void MCU_RF_ClearPending(void);
 
-// Pull the RF24_CSN pin to logic low
-inline void clearRfCSN();
-
-// Pull the RF24_CE pin to logic high
-inline void setRfCE();
-
-// Pull the RF24_CE pin to logic high
-inline void clearRfCE();
-
-// Send and get data through the RF24_SPI
-char SPI_sendAndGetData (uint32_t inData);
-
-// A delay loop used by RF24 driver (do not need to be accurate)
-void rfDelayLoop (uint32_t delay);
+void MCU_RF_SetCSN();	// Pull the RF24_CSN pin to logic high
+void MCU_RF_ClearCSN();	// Pull the RF24_CSN pin to logic low
+void MCU_RF_SetCE();	// Pull the RF24_CE pin to logic high
+void MCU_RF_ClearCE();	// Pull the RF24_CE pin to logic high
+char MCU_RF_SendAndGetData (uint32_t inData);	// Send and get data through the RF24_SPI
 
 // Return the current state of the CE pin.
 // Should use a private variable to store CE state then return it
 // through this function instead of reading pin value.
-char getCEState();
+char MCU_RF_GetCEState();
 
-void disableRF24Interrupt();
-
-void enableRF24Interrupt();
+#endif //_TM4C123_NRF24L01_H
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //_TM4C123_NRF24L01_H
+#endif

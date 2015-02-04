@@ -4,6 +4,7 @@
  *  Created on: Dec 31, 2014
  *      Author: VyLong
  */
+#ifdef RF_USE_CC2500
 
 #ifndef TM4C123_CC2500_H_
 #define TM4C123_CC2500_H_
@@ -36,31 +37,31 @@ extern "C"
 #define CC2500_SPI                SSI0_BASE
 #define CC2500_SPI_BAUDRATE       8000000
 
-inline void TI_CC_SetCSN();
-inline void TI_CC_ClearCSN();
+void MCU_RF_InitSpiForRf();
+void MCU_RF_ConfigIRQPin(bool enable);
+void MCU_RF_WaitUs(unsigned int cycles);
 
-void TI_CC_Setup();
-void TI_CC_ConfigIRQPin(bool isEnable);
-char TI_CC_SendAndGetData(char inData);
+bool MCU_RF_GetInterruptState(void);
+void MCU_RF_EnableInterrupt(void);
+void MCU_RF_DisableInterrupt(void);
+bool MCU_RF_IsInterruptPinAsserted(void);
+void MCU_RF_ClearIntFlag(void);
+void MCU_RF_ClearPending(void);
 
-void TI_CC_Wait(unsigned int);
-void TI_CC_WaitForCCxxxxReady(void);
-void TI_CC_WaitForIntGoHigh(void);
-void TI_CC_WaitForIntGoLow(void);
+void MCU_RF_SetCSN();
+void MCU_RF_ClearCSN();
+char MCU_RF_SendAndGetData(uint32_t inData);
 
-void TI_CC_EnableInterrupt(void);
-void TI_CC_DisableInterrupt(void);
-void TI_CC_ClearIntFlag(void);
-void TI_CC_ClearPending(void);
-bool TI_CC_GetInterruptState(void);
-bool TI_CC_IsInterruptPinAsserted(void);
-
-bool TI_CC_IsCRCOK(void);
-
-char TI_CC_Strobe(char strobe);
+void MCU_RF_WaitForCCxxxxReady(void);
+void MCU_RF_WaitForIntGoHigh(void);
+void MCU_RF_WaitForIntGoLow(void);
+bool MCU_RF_IsCRCOK(void);
+char MCU_RF_Strobe(char strobe);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* TM4C123_CC2500_H_ */
+
+#endif

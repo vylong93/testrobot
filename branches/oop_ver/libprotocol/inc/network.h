@@ -15,7 +15,14 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "libcc2500\inc\cc2500.h"
+
+#ifdef RF_USE_CC2500
+#include "libcc2500/inc/cc2500.h"
+#endif
+
+#ifdef RF_USE_nRF24L01
+#include "libnrf24l01/inc/nRF24L01.h"
+#endif
 
 //===============================================================
 //  Header index definition
@@ -68,8 +75,8 @@ extern "C"
 #define RF_PID_MASK		0x0F
 
 #define RF_HEADER_LENGTH		12	// This is the sizeof(Header)
-#define RF_DATA_LENGTH			32	// Spaces for application message
-#define RF_PACKET_LENGTH		44	// Total packet length (RF_HEADER_LENGTH + RF_DATA_LENGTH)
+#define RF_DATA_LENGTH			16	// Spaces for application message
+#define RF_PACKET_LENGTH		28	// Total packet length (RF_HEADER_LENGTH + RF_DATA_LENGTH)
 #define RF_MESSAGE_SIZE_LENGTH	4	// Spaces for application message size indicator, only exist in Single or First packet
 #define RF_DATA_START_INDEX		RF_HEADER_LENGTH	// The begining of data field in rf packet
 

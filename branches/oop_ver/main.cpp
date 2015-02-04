@@ -128,7 +128,7 @@
 
 extern "C"
 {
-void TI_CC_IRQ_handler();
+void MCU_RF_IRQ_handler();
 
 void RobotResponseIntHandler(void);
 }
@@ -464,17 +464,17 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 	}
 }
 
-void TI_CC_IRQ_handler(void)
+void MCU_RF_IRQ_handler(void)
 {
 	uint32_t ui32MessageSize;
 
 	uint8_t* pui8RxBuffer = 0;
 
-	if (TI_CC_IsInterruptPinAsserted())
+	if (MCU_RF_IsInterruptPinAsserted())
 	{
-		TI_CC_ClearIntFlag();
+		MCU_RF_ClearIntFlag();
 
-		TI_CC_DisableInterrupt();
+		MCU_RF_DisableInterrupt();
 
 		turnOnLED(LED_RED);
 
@@ -489,7 +489,7 @@ void TI_CC_IRQ_handler(void)
 			pui8RxBuffer = 0;
 		}
 
-		TI_CC_EnableInterrupt();
+		MCU_RF_EnableInterrupt();
 
 		turnOffLED(LED_RED);
 	}

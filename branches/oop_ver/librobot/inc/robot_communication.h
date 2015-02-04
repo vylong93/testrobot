@@ -16,8 +16,15 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "libcc2500\inc\CC2500.h"
-#include "libcc2500\inc\TM4C123_CC2500.h"
+#ifdef RF_USE_CC2500
+#include "libcc2500/inc/TM4C123_CC2500.h"
+#include "libcc2500/inc/cc2500.h"
+#endif
+
+#ifdef RF_USE_nRF24L01
+#include "libnrf24l01/inc/nRF24L01.h"
+#include "libnrf24l01/inc/TM4C123_nRF24L01.h"
+#endif
 
 #include "libprotocol\inc\network.h"
 

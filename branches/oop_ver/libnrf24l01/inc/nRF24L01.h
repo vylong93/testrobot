@@ -1,3 +1,5 @@
+#ifdef RF_USE_nRF24L01
+
 /* nRF24L01.h
  * Register definitions for manipulating the Nordic Semiconductor
  * nRF24L01+ RF transceiver chipsets.
@@ -38,26 +40,31 @@ extern "C"
 {
 #endif
 
-#ifndef bool
-#define bool unsigned char
-#define true  1
-#define false 0
-#endif
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdarg.h>
 
-typedef struct
+typedef struct tag_rf24_iniTypeDef
 {
-  unsigned char AddressWidth;
-  unsigned char Speed;
-  unsigned char Power;
-  unsigned char Channel;
-  unsigned char CrcState;
-  unsigned char CrcBytes;
-  unsigned char RetransmitDelay;
-  unsigned char RetransmitCount;
-  unsigned char Features;
+  uint8_t AddressWidth;
+  uint8_t Speed;
+  uint8_t Power;
+  uint8_t Channel;
+  uint8_t CrcState;
+  uint8_t CrcBytes;
+  uint8_t RetransmitDelay;
+  uint8_t RetransmitCount;
+  uint8_t Features;
   bool InterruptEnable;
   bool LNAGainEnable;
-}RF24_InitTypeDef;
+} RF24_InitTypeDef;
+
+#define RF24_DEFAULT_ADDRESS_BYTE0	0xBC	// 1011 1100
+#define RF24_DEFAULT_ADDRESS_BYTE1	0xAD	// 1010 1101
+#define RF24_DEFAULT_ADDRESS_BYTE2	0x59	// 0101 1001
+#define RF24_DEFAULT_ADDRESS_BYTE3	0x37	// 0011 0111
+#define RF24_DEFAULT_ADDRESS_BYTE4	0x42	// 0100 0010
+
 
 // *** Register Map *** //
 #define RF24_REG_MASK        0x1F
@@ -192,7 +199,7 @@ typedef struct
 #define RF24_SPEED_2MBPS    0x08
 #define RF24_SPEED_250KBPS  0x20
 #define RF24_SPEED_MASK     0x08
-#define RF24_SPEED_MIN	        RF24_SPEED_250KBPS
+#define RF24_SPEED_MIN	    RF24_SPEED_250KBPS
 #define RF24_SPEED_MAX		RF24_SPEED_2MBPS
 
 /* RF transmit power settings */
@@ -289,46 +296,71 @@ typedef struct
 #define RF24_RETRANS_COUNT14 0x0E
 #define RF24_RETRANS_COUNT15 0x0F
 
-//-----------------------FUNCTIONS----------------------------//
+#define RF24_BUFFER_SIZE		32
+#define RF24_CHECKSUM_SIZE		4
+#define RF24_VALID_BUFFER_SIZE	28 // RF24_BUFFER_SIZE - RF24_CHECKSUM_SIZE
 
+#define TXBUFFERSIZE	RF24_BUFFER_SIZE // Size of buffer to store Tx & Rx FIFO data
+#define TXPACKETLEN 	TXBUFFERSIZE // Number of Tx bytes to send in a single data transmission
+
+typedef enum
+{
+	RX_STATUS_SUCCESS,
+	RX_STATUS_CRC_ERROR,
+	RX_STATUS_INVALID_LENGTH,
+	RX_STATUS_FAILED
+} e_RxStatus;
+
+// Application methods
+bool RfSendPacket(uint8_t *txBuffer);
+e_RxStatus RfReceivePacket(uint8_t *rxBuffer);
+void initRfModule(bool isEnableInt);
+void RfSetChannel(uint8_t chanNum);
+void RfSetRxMode();
+void RfFlushTxFifo();
+void RfFlushRxFifo();
+
+bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
+			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...);
+bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
+			bool (*pfnHandler)(va_list argp), ...);
+
+//-----------------------FUNCTIONS----------------------------//
 // Initialization and configuration
 void RF24_init(const RF24_InitTypeDef* InitRf24);
 
 // Test if chip is present and/or SPI is working.
-unsigned char RF24_isAlive ();
+uint8_t RF24_isAlive ();
 
 // Configure RF configure register
-inline void RF24_setConfigureRegister (unsigned char newConfigure);
+void RF24_setConfigureRegister (uint8_t newConfigure);
 
 // Read RF configure register
-inline unsigned char RF24_getConfigureRegister ();
+uint8_t RF24_getConfigureRegister ();
 
 // Commit RF speed & TX power from rf_speed_power variable.
-void RF24_setSpeedAndPower (unsigned char rfSpeedAndPower);
-
-// Commit RF channel setting from rf_channel variable.
-void RF24_setChannel (unsigned char rfChannel);
+void RF24_setSpeedAndPower (uint8_t rfSpeedAndPower);
 
 // Commit Enhanced ShockBurst Address Width from rf_addr_width variable.
-void RF24_setAddressWidth (unsigned char rfAddressWidth);
+void RF24_setAddressWidth (uint8_t rfAddressWidth);
 
 // Enable specified feature (RF24_EN_* from nRF24L01.h, except RF24_EN_CRC)
-void RF24_enableFeatures (unsigned char feature);
+void RF24_enableFeatures (uint8_t feature);
 
 // Disable specified feature
-void RF24_disableFeatures (unsigned char feature);
+void RF24_disableFeatures (uint8_t feature);
 
 // Get current state of the nRF24L01+ chip, test with RF24_STATE_* #define's
-unsigned char RF24_getCurrentState ();
+uint8_t RF24_getCurrentState ();
 
 // Number of packets lost since last time the Channel was set.
-unsigned char RF24_getLostPackets ();
+uint8_t RF24_getLostPackets ();
 
 // Check if the IRQ flag is set or not
-unsigned char RF24_getIrqFlag (unsigned char rfIrqFlag);
+uint8_t RF24_getIrqFlag (uint8_t rfIrqFlag);
 
 // Clear specified Interrupt Flags
-void RF24_clearIrqFlag (unsigned char irqflag);
+void RF24_clearIrqFlag (uint8_t irqflag);
 
 // Enter Power-Down mode (0.9uA power draw)
 void RF24_startPowerDown ();
@@ -337,16 +369,16 @@ void RF24_startPowerDown ();
 void RF24_startStandby ();
 
 // Scan current channel for RPD (looks for any signals > -64dBm)
-unsigned char RF24_scan ();
+uint8_t RF24_scan ();
 
 // Send read register command and read data of the corresponding register
-unsigned char RF24_readRegister	(unsigned char addr);
+uint8_t RF24_readRegister	(uint8_t addr);
 
 // Send write register command and write data to the corresponding register
-inline void RF24_writeRegister	(unsigned char addr, unsigned char data);
+void RF24_writeRegister	(uint8_t addr, uint8_t data);
 
 // Configure TX address to send next packet
-void RF24_TX_setAddress (unsigned char *addr);
+void RF24_TX_setAddress (uint8_t *addr);
 
 // Change the RF board to TX state and keep it at the STANDBY-I mode
 void RF24_TX_activate ();
@@ -356,34 +388,34 @@ void RF24_TX_activate ();
 void RF24_TX_pulseTransmit();
 
 // Send data to other RF boards and request ack (if enable)
-void RF24_TX_writePayloadAck (unsigned char len, unsigned char *data);
+void RF24_TX_writePayloadAck (uint8_t len, uint8_t *data);
 
 // Send data to other RF boards and not request ack (feature must be enabled in init function)
-void RF24_TX_writePayloadNoAck (unsigned char len, unsigned char *data);
+void RF24_TX_writePayloadNoAck (uint8_t len, uint8_t *data);
 
-// Flush every pending payload in the TX FIFO
-void RF24_TX_flush ();
+//// Flush every pending payload in the TX FIFO
+//void RF24_TX_flush ();
 
 //Enable retransmitting contents of TX FIFO endlessly until RF24_flush_tx() or the FIFO contents are replaced.
 void RF24_TX_reuseLastPayload ();
 
 // Configure RX address of "rf_addr_width" size into the specified pipe
-void RF24_RX_setAddress (unsigned char pipe, unsigned char *addr);
+void RF24_RX_setAddress (uint8_t pipe, uint8_t *addr);
 
 // Get the size of incoming RX payload; Only available in dynamic payload mode
-unsigned char RF24_RX_getPayloadWidth ();
+uint8_t RF24_RX_getPayloadWidth ();
 
 // Read the received data
-unsigned char RF24_RX_getPayloadData (unsigned char len, unsigned char *data);
+uint8_t RF24_RX_getPayloadData (uint8_t len, uint8_t *data);
 
-// Enable PRX mode (~12-14mA power draw)
-void RF24_RX_activate ();
+//// Enable PRX mode (~12-14mA power draw)
+//void RF24_RX_activate ();
 
-// Flush every peding payload in the RX FIFO
-void RF24_RX_flush ();
+//// Flush every peding payload in the RX FIFO
+//void RF24_RX_flush ();
 
 // Check if RX FIFO data is available for reading.
-unsigned char RF24_RX_isEmpty ();
+uint8_t RF24_RX_isEmpty ();
 
 // Used to manually ACK with a payload.  Must have RF24_EN_ACK_PAY enabled; this is not enabled by default
 // When RF24_EN_ACK_PAY is enabled on the PTX side, ALL transmissions must be manually ACK'd by the receiver this way.
@@ -394,34 +426,34 @@ unsigned char RF24_RX_isEmpty ();
 // out with MAX_RT (RF24_IRQ_TXFAILED) after (RF24_SETUP_RETR >> RF24_ARC) retransmissions.
 // When this occurs, the PRX will still only notify its microcontroller of the payload once (the PID field in the packet uniquely
 // identifies it so the PRX knows it's the same packet being retransmitted) but it's obviously wasting on-air time (and power).
-void RF24_RX_sendAckWithPayload (unsigned char pipe, unsigned char len, unsigned char *data);
+void RF24_RX_sendAckWithPayload (uint8_t pipe, uint8_t len, uint8_t *data);
 
 // Detect Carrier Signal in the configured channel
 bool RF24_RX_carrierDetection();
 
 // Disable specified RX pipe
-void RF24_PIPE_close (unsigned char pipe);
+void RF24_PIPE_close (uint8_t pipe);
 
 // Disable all RX pipes (used during initialization)
 void RF24_PIPE_closeAll ();
 
 // Enable specified RX pipe, optionally turn auto-ack (Enhanced ShockBurst) on
-void RF24_PIPE_open (unsigned char pipe, bool autoack);
+void RF24_PIPE_open (uint8_t pipe, bool autoack);
 
 // Check if specified RX pipe is active
-unsigned char RF24_PIPE_isOpen (unsigned char pipe);
+uint8_t RF24_PIPE_isOpen (uint8_t pipe);
 
 // Set static length of pipe's RX payloads (1-32), size=0 enables DynPD.
-void RF24_PIPE_setPacketSize (unsigned char pipe, unsigned char size);
+void RF24_PIPE_setPacketSize (uint8_t pipe, uint8_t size);
 
 // 500-4000uS range, clamped by RF speed
-void RF24_RETRANS_setDelay (unsigned char delay);
+void RF24_RETRANS_setDelay (uint8_t delay);
 
 // 0-15 retransmits before MAX_RT (RF24_IRQ_TXFAILED) IRQ raised
-void RF24_RETRANS_setCount (unsigned char count);
+void RF24_RETRANS_setCount (uint8_t count);
 
 // Number of times a packet was retransmitted during last TX attempt
-unsigned char RF24_RETRANS_getLastRetransmits ();
+uint8_t RF24_RETRANS_getLastRetransmits ();
 
 //this thing is too long so I left it here
 #define RF24_CHANNEL_0          0
@@ -556,3 +588,5 @@ unsigned char RF24_RETRANS_getLastRetransmits ();
 #endif
 
 #endif //_NRF24L01_H
+
+#endif

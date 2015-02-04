@@ -5,6 +5,7 @@
  *      Author: VyLong
  */
 
+#ifdef RF_USE_CC2500
 
 #ifndef CC2500_H_
 #define CC2500_H_
@@ -156,15 +157,24 @@ typedef enum
 	RX_STATUS_FAILED
 } e_RxStatus;
 
-// CCxxx0 Manipulation methods
-void RfWriteSettings(void);
-bool RfSendPacket(uint8_t *txBuffer, uint8_t size);
+// Application methods
+bool RfSendPacket(uint8_t *txBuffer);
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer);
+void initRfModule(bool isEnableInt);
+void RfSetChannel(uint8_t chanNum);
+void RfSetRxMode();
+void RfFlushTxFifo();
+void RfFlushRxFifo();
+
 bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...);
+
 bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 			bool (*pfnHandler)(va_list argp), ...);
 
+//-----------------------FUNCTIONS----------------------------//
+void RfWriteSettings(void);
+void RfSetIdleMode(void);
 void RfPowerupCSnSequence(void);
 void RfResetChip(void);
 uint8_t RfReadStatus(void);
@@ -175,15 +185,12 @@ void RfWriteReg(uint8_t addr, uint8_t value);
 void RfWriteBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count);
 
 // CCxxx0 Application methods
-void initRfModule(bool isEnableInt);
-void RfSetChannel(uint8_t chanNum);
-void RfSetIdleMode(void);
-void RfSetRxMode();
-void RfFlushTxFifo();
-void RfFlushRxFifo();
+
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* CC2500_H_ */
+
+#endif
