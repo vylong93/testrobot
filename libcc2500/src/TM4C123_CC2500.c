@@ -1,3 +1,5 @@
+#ifdef RF_USE_CC2500
+
 /*
  *  TM4C123_CC2500.c
  *
@@ -36,29 +38,8 @@ static bool g_bIsIntEnable = false;
 //  TODO:
 //	Define this function in your source code such as main.c
 //----------------------------------------------------------------------------
-extern void TI_CC_IRQ_handler();
+extern void MCU_RF_IRQ_handler();
 
-//----------------------------------------------------------------------------
-//  void TI_CC_SetCSN(void)
-//
-//  DESCRIPTION:
-//  Disable chip select
-//----------------------------------------------------------------------------
-inline void TI_CC_SetCSN()
-{
-	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, CC2500_CSN);
-}
-
-//----------------------------------------------------------------------------
-//  void TI_CC_ClearCSN(void)
-//
-//  DESCRIPTION:
-//  Enable chip select
-//----------------------------------------------------------------------------
-inline void TI_CC_ClearCSN()
-{
-	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, 0);
-}
 
 //----------------------------------------------------------------------------
 //  void TI_CC_Setup()
@@ -67,25 +48,25 @@ inline void TI_CC_ClearCSN()
 //  Configures the assigned interface to function as a SPI port and
 //  initializes it.
 //----------------------------------------------------------------------------
-void TI_CC_Setup()
+void MCU_RF_InitSpiForRf()
 {
   // Enable the ports used by the RF board
   ROM_SysCtlPeripheralEnable(CC2500_SPI_PORT_CLOCK);
-  TI_CC_Wait(1);
+  MCU_RF_WaitUs(1);
 
   if(CC2500_SPI_PORT_CLOCK != CC2500_INT_PORT_CLOCK)
   {
 	ROM_SysCtlPeripheralEnable(CC2500_INT_PORT_CLOCK);
-	TI_CC_Wait(1);
+	MCU_RF_WaitUs(1);
   }
 
   // Enable the SSI module used by the RF board
   ROM_SysCtlPeripheralEnable(CC2500_SPI_CLOCK);
-  TI_CC_Wait(3);
+  MCU_RF_WaitUs(3);
 
   // Disable the SSI to config
   ROM_SSIDisable(CC2500_SPI);
-  TI_CC_Wait(2);
+  MCU_RF_WaitUs(2);
 
   // Connect mux pins to the targeted SSI module
   ROM_GPIOPinConfigure(CC2500_SCK_CONFIGURE);
@@ -132,7 +113,7 @@ void TI_CC_Setup()
 //          true/false for enable/disable interrupt at GPO0
 //
 //----------------------------------------------------------------------------
-void TI_CC_ConfigIRQPin(bool enable)
+void MCU_RF_ConfigIRQPin(bool enable)
 {
   // Clear interrupt flag
   GPIOIntClear(CC2500_INT_PORT, CC2500_INT_Pin);
@@ -146,7 +127,7 @@ void TI_CC_ConfigIRQPin(bool enable)
 	  ROM_IntPrioritySet(CC2500_INT, 0x00);
 
 	  // Register IRQ function handler
-	  IntRegister(CC2500_INT, TI_CC_IRQ_handler);
+	  IntRegister(CC2500_INT, MCU_RF_IRQ_handler);
 
 	  // Enable interrupt source of the interrupt pin used by RF board
 	  GPIOIntEnable(CC2500_INT_PORT, CC2500_INT_Channel);
@@ -155,32 +136,13 @@ void TI_CC_ConfigIRQPin(bool enable)
 	  ROM_IntPendClear(CC2500_INT);
 
 	  // Enable the interrupts.
-	  TI_CC_EnableInterrupt();
+	  MCU_RF_EnableInterrupt();
   }
   else
   {
 	  // Disable the interrupts.
-	  TI_CC_DisableInterrupt();
+	  MCU_RF_DisableInterrupt();
   }
-}
-
-//----------------------------------------------------------------------------
-//  void TI_CC_SendAndGetData(char)
-//
-//  DESCRIPTION:
-//  Transmit and get data in one transaction
-//
-//  ARGUMENTS:
-//      char inData
-//          data for transmittion
-//
-//----------------------------------------------------------------------------
-char TI_CC_SendAndGetData(char inData)
-{
-	ROM_SSIDataPut(CC2500_SPI, (uint32_t)inData);
-    uint32_t outData;
-    ROM_SSIDataGet(CC2500_SPI, &outData);
-    return (char)outData;
 }
 
 //----------------------------------------------------------------------------
@@ -194,42 +156,21 @@ char TI_CC_SendAndGetData(char inData)
 //          number of delay microsecond: 1 ~ 1.02us
 //
 //----------------------------------------------------------------------------
-void TI_CC_Wait(unsigned int cycles)
+void MCU_RF_WaitUs(unsigned int cycles)
 {
 	ROM_SysCtlDelay((ROM_SysCtlClockGet() / (1000000 * 3)) * cycles);
 }
 
-//----------------------------------------------------------------------------
-//  void TI_CC_WaitForCCxxxxReady(void)
-//
-//  DESCRIPTION:
-//  spin until SO go low
-//----------------------------------------------------------------------------
-void TI_CC_WaitForCCxxxxReady(void)
-{
-	while (ROM_GPIOPinRead(CC2500_SPI_PORT, CC2500_MISO));	// Wait for CCxxxx ready
-}
 
 //----------------------------------------------------------------------------
-//  void TI_CC_WaitForIntGoHigh(void)
+//  void TI_CC_GetInterruptState(void)
 //
 //  DESCRIPTION:
-//  spin until gpo0 go high
+//  return current interrupt status
 //----------------------------------------------------------------------------
-void TI_CC_WaitForIntGoHigh(void)
+bool MCU_RF_GetInterruptState(void)
 {
-	while (!ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to go hi -> sync TX'ed
-}
-
-//----------------------------------------------------------------------------
-//  void TI_CC_WaitForIntGoLow(void)
-//
-//  DESCRIPTION:
-//  spin until gpo0 go low
-//----------------------------------------------------------------------------
-void TI_CC_WaitForIntGoLow(void)
-{
-	while (ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to clear -> end of pkt
+	return g_bIsIntEnable;
 }
 
 //----------------------------------------------------------------------------
@@ -238,7 +179,7 @@ void TI_CC_WaitForIntGoLow(void)
 //  DESCRIPTION:
 //  enable GDO0 interrupt
 //----------------------------------------------------------------------------
-void TI_CC_EnableInterrupt(void)
+void MCU_RF_EnableInterrupt(void)
 {
 	ROM_IntEnable(CC2500_INT);
 	g_bIsIntEnable = true;
@@ -250,21 +191,10 @@ void TI_CC_EnableInterrupt(void)
 //  DESCRIPTION:
 //  disable GDO0 interrupt
 //----------------------------------------------------------------------------
-void TI_CC_DisableInterrupt(void)
+void MCU_RF_DisableInterrupt(void)
 {
 	ROM_IntDisable(CC2500_INT);
 	g_bIsIntEnable = false;
-}
-
-//----------------------------------------------------------------------------
-//  void TI_CC_GetInterruptState(void)
-//
-//  DESCRIPTION:
-//  return current interrupt status
-//----------------------------------------------------------------------------
-bool TI_CC_GetInterruptState(void)
-{
-	return g_bIsIntEnable;
 }
 
 //----------------------------------------------------------------------------
@@ -273,7 +203,7 @@ bool TI_CC_GetInterruptState(void)
 //  DESCRIPTION:
 //  return current interrupt pin status
 //----------------------------------------------------------------------------
-bool TI_CC_IsInterruptPinAsserted(void)
+bool MCU_RF_IsInterruptPinAsserted(void)
 {
 	return ((GPIOIntStatus(CC2500_INT_PORT, false) & CC2500_INT_Pin) == CC2500_INT_Pin);
 }
@@ -284,7 +214,7 @@ bool TI_CC_IsInterruptPinAsserted(void)
 //  DESCRIPTION:
 //  clear GDO0 interrupt flag
 //----------------------------------------------------------------------------
-void TI_CC_ClearIntFlag(void)
+void MCU_RF_ClearIntFlag(void)
 {
 	GPIOIntClear(CC2500_INT_PORT, CC2500_INT_Pin);
 }
@@ -295,9 +225,85 @@ void TI_CC_ClearIntFlag(void)
 //  DESCRIPTION:
 //  clear pending interrupt flag
 //----------------------------------------------------------------------------
-void TI_CC_ClearPending(void)
+void MCU_RF_ClearPending(void)
 {
 	ROM_IntPendClear(CC2500_INT);
+}
+
+
+//----------------------------------------------------------------------------
+//  void TI_CC_SetCSN(void)
+//
+//  DESCRIPTION:
+//  Disable chip select
+//----------------------------------------------------------------------------
+void MCU_RF_SetCSN()
+{
+	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, CC2500_CSN);
+}
+
+//----------------------------------------------------------------------------
+//  void TI_CC_ClearCSN(void)
+//
+//  DESCRIPTION:
+//  Enable chip select
+//----------------------------------------------------------------------------
+void MCU_RF_ClearCSN()
+{
+	ROM_GPIOPinWrite(CC2500_SPI_PORT, CC2500_CSN, 0);
+}
+
+//----------------------------------------------------------------------------
+//  void TI_CC_SendAndGetData(char)
+//
+//  DESCRIPTION:
+//  Transmit and get data in one transaction
+//
+//  ARGUMENTS:
+//      char inData
+//          data for transmittion
+//
+//----------------------------------------------------------------------------
+char MCU_RF_SendAndGetData(uint32_t inData)
+{
+	ROM_SSIDataPut(CC2500_SPI, inData);
+    uint32_t outData;
+    ROM_SSIDataGet(CC2500_SPI, &outData);
+    return (char)outData;
+}
+
+
+//----------------------------------------------------------------------------
+//  void TI_CC_WaitForCCxxxxReady(void)
+//
+//  DESCRIPTION:
+//  spin until SO go low
+//----------------------------------------------------------------------------
+void MCU_RF_WaitForCCxxxxReady(void)
+{
+	while (ROM_GPIOPinRead(CC2500_SPI_PORT, CC2500_MISO));	// Wait for CCxxxx ready
+}
+
+//----------------------------------------------------------------------------
+//  void TI_CC_WaitForIntGoHigh(void)
+//
+//  DESCRIPTION:
+//  spin until gpo0 go high
+//----------------------------------------------------------------------------
+void MCU_RF_WaitForIntGoHigh(void)
+{
+	while (!ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to go hi -> sync TX'ed
+}
+
+//----------------------------------------------------------------------------
+//  void TI_CC_WaitForIntGoLow(void)
+//
+//  DESCRIPTION:
+//  spin until gpo0 go low
+//----------------------------------------------------------------------------
+void MCU_RF_WaitForIntGoLow(void)
+{
+	while (ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_INT_Pin));	// Wait GDO0 to clear -> end of pkt
 }
 
 //----------------------------------------------------------------------------
@@ -311,7 +317,7 @@ void TI_CC_ClearPending(void)
 //			true: CRC OK
 //			false: CRC ERROR
 //----------------------------------------------------------------------------
-bool TI_CC_IsCRCOK(void)
+bool MCU_RF_IsCRCOK(void)
 {
 	return (ROM_GPIOPinRead(CC2500_INT_PORT, CC2500_CCA_Pin) == CC2500_CCA_Pin);
 }
@@ -323,17 +329,20 @@ bool TI_CC_IsCRCOK(void)
 //  Special write function for writing to command strobe registers.  Writes
 //  to the strobe at address "addr".
 //----------------------------------------------------------------------------
-char TI_CC_Strobe(char strobe)
+char MCU_RF_Strobe(char strobe)
 {
 	char status;
 
-	TI_CC_ClearCSN();     				 	// /CS enable
+	MCU_RF_ClearCSN();     				 	// /CS enable
 
-	TI_CC_WaitForCCxxxxReady();
+	MCU_RF_WaitForCCxxxxReady();
 
-    status = TI_CC_SendAndGetData(strobe);	// Send strobe
+    status = MCU_RF_SendAndGetData(strobe);	// Send strobe
 
-    TI_CC_SetCSN();       					// /CS disable
+    MCU_RF_SetCSN();       					// /CS disable
 
     return status;
 }
+
+
+#endif

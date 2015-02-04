@@ -1,3 +1,5 @@
+#ifdef RF_USE_CC2500
+
 //----------------------------------------------------------------------------
 //  Description:  This file contains functions that configure the CC1100/2500
 //  device.
@@ -14,13 +16,357 @@
 #include "libcc2500/inc/cc2500.h"
 #include "libcc2500/inc/TM4C123_CC2500.h"
 
+//-----------------------------------------------------------------------------
+//  bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
+//
+//  DESCRIPTION:
+//  This function transmits a packet with length up to 63 bytes.  To use this
+//  function, GD00 must be configured to be asserted when sync word is sent and
+//  de-asserted at the end of the packet, which is accomplished by setting the
+//  IOCFG0 register to 0x06, per the CCxxxx datasheet.  GDO0 goes high at
+//  packet start and returns low when complete.  The function polls GDO0 to
+//  ensure packet completion before returning.
+//
+//  ARGUMENTS:
+//      uint8_t *txBuffer
+//          Pointer to a buffer containing the data to be transmitted
+//
+//      uint8_t size
+//          The size of the txBuffer
+//
+//  RETURN VALUE:
+//      bool
+//          true	: Tx success!
+//			false	: Tx failed...
+//-----------------------------------------------------------------------------
+bool RfSendPacket(uint8_t *txBuffer)
+{
+  if(txBuffer[0] == 0 || txBuffer[0] > TXBUFFERSIZE)
+	  return false;
+
+  bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
+  MCU_RF_DisableInterrupt();
+
+  //TODO: use Tx-if-CCA instead and return true if Tx success
+//  while((TI_CC_Strobe(TI_CCxxx0_STX) & TI_CCxxx0_STATE_MASK) != TI_CCxxx0_STATE_TX);
+
+  MCU_RF_Strobe(TI_CCxxx0_SIDLE);
+  RfWriteBurstReg(TI_CCxxx0_TXFIFO, txBuffer, txBuffer[0] + 1); // Write TX data
+
+  // The CC1100 won't transmit the contents of the FIFO until the state is
+  // changed to TX state.  During configuration we placed it in RX state and
+  // configured it to return to RX whenever it is done transmitting, so it is
+  // in RX now.  Use the appropriate library function to change the state to TX.
+  MCU_RF_Strobe(TI_CCxxx0_STX);           	// Change state to TX, initiating
+                                            // data transfer
+
+  MCU_RF_WaitForIntGoHigh();		// Wait GDO0 to go hi -> sync TX'ed
+  MCU_RF_WaitForIntGoLow();		// Wait GDO0 to clear -> end of pkt
+
+  MCU_RF_ClearIntFlag();			// Because previous action may have assert interrupt flag
+  MCU_RF_ClearPending();
+
+  if (bCurrentInterruptStage)
+	 MCU_RF_EnableInterrupt();
+
+  MCU_RF_Strobe(TI_CCxxx0_SFRX);
+  MCU_RF_Strobe(TI_CCxxx0_SFTX);
+  MCU_RF_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+//  e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
+//
+//  DESCRIPTION:
+//  Receives a packet of variable length (first byte in the packet must be the
+//  length byte).  The packet length should not exceed the RXFIFO size.  To use
+//  this function, APPEND_STATUS in the PKTCTRL1 register must be enabled.  It
+//  is assumed that the function is called after it is known that a packet has
+//  been received; for example, in response to GDO0 going low when it is
+//  configured to output packet reception status.
+//
+//  The RXBYTES register is first read to ensure there are bytes in the FIFO.
+//  This is done because the GDO signal will go high even if the FIFO is flushed
+//  due to address filtering, CRC filtering, or packet length filtering.
+//
+//  ARGUMENTS:
+//      uint8_t *rxBuffer
+//          Pointer to the buffer where the incoming data should be stored
+//
+//  RETURN VALUE:
+//      uint8_t
+//          RX_STATUS_SUCCESS	:  CRC OK
+//          RX_STATUS_CRC_ERROR	:  CRC NOT OK (or no pkt was put in the
+//											 	RXFIFO due to filtering)
+//			RX_STATUS_FAILED	:  False trigger
+//-----------------------------------------------------------------------------
+e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
+{
+  if(MCU_RF_IsCRCOK())
+  {
+	  if ((RfReadReg(TI_CCxxx0_RXBYTES) & TI_CCxxx0_NUM_RXBYTES))
+	  {
+		// Use the appropriate library function to read the first byte in the
+		// RX FIFO, which is the length of the packet (the total remaining bytes
+		// in this packet after reading this byte).
+		// Hint:  how many bytes are being retrieved?  One or multiple?
+		rxBuffer[0] = RfReadReg(TI_CCxxx0_RXFIFO);
+
+		// Use the appropriate library function to read the rest of the packet into
+		// rxBuffer (i.e., read pktLen bytes out of the FIFO)
+		// Hint:  how many bytes are being retrieved?  One or multiple?
+		RfReadBurstReg(TI_CCxxx0_RXFIFO, &rxBuffer[1], rxBuffer[0]); // Pull data
+
+		MCU_RF_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+		return RX_STATUS_SUCCESS;
+	  }
+	  else
+	  {
+		  MCU_RF_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+		  return RX_STATUS_FAILED;
+	  }
+  }
+
+  RfFlushRxFifo();
+  MCU_RF_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+  return RX_STATUS_CRC_ERROR;
+}
+
+//-----------------------------------------------------------------------------
+//  void initRfModule(bool isEnableInt)
+//
+//  DESCRIPTION:
+//  configure SSI peripheral and initialize CC2500
+//  set to first channel in freqTab, enable RxMode before return
+//
+//  ARGUMENTS:
+//		bool isEnableInt
+//			True for enable interrupt pin at GPO0, false for disable
+//-----------------------------------------------------------------------------
+void initRfModule(bool isEnableInt)
+{
+  uint8_t paTable[] = { TI_CCxxx0_OUTPUT_POWER_0DB }; // Table 31 - Page 47 of 89
+  uint8_t paTableLen = 1;
+
+  MCU_RF_InitSpiForRf();           			// Initialize SPI port with interrupt enable
+
+  RfPowerupCSnSequence();
+  RfResetChip();               		// Reset CCxxxx RF device
+  RfWriteSettings();           		// Write RF settings to config reg
+  RfWriteBurstReg(TI_CCxxx0_PATABLE, // Write the PATABLE
+                         paTable, paTableLen);
+
+  char commonAddress = 0;			// Set my own device address
+  while (commonAddress != TI_CCxxx0_COMMON_ADDRESS) {
+	RfWriteReg(TI_CCxxx0_ADDR, TI_CCxxx0_COMMON_ADDRESS);
+	commonAddress = RfReadReg(TI_CCxxx0_ADDR);
+  }
+
+  RfSetChannel(0);		  			// Set to default channel
+
+  MCU_RF_ConfigIRQPin(isEnableInt);		// Configre interrupt GDO0
+
+  MCU_RF_Strobe(TI_CCxxx0_SIDLE);	// Idle mode
+  MCU_RF_Strobe(TI_CCxxx0_SFRX);		// Flush RX FIFO
+  MCU_RF_Strobe(TI_CCxxx0_SFTX);		// Flush TX FIFO
+  MCU_RF_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
+
+  MCU_RF_WaitUs(260);	// Wait 260us for stable initilization
+}
+
+//-----------------------------------------------------------------------------
+//  void RfSetChannel(uint8_t chanNum)
+//
+//  DESCRIPTION:
+//  set CC2500 channel
+//
+//  ARGUMENTS:
+//      int chanNum
+//          Pointer to the channel in freqTab
+//-----------------------------------------------------------------------------
+void RfSetChannel(uint8_t chanNum)
+{
+  uint8_t freqTab[RFNUMCHANS][3] = {
+		  {0x13, 0xBB, 0x5D},  // 2.4370 GHz (default)
+		  {0xB1, 0x53, 0x5C},  // 2.4005 GHz
+		  {0x13, 0x3B, 0x5D},  // 2.4240 GHz
+		  {0xB1, 0x93, 0x5D},  // 2.4329 GHz
+		  {0x76, 0x62, 0x5F},  // 2.4800 GHz
+  	  	  };
+
+  uint8_t data, freq2, freq1, freq0;
+
+
+  freq0 = freqTab[chanNum][0];
+  freq1 = freqTab[chanNum][1];
+  freq2 = freqTab[chanNum][2];
+
+
+  data = 0;
+  while (data != freq2) {
+    RfWriteReg(TI_CCxxx0_FREQ2, freq2);
+    data = RfReadReg(TI_CCxxx0_FREQ2);
+  }
+  data = 0;
+  while (data != freq1) {
+    RfWriteReg(TI_CCxxx0_FREQ1, freq1);
+    data = RfReadReg(TI_CCxxx0_FREQ1);
+  }
+  data = 0;
+  while (data != freq0) {
+    RfWriteReg(TI_CCxxx0_FREQ0, freq0);
+    data = RfReadReg(TI_CCxxx0_FREQ0);
+  }
+}
+
+//-----------------------------------------------------------------------------
+//  void RfSetRxMode(void)
+//
+//  DESCRIPTION:
+//	forces CC2500 to Rx mode or WOR mode corresponding to rxMode variables
+//-----------------------------------------------------------------------------
+void RfSetRxMode(void)
+{
+  MCU_RF_Strobe(TI_CCxxx0_SIDLE);         // Initialize CCxxxx to IDLE mode.
+  MCU_RF_Strobe(TI_CCxxx0_SRX);           // Initialize CCxxxx in RX mode.
+}
+
+//-----------------------------------------------------------------------------
+//  void RfFlushTxFifo(void)
+//
+//  DESCRIPTION:
+//	send Flush TX FIFO strobe
+//-----------------------------------------------------------------------------
+void RfFlushTxFifo(void)
+{
+	MCU_RF_Strobe(TI_CCxxx0_SFTX);           // Flush the TX FIFO
+}
+
+//-----------------------------------------------------------------------------
+//  void RfFlushRxFifo(void)
+//
+//  DESCRIPTION:
+//	send Flush RX FIFO strobe
+//-----------------------------------------------------------------------------
+void RfFlushRxFifo(void)
+{
+	MCU_RF_Strobe(TI_CCxxx0_SFRX);          // Flush the RX FIFO
+}
+
+//-----------------------------------------------------------------------------
+//  bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
+//				bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...)
+//
+//  DESCRIPTION:
+//	This function is used for non-interrupt Rx packet handle. The process is periodic
+//	check for the Rf interrupt pin to detect new packet received. This loop will expired in
+//	ui64PeriodInUs microsecond. If a packet is recieved, the packer decoder will be call.
+//  If a correct packet is received (return form decoder function) the process terminal immedialy.
+//
+//  ARGUMENTS:
+//		uint64_t ui64PeriodInUs
+//			The period in microsecond for this function expired
+//		bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp)
+//			Packet decoder function pointer
+//		...
+//			Variables argument for the pfnDecodePacket function
+//
+//  RETURN VALUE:
+//      bool
+//          true	: Received expected packet, decoder function return true
+//			false	: Process expired, not received correct packet
+//-----------------------------------------------------------------------------
+bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
+			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...)
+{
+	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
+	MCU_RF_DisableInterrupt();
+
+	bool bReturn = false;
+
+	va_list argp;
+	va_start(argp, pfnDecodePacket);	// Start the varargs processing.
+
+	uint64_t i;
+	uint8_t pui8RxBuffer[TXBUFFERSIZE] = {0};
+	for(i = 0; i < ui64PeriodInUs; i++)
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
+
+			if (RfReceivePacket(pui8RxBuffer) == RX_STATUS_SUCCESS) {   // Fetch packet from CCxxxx
+				// Call packet decoder
+				if((*pfnDecodePacket)(pui8RxBuffer, argp))
+				{
+					// if decode success then terminal this process
+					bReturn = true;
+					break;
+				}
+			}
+		}
+		MCU_RF_WaitUs(1); // delay for 1us
+	}
+
+	va_end(argp);	// We're finished with the varargs now.
+
+	// Because previous action may have assert interrupt flag
+    MCU_RF_ClearIntFlag();
+    MCU_RF_ClearPending();
+	if (bCurrentInterruptStage)
+		MCU_RF_EnableInterrupt();	// recover last interrupt state
+
+	return bReturn;
+}
+
+bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
+			bool (*pfnHandler)(va_list argp), ...)
+{
+	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
+	MCU_RF_DisableInterrupt();
+
+	bool bReturn = false;
+
+	va_list argp;
+	va_start(argp, pfnHandler);	// Start the varargs processing.
+
+	uint64_t i;
+	for(i = 0; i < ui64PeriodInUs; i++)
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
+
+			// Call handler
+			if((*pfnHandler)(argp))
+			{
+				// if decode success then terminal this process
+				bReturn = true;
+				break;
+			}
+		}
+		MCU_RF_WaitUs(1); // delay for 1us
+	}
+
+	va_end(argp);	// We're finished with the varargs now.
+
+	// Because previous action may have assert interrupt flag
+    MCU_RF_ClearIntFlag();
+    MCU_RF_ClearPending();
+	if (bCurrentInterruptStage)
+		MCU_RF_EnableInterrupt();	// recover last interrupt state
+
+	return bReturn;
+}
+
 
 //uint8_t freqTab[RFNUMCHANS][3] = { {0xB1, 0x53, 0x5C},  // 2.4005 GHz
 //                                   {0x13, 0x3B, 0x5D},  // 2.4240 GHz
 //                                   {0x13, 0xBB, 0x5D},  // 2.4370 GHz
 //                                   {0x76, 0x62, 0x5F},  // 2.4800 GHz
 //                                  };
-
 
 //-----------------------------------------------------------------------------
 // void RfWriteSettings(void)
@@ -183,227 +529,14 @@ void RfWriteSettings(void)
 //extern uint8_t paTableLen = 1;
 
 //-----------------------------------------------------------------------------
-//  bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
+//  void RfSetIdleMode(void)
 //
 //  DESCRIPTION:
-//  This function transmits a packet with length up to 63 bytes.  To use this
-//  function, GD00 must be configured to be asserted when sync word is sent and
-//  de-asserted at the end of the packet, which is accomplished by setting the
-//  IOCFG0 register to 0x06, per the CCxxxx datasheet.  GDO0 goes high at
-//  packet start and returns low when complete.  The function polls GDO0 to
-//  ensure packet completion before returning.
-//
-//  ARGUMENTS:
-//      uint8_t *txBuffer
-//          Pointer to a buffer containing the data to be transmitted
-//
-//      uint8_t size
-//          The size of the txBuffer
-//
-//  RETURN VALUE:
-//      bool
-//          true	: Tx success!
-//			false	: Tx failed...
+//	forces CC2500 to idle mode
 //-----------------------------------------------------------------------------
-bool RfSendPacket(uint8_t *txBuffer, uint8_t size)
+void RfSetIdleMode(void)
 {
-  if(txBuffer[0] == 0)
-	  return false;
-
-  bool bCurrentInterruptStage = TI_CC_GetInterruptState();
-  TI_CC_DisableInterrupt();
-
-  //TODO: use Tx-if-CCA instead and return true if Tx success
-//  while((TI_CC_Strobe(TI_CCxxx0_STX) & TI_CCxxx0_STATE_MASK) != TI_CCxxx0_STATE_TX);
-
-  TI_CC_Strobe(TI_CCxxx0_SIDLE);
-  RfWriteBurstReg(TI_CCxxx0_TXFIFO, txBuffer, size); // Write TX data
-
-  // The CC1100 won't transmit the contents of the FIFO until the state is
-  // changed to TX state.  During configuration we placed it in RX state and
-  // configured it to return to RX whenever it is done transmitting, so it is
-  // in RX now.  Use the appropriate library function to change the state to TX.
-  TI_CC_Strobe(TI_CCxxx0_STX);           	// Change state to TX, initiating
-                                            // data transfer
-
-  TI_CC_WaitForIntGoHigh();		// Wait GDO0 to go hi -> sync TX'ed
-  TI_CC_WaitForIntGoLow();		// Wait GDO0 to clear -> end of pkt
-
-  TI_CC_ClearIntFlag();			// Because previous action may have assert interrupt flag
-  TI_CC_ClearPending();
-
-  if (bCurrentInterruptStage)
-	 TI_CC_EnableInterrupt();
-
-  TI_CC_Strobe(TI_CCxxx0_SFRX);
-  TI_CC_Strobe(TI_CCxxx0_SFTX);
-  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-
-  return true;
-}
-
-//-----------------------------------------------------------------------------
-//  e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
-//
-//  DESCRIPTION:
-//  Receives a packet of variable length (first byte in the packet must be the
-//  length byte).  The packet length should not exceed the RXFIFO size.  To use
-//  this function, APPEND_STATUS in the PKTCTRL1 register must be enabled.  It
-//  is assumed that the function is called after it is known that a packet has
-//  been received; for example, in response to GDO0 going low when it is
-//  configured to output packet reception status.
-//
-//  The RXBYTES register is first read to ensure there are bytes in the FIFO.
-//  This is done because the GDO signal will go high even if the FIFO is flushed
-//  due to address filtering, CRC filtering, or packet length filtering.
-//
-//  ARGUMENTS:
-//      uint8_t *rxBuffer
-//          Pointer to the buffer where the incoming data should be stored
-//
-//  RETURN VALUE:
-//      uint8_t
-//          RX_STATUS_SUCCESS	:  CRC OK
-//          RX_STATUS_CRC_ERROR	:  CRC NOT OK (or no pkt was put in the
-//											 	RXFIFO due to filtering)
-//			RX_STATUS_FAILED	:  False trigger
-//-----------------------------------------------------------------------------
-e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
-{
-  if(TI_CC_IsCRCOK())
-  {
-	  if ((RfReadReg(TI_CCxxx0_RXBYTES) & TI_CCxxx0_NUM_RXBYTES))
-	  {
-		// Use the appropriate library function to read the first byte in the
-		// RX FIFO, which is the length of the packet (the total remaining bytes
-		// in this packet after reading this byte).
-		// Hint:  how many bytes are being retrieved?  One or multiple?
-		rxBuffer[0] = RfReadReg(TI_CCxxx0_RXFIFO);
-
-		// Use the appropriate library function to read the rest of the packet into
-		// rxBuffer (i.e., read pktLen bytes out of the FIFO)
-		// Hint:  how many bytes are being retrieved?  One or multiple?
-		RfReadBurstReg(TI_CCxxx0_RXFIFO, &rxBuffer[1], rxBuffer[0]); // Pull data
-
-		TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-		return RX_STATUS_SUCCESS;
-	  }
-	  else
-	  {
-		  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-		  return RX_STATUS_FAILED;
-	  }
-  }
-
-  RfFlushRxFifo();
-  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-  return RX_STATUS_CRC_ERROR;
-}
-
-//-----------------------------------------------------------------------------
-//  bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
-//				bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...)
-//
-//  DESCRIPTION:
-//	This function is used for non-interrupt Rx packet handle. The process is periodic
-//	check for the Rf interrupt pin to detect new packet received. This loop will expired in
-//	ui64PeriodInUs microsecond. If a packet is recieved, the packer decoder will be call.
-//  If a correct packet is received (return form decoder function) the process terminal immedialy.
-//
-//  ARGUMENTS:
-//		uint64_t ui64PeriodInUs
-//			The period in microsecond for this function expired
-//		bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp)
-//			Packet decoder function pointer
-//		...
-//			Variables argument for the pfnDecodePacket function
-//
-//  RETURN VALUE:
-//      bool
-//          true	: Received expected packet, decoder function return true
-//			false	: Process expired, not received correct packet
-//-----------------------------------------------------------------------------
-bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
-			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...)
-{
-	bool bCurrentInterruptStage = TI_CC_GetInterruptState();
-	TI_CC_DisableInterrupt();
-
-	bool bReturn = false;
-
-	va_list argp;
-	va_start(argp, pfnDecodePacket);	// Start the varargs processing.
-
-	uint64_t i;
-	uint8_t pui8RxBuffer[TXBUFFERSIZE] = {0};
-	for(i = 0; i < ui64PeriodInUs; i++)
-	{
-		if (TI_CC_IsInterruptPinAsserted())
-		{
-			TI_CC_ClearIntFlag();
-
-			if (RfReceivePacket(pui8RxBuffer) == RX_STATUS_SUCCESS) {   // Fetch packet from CCxxxx
-				// Call packet decoder
-				if((*pfnDecodePacket)(pui8RxBuffer, argp))
-				{
-					// if decode success then terminal this process
-					bReturn = true;
-					break;
-				}
-			}
-		}
-		TI_CC_Wait(1); // delay for 1us
-	}
-
-	va_end(argp);	// We're finished with the varargs now.
-
-	// Because previous action may have assert interrupt flag
-    TI_CC_ClearIntFlag();
-    TI_CC_ClearPending();
-	if (bCurrentInterruptStage)
-		TI_CC_EnableInterrupt();	// recover last interrupt state
-
-	return bReturn;
-}
-
-bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
-			bool (*pfnHandler)(va_list argp), ...)
-{
-	bool bCurrentInterruptStage = TI_CC_GetInterruptState();
-	TI_CC_DisableInterrupt();
-
-	bool bReturn = false;
-
-	va_list argp;
-	va_start(argp, pfnHandler);	// Start the varargs processing.
-
-	uint64_t i;
-	for(i = 0; i < ui64PeriodInUs; i++)
-	{
-		if (TI_CC_IsInterruptPinAsserted())
-		{
-			TI_CC_ClearIntFlag();
-
-			// Call handler
-			if((*pfnHandler)(argp))
-			{
-				// if decode success then terminal this process
-				bReturn = true;
-				break;
-			}
-		}
-		TI_CC_Wait(1); // delay for 1us
-	}
-
-	va_end(argp);	// We're finished with the varargs now.
-
-	// Because previous action may have assert interrupt flag
-    TI_CC_ClearIntFlag();
-    TI_CC_ClearPending();
-	if (bCurrentInterruptStage)
-		TI_CC_EnableInterrupt();	// recover last interrupt state
-
-	return bReturn;
+	MCU_RF_Strobe(TI_CCxxx0_SIDLE);         // Initialize CCxxxx to IDLE mode.
 }
 
 //----------------------------------------------------------------------------
@@ -415,12 +548,12 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 //----------------------------------------------------------------------------
 void RfPowerupCSnSequence(void)
 {
-  TI_CC_SetCSN();
-  TI_CC_Wait(200);
-  TI_CC_ClearCSN();
-  TI_CC_Wait(200);
-  TI_CC_SetCSN();
-  TI_CC_Wait(300);
+  MCU_RF_SetCSN();
+  MCU_RF_WaitUs(200);
+  MCU_RF_ClearCSN();
+  MCU_RF_WaitUs(200);
+  MCU_RF_SetCSN();
+  MCU_RF_WaitUs(300);
 }
 
 //----------------------------------------------------------------------------
@@ -432,13 +565,13 @@ void RfPowerupCSnSequence(void)
 //----------------------------------------------------------------------------
 void RfResetChip(void)
 {
-  TI_CC_ClearCSN();     				 				// /CS enable
+  MCU_RF_ClearCSN();     				 				// /CS enable
 
-  TI_CC_WaitForCCxxxxReady();
+  MCU_RF_WaitForCCxxxxReady();
 
-  TI_CC_SendAndGetData(TI_CCxxx0_SRES);                 // Send strobe
+  MCU_RF_SendAndGetData(TI_CCxxx0_SRES);                 // Send strobe
 
-  TI_CC_SetCSN();       								// /CS disable
+  MCU_RF_SetCSN();       								// /CS disable
 }
 
 //----------------------------------------------------------------------------
@@ -464,15 +597,15 @@ uint8_t RfReadReg(uint8_t addr)
 {
   uint8_t x;
 
-  TI_CC_ClearCSN();     				 				// /CS enable
+  MCU_RF_ClearCSN();     				 				// /CS enable
 
-  TI_CC_WaitForCCxxxxReady();
+  MCU_RF_WaitForCCxxxxReady();
 
-  TI_CC_SendAndGetData(addr | TI_CCxxx0_READ_SINGLE); 	// Send address
+  MCU_RF_SendAndGetData(addr | TI_CCxxx0_READ_SINGLE); 	// Send address
 
-  x = TI_CC_SendAndGetData(0);							// Get data
+  x = MCU_RF_SendAndGetData(0);							// Get data
 
-  TI_CC_SetCSN();       								// /CS disable
+  MCU_RF_SetCSN();       								// /CS disable
 
   return x;
 }
@@ -489,18 +622,18 @@ void RfReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count)
 {
   unsigned int i;
 
-  TI_CC_ClearCSN();     				 				// /CS enable
+  MCU_RF_ClearCSN();     				 				// /CS enable
 
-  TI_CC_WaitForCCxxxxReady();
+  MCU_RF_WaitForCCxxxxReady();
 
-  TI_CC_SendAndGetData(addr | TI_CCxxx0_READ_BURST);  	// Send address
+  MCU_RF_SendAndGetData(addr | TI_CCxxx0_READ_BURST);  	// Send address
 
   for (i = 0; i < count; i++)
   {
-	buffer[i] = TI_CC_SendAndGetData(0);				// Get data
+	buffer[i] = MCU_RF_SendAndGetData(0);				// Get data
   }
 
-  TI_CC_SetCSN();       								// /CS disable
+  MCU_RF_SetCSN();       								// /CS disable
 }
 
 //----------------------------------------------------------------------------
@@ -511,15 +644,15 @@ void RfReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count)
 //----------------------------------------------------------------------------
 void RfWriteReg(uint8_t addr, uint8_t value)
 {
-	TI_CC_ClearCSN();     				 	// /CS enable
+	MCU_RF_ClearCSN();     				 	// /CS enable
 
-	TI_CC_WaitForCCxxxxReady();
+	MCU_RF_WaitForCCxxxxReady();
 
-    TI_CC_SendAndGetData(addr);				// Send address
+    MCU_RF_SendAndGetData(addr);				// Send address
 
-    TI_CC_SendAndGetData(value);            // Load data for TX after addr
+    MCU_RF_SendAndGetData(value);            // Load data for TX after addr
 
-    TI_CC_SetCSN();       					// /CS disable
+    MCU_RF_SetCSN();       					// /CS disable
 }
 
 //----------------------------------------------------------------------------
@@ -535,151 +668,19 @@ void RfWriteBurstReg(uint8_t addr, uint8_t *buffer, uint8_t count)
 {
 	uint8_t i;
 
-	TI_CC_ClearCSN();     				 				// /CS enable
+	MCU_RF_ClearCSN();     				 				// /CS enable
 
-	TI_CC_WaitForCCxxxxReady();
+	MCU_RF_WaitForCCxxxxReady();
 
-	TI_CC_SendAndGetData(addr | TI_CCxxx0_WRITE_BURST); // Send address
+	MCU_RF_SendAndGetData(addr | TI_CCxxx0_WRITE_BURST); // Send address
 
     for (i = 0; i < count; i++)
     {
-    	TI_CC_SendAndGetData(buffer[i]);                // Send data
+    	MCU_RF_SendAndGetData(buffer[i]);                // Send data
     }
 
-    TI_CC_SetCSN();       								// /CS disable
-}
-
-//-----------------------------------------------------------------------------
-//  void initRfModule(bool isEnableInt)
-//
-//  DESCRIPTION:
-//  configure SSI peripheral and initialize CC2500
-//  set to first channel in freqTab, enable RxMode before return
-//
-//  ARGUMENTS:
-//		bool isEnableInt
-//			True for enable interrupt pin at GPO0, false for disable
-//-----------------------------------------------------------------------------
-void initRfModule(bool isEnableInt)
-{
-  uint8_t paTable[] = { TI_CCxxx0_OUTPUT_POWER_0DB }; // Table 31 - Page 47 of 89
-  uint8_t paTableLen = 1;
-
-  TI_CC_Setup();           			// Initialize SPI port with interrupt enable
-
-  RfPowerupCSnSequence();
-  RfResetChip();               		// Reset CCxxxx RF device
-  RfWriteSettings();           		// Write RF settings to config reg
-  RfWriteBurstReg(TI_CCxxx0_PATABLE, // Write the PATABLE
-                         paTable, paTableLen);
-
-  char commonAddress = 0;			// Set my own device address
-  while (commonAddress != TI_CCxxx0_COMMON_ADDRESS) {
-	RfWriteReg(TI_CCxxx0_ADDR, TI_CCxxx0_COMMON_ADDRESS);
-	commonAddress = RfReadReg(TI_CCxxx0_ADDR);
-  }
-
-  RfSetChannel(0);		  			// Set to default channel
-
-  TI_CC_ConfigIRQPin(isEnableInt);		// Configre interrupt GDO0
-
-  TI_CC_Strobe(TI_CCxxx0_SIDLE);	// Idle mode
-  TI_CC_Strobe(TI_CCxxx0_SFRX);		// Flush RX FIFO
-  TI_CC_Strobe(TI_CCxxx0_SFTX);		// Flush TX FIFO
-  TI_CC_Strobe(TI_CCxxx0_SRX);      // Initialize CCxxxx in RX mode.
-
-  TI_CC_Wait(260);	// Wait 260us for stable initilization
-}
-
-//-----------------------------------------------------------------------------
-//  void RfSetChannel(uint8_t chanNum)
-//
-//  DESCRIPTION:
-//  set CC2500 channel
-//
-//  ARGUMENTS:
-//      int chanNum
-//          Pointer to the channel in freqTab
-//-----------------------------------------------------------------------------
-void RfSetChannel(uint8_t chanNum)
-{
-  uint8_t freqTab[RFNUMCHANS][3] = {
-		  {0x13, 0xBB, 0x5D},  // 2.4370 GHz (default)
-		  {0xB1, 0x53, 0x5C},  // 2.4005 GHz
-		  {0x13, 0x3B, 0x5D},  // 2.4240 GHz
-		  {0xB1, 0x93, 0x5D},  // 2.4329 GHz
-		  {0x76, 0x62, 0x5F},  // 2.4800 GHz
-  	  	  };
-
-  uint8_t data, freq2, freq1, freq0;
-
-
-  freq0 = freqTab[chanNum][0];
-  freq1 = freqTab[chanNum][1];
-  freq2 = freqTab[chanNum][2];
-
-
-  data = 0;
-  while (data != freq2) {
-    RfWriteReg(TI_CCxxx0_FREQ2, freq2);
-    data = RfReadReg(TI_CCxxx0_FREQ2);
-  }
-  data = 0;
-  while (data != freq1) {
-    RfWriteReg(TI_CCxxx0_FREQ1, freq1);
-    data = RfReadReg(TI_CCxxx0_FREQ1);
-  }
-  data = 0;
-  while (data != freq0) {
-    RfWriteReg(TI_CCxxx0_FREQ0, freq0);
-    data = RfReadReg(TI_CCxxx0_FREQ0);
-  }
-}
-
-//-----------------------------------------------------------------------------
-//  void RfSetIdleMode(void)
-//
-//  DESCRIPTION:
-//	forces CC2500 to idle mode
-//-----------------------------------------------------------------------------
-void RfSetIdleMode(void)
-{
-	TI_CC_Strobe(TI_CCxxx0_SIDLE);         // Initialize CCxxxx to IDLE mode.
-}
-
-//-----------------------------------------------------------------------------
-//  void RfSetRxMode(void)
-//
-//  DESCRIPTION:
-//	forces CC2500 to Rx mode or WOR mode corresponding to rxMode variables
-//-----------------------------------------------------------------------------
-void RfSetRxMode(void)
-{
-  TI_CC_Strobe(TI_CCxxx0_SIDLE);         // Initialize CCxxxx to IDLE mode.
-  TI_CC_Strobe(TI_CCxxx0_SRX);           // Initialize CCxxxx in RX mode.
-}
-
-//-----------------------------------------------------------------------------
-//  void RfFlushTxFifo(void)
-//
-//  DESCRIPTION:
-//	send Flush TX FIFO strobe
-//-----------------------------------------------------------------------------
-void RfFlushTxFifo(void)
-{
-	TI_CC_Strobe(TI_CCxxx0_SFTX);           // Flush the TX FIFO
-}
-
-//-----------------------------------------------------------------------------
-//  void RfFlushRxFifo(void)
-//
-//  DESCRIPTION:
-//	send Flush RX FIFO strobe
-//-----------------------------------------------------------------------------
-void RfFlushRxFifo(void)
-{
-	TI_CC_Strobe(TI_CCxxx0_SFRX);          // Flush the RX FIFO
+    MCU_RF_SetCSN();       								// /CS disable
 }
 
 
-
+#endif

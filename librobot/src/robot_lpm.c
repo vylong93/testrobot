@@ -5,13 +5,19 @@
  *      Author: VyLong
  */
 
-#include "librobot\inc\robot_lpm.h"
+#include "librobot/inc/robot_lpm.h"
 
-#include "libcc2500\inc\TM4C123_CC2500.h"
+#include "libcustom/inc/custom_led.h"
+#include "libcustom/inc/custom_delay.h"
+#include "libcustom/inc/custom_uart_debug.h"
 
-#include "libcustom\inc\custom_led.h"
-#include "libcustom\inc\custom_delay.h"
-#include "libcustom\inc\custom_uart_debug.h"
+#ifdef RF_USE_CC2500
+#include "libcc2500/inc/TM4C123_CC2500.h"
+#endif
+
+#ifdef RF_USE_nRF24L01
+#include "libnrf24l01/inc/TM4C123_nRF24L01.h"
+#endif
 
 static e_CpuMode g_eCpuMode = CPU_MODE_RUN;
 
@@ -72,7 +78,12 @@ void initLowPowerMode() {
 	//
 	// Enable Peripherals in Sleep Mode.
 	//
+#ifdef RF_USE_CC2500
 	ROM_SysCtlPeripheralSleepEnable(CC2500_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+#endif
+#ifdef RF_USE_nRF24L01
+	ROM_SysCtlPeripheralSleepEnable(RF24_INT_PORT_CLOCK); // IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+#endif
 	ROM_SysCtlPeripheralSleepEnable(DELAY_TIMER_CLOCK_NON_INT);
 #ifdef DEBUG_UTILS
 	ROM_SysCtlPeripheralSleepEnable(UART_DEBUG_PERIPH);
@@ -102,7 +113,12 @@ void initLowPowerMode() {
 	//
 	// Enable Peripherals in Deep-Sleep Mode.
 	//
+#ifdef RF_USE_CC2500
 	ROM_SysCtlPeripheralDeepSleepEnable(CC2500_INT_PORT_CLOCK);	// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+#endif
+#ifdef RF_USE_nRF24L01
+	ROM_SysCtlPeripheralDeepSleepEnable(RF24_INT_PORT_CLOCK);	// IMPORTANCE: allow IRQ pin of RF module wake CPU up when new byte has received.
+#endif
 	ROM_SysCtlPeripheralDeepSleepEnable(DELAY_TIMER_CLOCK_NON_INT);
 #ifdef DEBUG_UTILS
 	ROM_SysCtlPeripheralDeepSleepEnable(UART_DEBUG_PERIPH);

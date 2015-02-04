@@ -1,5 +1,7 @@
 //  ***  modified by VyLong  *** //
 
+#ifdef RF_USE_nRF24L01
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "inc/hw_memmap.h"
@@ -22,24 +24,29 @@
 // This variable hold the state of CE.
 static char CEState;
 
-inline void initSpiForRF(bool interruptEnable)
+static bool g_bIsIntEnable = false;
+
+extern void MCU_RF_IRQ_handler();
+
+
+void MCU_RF_InitSpiForRf(void)
 {
   // Enable the ports used by the RF board
   SysCtlPeripheralEnable(RF24_SPI_PORT_CLOCK);
-  rfDelayLoop(1);
+  MCU_RF_WaitUs(1);
   if(RF24_SPI_PORT_CLOCK != RF24_INT_PORT_CLOCK)
   {
     SysCtlPeripheralEnable(RF24_INT_PORT_CLOCK);
-    rfDelayLoop(1);
+    MCU_RF_WaitUs(1);
   }
 
   // Enable the SSI module used by the RF board
   SysCtlPeripheralEnable(RF24_SPI_CLOCK);
-  rfDelayLoop(3);
+  MCU_RF_WaitUs(3);
 
   // Disable the SSI to config
   SSIDisable(RF24_SPI);
-  rfDelayLoop(2);
+  MCU_RF_WaitUs(2);
 
   // Connect mux pins to the targeted SSI module
   GPIOPinConfigure(RF24_SCK_CONFIGURE);
@@ -61,24 +68,6 @@ inline void initSpiForRF(bool interruptEnable)
   // Configure the CE pin
   GPIOPinTypeGPIOOutput(RF24_INT_PORT, RF24_CE);
 
-  if(interruptEnable)
-  {
-          // Enable interrupt source of the interrupt pin used by RF board
-          GPIOIntEnable(RF24_INT_PORT, RF24_INT_Channel);
-
-          // Set the type of interrupt
-          GPIOIntTypeSet(RF24_INT_PORT, RF24_INT_Pin, GPIO_FALLING_EDGE );
-
-          // Enable interrupts to the processor.
-          IntMasterEnable();
-
-          // Enable the interrupts.
-          IntEnable(RF24_INT);
-
-          // Set the interrupt priorities.
-          IntPrioritySet(RF24_INT, 0x00);
-  }
-
   // Enable the SSI module.
   SSIEnable(RF24_SPI);
 
@@ -89,52 +78,107 @@ inline void initSpiForRF(bool interruptEnable)
   }
 }
 
-inline void  setRfCSN()
+void MCU_RF_ConfigIRQPin(bool bEnable)
 {
-  GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, RF24_CSN);
+  // Clear interrupt flag
+  GPIOIntClear(RF24_INT_PORT, RF24_INT_Pin);
+
+  if(bEnable)
+  {
+	  // Set the type of interrupt
+	  ROM_GPIOIntTypeSet(RF24_INT_PORT, RF24_INT_Pin, GPIO_FALLING_EDGE );
+
+	  // Set the interrupt priorities.
+	  ROM_IntPrioritySet(RF24_INT, 0x00);
+
+	  // Register IRQ function handler
+	  IntRegister(RF24_INT, MCU_RF_IRQ_handler);
+
+	  // Enable interrupt source of the interrupt pin used by RF board
+	  GPIOIntEnable(RF24_INT_PORT, RF24_INT_Channel);
+
+	  // Clear pending interrupt request
+	  ROM_IntPendClear(RF24_INT);
+
+	  // Enable the interrupts.
+	  MCU_RF_EnableInterrupt();
+  }
 }
 
-inline void  clearRfCSN()
+void MCU_RF_WaitUs(unsigned int cycles)
 {
-  GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, 0);
+	ROM_SysCtlDelay((ROM_SysCtlClockGet() / (1000000 * 3)) * cycles);
 }
 
-inline void  setRfCE()
+
+bool MCU_RF_GetInterruptState(void)
 {
-  GPIOPinWrite(RF24_INT_PORT, RF24_CE, RF24_CE);
+	return g_bIsIntEnable;
+}
+
+void MCU_RF_EnableInterrupt(void)
+{
+	ROM_IntEnable(RF24_INT);
+	g_bIsIntEnable = true;
+}
+
+void MCU_RF_DisableInterrupt(void)
+{
+	ROM_IntDisable(RF24_INT);
+	g_bIsIntEnable = false;
+}
+
+bool MCU_RF_IsInterruptPinAsserted(void)
+{
+	return ((GPIOIntStatus(RF24_INT_PORT, false) & RF24_INT_Pin) == RF24_INT_Pin);
+}
+
+void MCU_RF_ClearIntFlag(void)
+{
+	GPIOIntClear(RF24_INT_PORT, RF24_INT_Pin);
+}
+
+void MCU_RF_ClearPending(void)
+{
+	ROM_IntPendClear(RF24_INT);
+}
+
+
+void MCU_RF_SetCSN()
+{
+  ROM_GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, RF24_CSN);
+}
+
+void MCU_RF_ClearCSN()
+{
+  ROM_GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, 0);
+}
+
+void MCU_RF_SetCE()
+{
+  ROM_GPIOPinWrite(RF24_INT_PORT, RF24_CE, RF24_CE);
   CEState = 1;
 }
 
-inline void  clearRfCE()
+void MCU_RF_ClearCE()
 {
-  GPIOPinWrite(RF24_INT_PORT, RF24_CE, 0);
+  ROM_GPIOPinWrite(RF24_INT_PORT, RF24_CE, 0);
   CEState = 0;
 }
 
-char SPI_sendAndGetData(uint32_t inData)
+char MCU_RF_SendAndGetData(uint32_t inData)
 {
-    SSIDataPut(RF24_SPI, inData);
+    ROM_SSIDataPut(RF24_SPI, inData);
     uint32_t outData;
-    SSIDataGet(RF24_SPI, &outData);
+    ROM_SSIDataGet(RF24_SPI, &outData);
     return (char)outData;
 }
 
-void rfDelayLoop (uint32_t delay)
-{
-  SysCtlDelay(delay);
-}
 
-inline char getCEState()
+char MCU_RF_GetCEState()
 {
   return CEState;
 }
 
-void disableRF24Interrupt() {
-    // Disable the interrupts.
-    IntDisable(RF24_INT);
-}
 
-void enableRF24Interrupt() {
-    // Enable the interrupts.
-    IntEnable(RF24_INT);
-}
+#endif
