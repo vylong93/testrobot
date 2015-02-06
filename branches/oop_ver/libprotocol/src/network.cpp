@@ -10,7 +10,7 @@
 
 #include "libprotocol/inc/network.h"
 
-static uint32_t g_ui32SelfAddress = 0x00BD5A01;		//TODO: load EEPROM value instead of hardcode
+static uint32_t g_ui32SelfAddress = 0;
 static uint8_t g_ui8LastTxPID = 0;
 static e_NetworkState g_eCurrentState = STATE_IDLE;
 
@@ -596,7 +596,7 @@ e_HandShakeReturn Network_isHandShakeProcessSuccess(Header** ppRxHeader, uint8_t
 	*ppRxHeader = (Header*)pui8RxBuffer;
 
 	// Filter invalid packet!
-	if((*ppRxHeader)->status.ePacketType == PACKET_BROADCAST ||
+	if((*ppRxHeader)->ui32DestinationAddress == NETWORK_BROADCAST_ADDRESS ||
 			(*ppRxHeader)->ui32DestinationAddress == Network_getSelfAddress())
 	{
 		// Is message packet?
@@ -604,7 +604,7 @@ e_HandShakeReturn Network_isHandShakeProcessSuccess(Header** ppRxHeader, uint8_t
 		{
 			// Is ACK require?
 			if((*ppRxHeader)->status.eHandShakeType == HANDSHAKE_ACK
-					&& (*ppRxHeader)->status.ePacketType != PACKET_BROADCAST)
+					&& (*ppRxHeader)->ui32DestinationAddress != NETWORK_BROADCAST_ADDRESS)
 			{
 				Network_sendACK(*(*ppRxHeader));
 			}

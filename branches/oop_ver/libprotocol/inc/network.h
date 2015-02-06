@@ -103,6 +103,8 @@ extern "C"
 #define ACK_PACKET_LENGTH			RF_HEADER_LENGTH	// Ack response packet length, this packet not contain data field
 #define MULTIPACKET_TIMEOUT_USEC	10000	// Waiting for Middle/Last packet period in mircosecond
 
+#define NETWORK_BROADCAST_ADDRESS	0x00BEADFF
+
 typedef enum tag_NetworkState
 {
 	STATE_IDLE,
@@ -124,8 +126,7 @@ typedef enum tag_Packet
 	PACKET_SINGLE = 3,
 	PACKET_FIRST = 4,
 	PACKET_MIDDLE = 5,
-	PACKET_LAST = 6,
-	PACKET_BROADCAST = 7
+	PACKET_LAST = 6
 } e_Packet;
 
 typedef enum tag_HandShakeReturn
