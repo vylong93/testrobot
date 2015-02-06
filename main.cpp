@@ -133,11 +133,10 @@ void MCU_RF_IRQ_handler();
 void RobotResponseIntHandler(void);
 }
 
+void initRobotProcess(void);
 void decodeMessage(uint8_t* pui8Message, uint32_t ui32MessSize);
 
-void RobotResponseIntHandler(void)
-{
-}
+void RobotResponseIntHandler(void){}
 
 typedef enum tag_RobotState
 {
@@ -187,8 +186,7 @@ int main(void)
 
 	turnOffLED(LED_ALL);
 
-	Network_setSelfAddress(RF_DEFAULT_ROBOT_ID);
-	DEBUG_PRINTS("set Self Address to 0x%08x\n", RF_DEFAULT_ROBOT_ID);
+	initRobotProcess();
 
 	uint16_t i;
 	uint8_t* pui8Buffer = getMicrophone0BufferPointer();
@@ -239,6 +237,33 @@ int main(void)
 		}
 	}
 }
+
+void initRobotProcess(void)
+{
+	uint32_t ui32ReadEEPROMData;
+
+	//
+	// Initilize self ID in eeprom
+	//
+	ui32ReadEEPROMData = getRobotIDInEEPROM();
+	if(ui32ReadEEPROMData != 0xFFFFFFFF)
+	{
+		Network_setSelfAddress(ui32ReadEEPROMData);
+		DEBUG_PRINTS("set Network Self Address to 0x%08x\n", ui32ReadEEPROMData);
+	}
+	else
+	{
+		Network_setSelfAddress(RF_DEFAULT_ROBOT_ID);
+		DEBUG_PRINTS("set Self Address to Default Address: 0x%08x\n", RF_DEFAULT_ROBOT_ID);
+	}
+
+	//	EEPROMRead(&temp, EEPROM_INTERCEPT, sizeof(&temp));
+	//	g_f32Intercept = temp / 65536.0;
+	//
+	//	EEPROMRead(&temp, EEPROM_SLOPE, sizeof(&temp));
+	//	g_f32Slope = temp / 65536.0;
+}
+
 
 void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 {
