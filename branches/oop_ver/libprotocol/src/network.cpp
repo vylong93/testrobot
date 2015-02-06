@@ -8,8 +8,6 @@
 #ifndef NETWORK_CPP_
 #define NETWORK_CPP_
 
-#include "libcustom/inc/custom_uart_debug.h"
-#include "libcustom/inc/custom_delay.h"
 #include "libprotocol/inc/network.h"
 
 static uint32_t g_ui32SelfAddress = 0x00BD5A01;		//TODO: load EEPROM value instead of hardcode
@@ -348,7 +346,7 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 						if(i8TxPacketLifeTime > 0)
 						{
 							// Delay before retransmit
-							delay_us(RETRANSMIT_DELAY_USEC);
+							RfWaitUs(RETRANSMIT_DELAY_USEC);
 							continue;
 						}
 						else
@@ -726,7 +724,7 @@ void Network_sendACK(Header RxHeader)
 	AckHeader.ui16Checksum = ~(ui16Checksum) + 1;
 
 	// Delay before transmit ACK
-	delay_us(ACK_PACKET_DELAY_USEC);
+	RfWaitUs(ACK_PACKET_DELAY_USEC);
 
 	// Transmit ack packet
 	RfSendPacket((uint8_t*)(&AckHeader));
@@ -734,7 +732,11 @@ void Network_sendACK(Header RxHeader)
 
 void Network_deleteBuffer(uint8_t *pui8Buff)
 {
-	delete[] pui8Buff;
+	if(pui8Buff != 0)
+	{
+		delete[] pui8Buff;
+		pui8Buff = 0;
+	}
 }
 
 #endif /* NETWORK_CPP_ */

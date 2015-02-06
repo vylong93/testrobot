@@ -18,6 +18,16 @@ void initSysTick(void)
 	ROM_SysTickEnable();
 }
 
+void resetSysTickCounter(void)
+{
+	g_ui32SysTickCount = 0;
+}
+
+uint32_t getSysTickCounter(void)
+{
+	return g_ui32SysTickCount;
+}
+
 void SysTickHandler(void)
 {
 	g_ui32SysTickCount++;

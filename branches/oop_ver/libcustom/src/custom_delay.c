@@ -5,14 +5,13 @@
  *      Author: VyLong
  */
 
-#include "libcustom\inc\custom_led.h"
 #include "libcustom\inc\custom_delay.h"
 
 static bool g_bIsTimer1Busy = true;
 static bool g_bIsTimer2Busy = true;
 
 //-----------------------------------------------------------------------------
-//  void initDelay(void)
+//  void initDelayTimers(void)
 //
 //  DESCRIPTION:
 //	initialize timer for delay purpose
@@ -54,21 +53,15 @@ void delay_unit(uint32_t period, delayunit_t unit)
 {
 	if (!g_bIsTimer1Busy)
 	{
-		//turnOnLED(LED_BLUE);
 		delay1_unit(period, unit);
-		//turnOffLED(LED_BLUE);
 	}
 	else if (!g_bIsTimer2Busy)
 	{
-		//turnOnLED(LED_GREEN);
 		delay2_unit(period, unit);
-		//turnOffLED(LED_GREEN);
 	}
 	else
 	{
-		//turnOnLED(LED_RED);
 		ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * (uint32_t)unit) * period);
-		//turnOffLED(LED_RED);
 	}
 }
 void delay1_unit(uint32_t period, delayunit_t unit)
