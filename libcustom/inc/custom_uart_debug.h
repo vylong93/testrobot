@@ -23,7 +23,7 @@ extern "C"
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 
-#define DEBUG_UTILS
+//#define DEBUG_UTILS
 
 #ifdef DEBUG_UTILS
 extern void UARTprintf(const char *pcString, ...);

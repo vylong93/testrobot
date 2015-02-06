@@ -316,12 +316,15 @@ bool RfSendPacket(uint8_t *txBuffer);
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer);
 void initRfModule(bool isEnableInt);
 void RfSetChannel(uint8_t chanNum);
-void RfSetRxMode();
-void RfFlushTxFifo();
-void RfFlushRxFifo();
+void RfSetRxMode(void);
+void RfFlushTxFifo(void);
+void RfFlushRxFifo(void);
+
+void RfWaitUs(uint32_t periodUs);
 
 bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...);
+
 bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 			bool (*pfnHandler)(va_list argp), ...);
 

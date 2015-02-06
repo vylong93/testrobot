@@ -25,6 +25,8 @@ extern "C"
 #define SYSTICKS_PER_SECOND 1000
 
 void initSysTick(void);
+void resetSysTickCounter(void);
+uint32_t getSysTickCounter(void);
 void SysTickHandler(void);
 
 #ifdef __cplusplus

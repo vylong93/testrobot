@@ -28,9 +28,14 @@ typedef enum {
 } delayunit_t;
 
 // Non-Interrtup Timer
-#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER0
-#define DELAY_TIMER_BASE_NON_INT	WTIMER0_BASE
+#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER1
+#define DELAY_TIMER_BASE_NON_INT	WTIMER1_BASE
 
+//*****************************************************************************
+//
+// Configure timer for custom delay
+//
+//*****************************************************************************
 void initDelay(void);
 
 void delay_unit(uint32_t period, delayunit_t unit);

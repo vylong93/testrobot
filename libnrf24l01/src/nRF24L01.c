@@ -26,11 +26,9 @@ bool RfSendPacket(uint8_t *txBuffer)
 	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
 	MCU_RF_DisableInterrupt();
 
-	bool bReturn;
+	bool bReturn = false;
 
 	RF24_TX_activate();
-
-	MCU_RF_WaitUs(150);
 
 	// Generate 4-byte checksum
 	uint32_t ui32Checksum = 0;
@@ -49,8 +47,6 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	RF24_TX_writePayloadNoAck(txBuffer[0] + RF24_CHECKSUM_SIZE, puiTempBuffer);
 
-	MCU_RF_WaitUs(300);
-
 	RF24_TX_pulseTransmit();
 
 	while (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0)
@@ -65,8 +61,6 @@ bool RfSendPacket(uint8_t *txBuffer)
 	else if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
 	{
 		RF24_clearIrqFlag(RF24_IRQ_MASK);
-
-		bReturn = false;
 	}
 
 	MCU_RF_ClearIntFlag();
@@ -94,7 +88,7 @@ e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 		{
 			RF24_clearIrqFlag(RF24_IRQ_MASK);
 
-			RfSetRxMode();
+			RfFlushRxFifo();
 
 			return RX_STATUS_INVALID_LENGTH;
 		}
@@ -115,22 +109,14 @@ e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 
 		RF24_clearIrqFlag(RF24_IRQ_RX);
 
-		RfSetRxMode();
-
 		if(ui32Checksum == 0)
-		{
 			return RX_STATUS_SUCCESS;
-		}
 		else
-		{
 			return RX_STATUS_CRC_ERROR;
-		}
 	}
 	else
 	{
 		RF24_clearIrqFlag(RF24_IRQ_MASK);
-
-		RfSetRxMode();
 
 		return RX_STATUS_FAILED;
 	}
@@ -156,7 +142,18 @@ void initRfModule(bool isEnableInt)
 	RF24_PIPE_setPacketSize(RF24_PIPE0, RF24_PACKET_SIZE_DYNAMIC);
 
 	// Open pipe#0 without Enhanced ShockBurst
-	RF24_PIPE_open(RF24_PIPE0, false);
+	RF24_PIPE_open(RF24_PIPE0, true);
+	RF24_PIPE_open(RF24_PIPE1, false);
+	RF24_PIPE_open(RF24_PIPE2, false);
+	RF24_PIPE_open(RF24_PIPE3, false);
+	RF24_PIPE_open(RF24_PIPE4, false);
+	RF24_PIPE_open(RF24_PIPE5, false);
+
+	RF24_PIPE_close(RF24_PIPE1);
+	RF24_PIPE_close(RF24_PIPE2);
+	RF24_PIPE_close(RF24_PIPE3);
+	RF24_PIPE_close(RF24_PIPE4);
+	RF24_PIPE_close(RF24_PIPE5);
 
 	uint8_t addr[3];
 
@@ -167,8 +164,6 @@ void initRfModule(bool isEnableInt)
 	RF24_TX_setAddress(addr);
 
 	RfSetRxMode();
-
-
 }
 void RfSetChannel(uint8_t chanNum)
 {
@@ -193,6 +188,11 @@ void RfFlushRxFifo(void)
 	MCU_RF_ClearCSN();
 	status = MCU_RF_SendAndGetData(RF24_COMMAND_FLUSH_RX);
 	MCU_RF_SetCSN();
+}
+
+void RfWaitUs(uint32_t periodUs)
+{
+	MCU_RF_WaitUs(periodUs);
 }
 
 //-----------------------------------------------------------------------------
@@ -301,6 +301,7 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 
 	return bReturn;
 }
+
 
 //----------------------- nRF24L01 library -----------------------------
 
@@ -566,7 +567,7 @@ void RF24_TX_activate()
 void RF24_TX_pulseTransmit()
 {
 	MCU_RF_SetCE();
-	MCU_RF_WaitUs(30);
+	MCU_RF_WaitUs(15);
 	MCU_RF_ClearCE();
 }
 
