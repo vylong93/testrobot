@@ -7,7 +7,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:SwarmRobotFirmV2}"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.Stellaris In-Circuit Debug Interface/CORTEX_M4_0" value="E:/00 SwarmRobot\Workspace\SVN\RobotTesting\branches\oop_ver\Debug__TI\SwarmRobotFirmV2.out"/>
 <mapAttribute key="com.ti.ccstudio.debug.ui.displayFormats">
-<mapEntry key="Stellaris In-Circuit Debug Interface/CORTEX_M4_0@##separator##@0" value="16-Bit UnSigned Int"/>
+<mapEntry key="Stellaris In-Circuit Debug Interface/CORTEX_M4_0@##separator##@0" value="8-Bit Hex - TI Style"/>
 </mapAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/SwarmRobotFirmV2"/>

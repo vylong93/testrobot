@@ -115,12 +115,12 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		synchronousEepromData(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
-	case HOST_COMMAND_EEPROM_TABLE_READ:
-		DEBUG_PRINT("Unimplement...");
+	case HOST_COMMAND_EEPROM_DATA_READ_BULK:
+		transmitRequestBulkDataInEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
-	case HOST_COMMAND_EEPROM_TABLE_UPDATE:
-		DEBUG_PRINT("Unimplement...");
+	case HOST_COMMAND_EEPROM_DATA_WRITE_BULK:
+		writeBulkToEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
 	default:
@@ -307,7 +307,7 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 
 void synchronousEepromData(uint8_t* pui8Data)
 {
-	DEBUG_PRINT("Synchronous EEPROM Data");
+	DEBUG_PRINT("Synchronous EEPROM Data\n");
 	uint8_t ui8DataNum = pui8Data[0];
 	uint32_t ui32WordIndex;
 	uint32_t ui32Data;
@@ -318,11 +318,55 @@ void synchronousEepromData(uint8_t* pui8Data)
 		ui32Data = construct4Byte(&pui8Data[i + 2]);
 		if(!writeWordToEEPROM(ui32WordIndex, ui32Data))
 		{
-			DEBUG_PRINT("Failed to write to EEPROM...");
+			DEBUG_PRINT("Failed to write to EEPROM...\n");
 			return;
 		}
 	}
-	DEBUG_PRINT("EEPROM Data Synchronized!");
+	DEBUG_PRINT("EEPROM Data Synchronized!\n");
+}
+
+void writeBulkToEeprom(uint8_t* pui8Data)
+{
+	DEBUG_PRINT("Write Bulk to EEPROM\n");
+	uint32_t ui32NumberOfBytes = pui8Data[0] * 4; // pui8Data[0] is number of Word
+	uint32_t EEPROMStartAddress = construct4Byte(&pui8Data[1]);
+
+	EEPROMProgram((uint32_t*)(&pui8Data[5]), EEPROMStartAddress, ui32NumberOfBytes);
+	//!!! Returns only after all data has been written or an error occurs.
+}
+
+void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
+{
+	uint32_t ui32NumberOfBytes = pui8Data[0] * 4; // pui8Data[0] is number of Word
+	uint32_t EEPROMStartAddress = construct4Byte(&pui8Data[1]);
+
+	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0);
+
+	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
+	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui32ResponseSize);
+
+	// Number of words
+	pui8ResponseBuffer[0] = pui8Data[0];
+
+	// Start address
+	parse32bitTo4Bytes(&pui8ResponseBuffer[1], EEPROMStartAddress);
+
+	// Read bulk
+	EEPROMRead((uint32_t*)(&pui8ResponseBuffer[5]), EEPROMStartAddress, ui32NumberOfBytes);
+
+	turnOnLED(LED_GREEN);
+
+	if (sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK, (uint8_t *) pui8ResponseBuffer, ui32ResponseSize))
+	{
+		turnOffLED(LED_GREEN);
+		DEBUG_PRINT("Send eeprom bulk data to host: OK!\n");
+	}
+	else
+	{
+		DEBUG_PRINT("Send eeprom bulk data to host: Failed...\n");
+	}
+
+	free(pui8ResponseBuffer);
 }
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,

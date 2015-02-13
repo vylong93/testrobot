@@ -72,12 +72,8 @@ typedef struct tag_MessageHeader
 
 #define HOST_COMMAND_EEPROM_DATA_READ			0x10
 #define HOST_COMMAND_EEPROM_DATA_WRITE			0x11
-#define HOST_COMMAND_EEPROM_TABLE_READ			0x12
-#define HOST_COMMAND_EEPROM_TABLE_UPDATE		0x13
-
-//#define	HOST_COMMAND_READ_EEPROM
-//#define	HOST_COMMAND_WRITE_EEPROM
-//#define	HOST_COMMAND_SET_ADDRESS_EEPROM
+#define HOST_COMMAND_EEPROM_DATA_READ_BULK		0x12
+#define HOST_COMMAND_EEPROM_DATA_WRITE_BULK		0x13
 
 #define ROBOT_RESPONSE_OK 			0x0A
 
@@ -91,6 +87,8 @@ void sendBatteryVoltageToHost(void);
 void modifyMotorsConfiguration(uint8_t* pui8Data);
 void transmitRequestDataInEeprom(uint8_t* pui8Data);
 void synchronousEepromData(uint8_t* pui8Data);
+void writeBulkToEeprom(uint8_t* pui8Data);
+void transmitRequestBulkDataInEeprom(uint8_t* pui8Data);
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size);
