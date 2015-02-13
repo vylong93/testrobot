@@ -85,7 +85,7 @@ uint8_t* getMicrophone0BufferPointer(void);
 uint8_t* getMicrophone1BufferPointer(void);
 
 void initPeripheralsForAnalogFunction(void);
-void triggerSamplingMicSignals(void);
+void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs);
 
 void triggerSamplingBatteryVoltage(bool bIsSendToHost);
 

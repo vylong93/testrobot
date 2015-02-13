@@ -25,7 +25,7 @@ extern "C"
 #include "driverlib\pwm.h"
 #include "driverlib\timer.h"
 
-#define SPEAKER_GO_OFF_PERIOD_US		2000 // unit in microsecond
+#define SPEAKER_GO_OFF_PERIOD_US		250 // unit in microsecond
 
 #define DELAY_BEFORE_START_SPEAKER_US	1000 // unit in microsecond
 
@@ -42,7 +42,7 @@ extern "C"
 #define SPEAKER_PWM_OUT_BIT             PWM_OUT_4_BIT
 
 void initSpeaker();
-void triggerSpeaker();
+void triggerSpeakerWithPreDelay(uint32_t ui32DelayUs);
 
 #ifdef __cplusplus
 }

@@ -15,6 +15,9 @@
 #include "libcustom\inc\custom_led.h"
 #include "libcustom\inc\custom_uart_debug.h"
 
+#define Robot_TX
+//#define Robot_RX
+
 bool decodeBasicHostCommand(uint8_t ui8Cmd)
 {
 	switch (ui8Cmd)
@@ -60,7 +63,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 
 	case HOST_COMMAND_START_SAMPLING_MIC:
 		DEBUG_PRINT("Start sampling two microphones !!!\n");
-		triggerSamplingMicSignals();
+		triggerSamplingMicSignalsWithPreDelay(DELAY_SAMPING_MICS_US);
 		break;
 
 	case HOST_COMMAND_REQUEST_BATT_VOLT:
@@ -69,8 +72,13 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:
-		DEBUG_PRINT("Start speaker )))\n");
-		triggerSpeaker();
+#ifdef Robot_TX
+		triggerSamplingMicSignalsWithPreDelay(0);	// DELAY_SAMPING_MICS_US
+		triggerSpeakerWithPreDelay(60);				// DELAY_BEFORE_START_SPEAKER_US
+#endif
+#ifdef Robot_RX
+		triggerSamplingMicSignalsWithPreDelay(0);
+#endif
 		break;
 
 	case HOST_COMMAND_CHANGE_MOTORS_SPEED:
