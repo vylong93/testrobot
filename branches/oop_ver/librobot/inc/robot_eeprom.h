@@ -15,10 +15,10 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc\hw_memmap.h"
-#include "driverlib\rom.h"
-#include "driverlib\sysctl.h"
-#include "driverlib\eeprom.h"
+#include "inc/hw_memmap.h"
+#include "driverlib/rom.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/eeprom.h"
 
 //#define PROGRAM_TABLE_TO_EEPROM
 
@@ -26,11 +26,12 @@ extern "C"
 #define EEPROM_ROBOT_ID_WORD_IDX		16		// 0x0040
 #define EEPROM_INTERCEPT_WORD_IDX		17		// 0x0044
 #define EEPROM_SLOPE_WORD_IDX			18		// 0x0048
+#define EEPROM_RANDOM_W_WORD_IDX		19		// 0x004C
 
 #define EEPROM_ROBOT_ID_ADDRESS			(EEPROM_ROBOT_ID_WORD_IDX << 2)
 #define EEPROM_INTERCEPT_WORD_ADDRESS	(EEPROM_INTERCEPT_WORD_IDX << 2)
 #define EEPROM_SLOPE_WORD_ADDRESS		(EEPROM_SLOPE_WORD_IDX << 2)
-
+#define EEPROM_RANDOM_W_WORD_ADDRESS	(EEPROM_RANDOM_WORD_IDX << 2)
 
 /* Block 2 - 3 - 4 - 5 - 6 - 7 */
 #define EPPROM_SINE_TABLE_ADDRESS       0x0080

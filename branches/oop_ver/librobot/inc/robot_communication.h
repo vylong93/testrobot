@@ -28,7 +28,7 @@ extern "C"
 
 #include "libprotocol\inc\network.h"
 
-#define RF_DEFAULT_ROBOT_ID		0x00BEADFF
+#define RF_DEFAULT_ROBOT_ID		0x00BEAD00
 #define RF_CONTOLBOARD_ADDR		0x00C1AC02
 
 typedef enum tag_MessageType
