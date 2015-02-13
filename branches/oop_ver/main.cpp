@@ -188,12 +188,12 @@ int main(void)
 
 	initRobotProcess();
 
+	// Test Only
 	uint16_t i;
 	uint8_t* pui8Buffer = getMicrophone0BufferPointer();
 	for(i = 0; i < NUMBER_OF_SAMPLE * 2; i++)
 		pui8Buffer[i] = (uint8_t)i;
 
-//	initRobotProcess();
 //	TDOA_initFilters();
 
 	DEBUG_PRINT("--loop start--\n");
@@ -263,7 +263,6 @@ void initRobotProcess(void)
 	//	EEPROMRead(&temp, EEPROM_SLOPE, sizeof(&temp));
 	//	g_f32Slope = temp / 65536.0;
 }
-
 
 void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 {
@@ -520,7 +519,6 @@ void MCU_RF_IRQ_handler(void)
 	if(getCpuMode() != CPU_MODE_RUN)
 		returnSleep();
 }
-
 
 //void StateOne_MeasureDistance()
 //{
