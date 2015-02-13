@@ -26,8 +26,6 @@ bool RfSendPacket(uint8_t *txBuffer)
 	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
 	MCU_RF_DisableInterrupt();
 
-	bool bReturn = false;
-
 	RF24_TX_activate();
 
 	// Generate 4-byte checksum
@@ -49,19 +47,11 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	RF24_TX_pulseTransmit();
 
-	while (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0)
-		;
+	while (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0);
 
-	if (RF24_getIrqFlag(RF24_IRQ_TX))
-	{
-		RF24_clearIrqFlag(RF24_IRQ_TX);
+	while(!RF24_getIrqFlag(RF24_IRQ_TX));
 
-		bReturn = true;
-	}
-	else if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
-	{
-		RF24_clearIrqFlag(RF24_IRQ_MASK);
-	}
+	RF24_clearIrqFlag(RF24_IRQ_MASK);
 
 	MCU_RF_ClearIntFlag();
 	MCU_RF_ClearPending();
@@ -72,7 +62,7 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	RfSetRxMode();
 
-	return bReturn;
+	return true;
 }
 
 e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
