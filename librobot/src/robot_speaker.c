@@ -44,10 +44,9 @@ void initSpeaker()
 	ROM_PWMPulseWidthSet(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT, pwmPeriod / 2);
 }
 
-
-void triggerSpeaker()
+void triggerSpeakerWithPreDelay(uint32_t ui32DelayUs)
 {
-	delay_timer_us(DELAY_BEFORE_START_SPEAKER_US);
+	delay_timer_us(ui32DelayUs);	// DELAY_BEFORE_START_SPEAKER_US
 
 	ROM_PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, true);
 	ROM_PWMGenEnable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);

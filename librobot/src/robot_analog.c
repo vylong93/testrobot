@@ -221,7 +221,7 @@ void initPeripheralsForAnalogFunction(void)
 	ROM_TimerControlTrigger(ADC_TIMER, TIMER_A, true);
 }
 
-void triggerSamplingMicSignals(void)
+void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs)
 {
 	//TODO: uncomment
 //	disableMOTOR();
@@ -229,7 +229,7 @@ void triggerSamplingMicSignals(void)
 	g_bIsSamplingMic0Done = false;
 	g_bIsSamplingMic1Done = false;
 
-	delay_timer_us(DELAY_SAMPING_MICS_US);
+	delay_timer_us(ui32DelayUs);	// DELAY_SAMPING_MICS_US
 
 	ROM_TimerEnable(ADC_TIMER, TIMER_A);
 }
