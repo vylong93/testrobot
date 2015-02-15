@@ -12,6 +12,9 @@ void initSysClock(void)
 	ROM_FPUEnable();
 	ROM_FPULazyStackingEnable();
 
+	// WARING!!!: if clock source > 50MHz, dmp_load_motion_driver_firmware() will fault
+	// Because i2c_write() & i2c_read() have slow-rate responsiveness
+
 	//
 	// Set the system clock to run at 50Mhz off PLL with external crystal as
 	// reference.
@@ -22,5 +25,5 @@ void initSysClock(void)
 	// Set the system clock to run at 50Mhz off PLL with internal POSC
 	// reference.
 	//
-//	SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_INT);  // 50MHz
+	// SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_INT);  // 50MHz
 }

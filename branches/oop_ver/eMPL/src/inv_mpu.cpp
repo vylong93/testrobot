@@ -412,7 +412,7 @@ int InvMPU::mpu_init(void)
    data[0] = BIT_RESET;
     if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data))
         return -1;
-    delay_ms(100);
+    delay_ms_i2c(100);
 
     /* Wake up chip. */
     data[0] = 0x00;
@@ -512,7 +512,7 @@ int InvMPU::mpu_set_bypass(unsigned char bypass_on)
         tmp &= ~BIT_AUX_IF_EN;
         if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &tmp))
             return -1;
-        delay_ms(3);
+        delay_ms_i2c(3);
         tmp = BIT_BYPASS_EN;
         if (st.chip_cfg.active_low_int)
             tmp |= BIT_ACTL;
@@ -530,7 +530,7 @@ int InvMPU::mpu_set_bypass(unsigned char bypass_on)
             tmp &= ~BIT_AUX_IF_EN;
         if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &tmp))
             return -1;
-        delay_ms(3);
+        delay_ms_i2c(3);
         if (st.chip_cfg.active_low_int)
             tmp = BIT_ACTL;
         else
@@ -730,7 +730,7 @@ int InvMPU::mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
             goto lp_int_restore;
 
         /* Force hardware to "lock" current accel sample. */
-        delay_ms(5);
+        delay_ms_i2c(5);
         data[0] = (st.chip_cfg.accel_fsr << 3) | BITS_HPF;
         if (i2c_write(st.hw->addr, st.reg->accel_cfg, 1, data))
             goto lp_int_restore;
@@ -1304,7 +1304,7 @@ int InvMPU::mpu_set_sensors(unsigned char sensors)
 
     st.chip_cfg.sensors = sensors;
     st.chip_cfg.lp_accel_mode = 0;
-    delay_ms(50);
+    delay_ms_i2c(50);
     return 0;
 }
 
@@ -1799,7 +1799,7 @@ int InvMPU::mpu_reset_fifo(void)
         data = BIT_FIFO_RST | BIT_DMP_RST;
         if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &data))
             return -1;
-        delay_ms(50);
+        delay_ms_i2c(50);
         data = BIT_DMP_EN | BIT_FIFO_EN;
         if (st.chip_cfg.sensors & INV_XYZ_COMPASS)
             data |= BIT_AUX_IF_EN;
@@ -1824,7 +1824,7 @@ int InvMPU::mpu_reset_fifo(void)
             data = BIT_FIFO_EN | BIT_AUX_IF_EN;
         if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &data))
             return -1;
-        delay_ms(50);
+        delay_ms_i2c(50);
         if (st.chip_cfg.int_enable)
             data = BIT_DATA_RDY_EN;
         else

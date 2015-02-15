@@ -42,7 +42,8 @@ int i2c_read(unsigned char slave_addr,
                     unsigned char reg_addr,
                     unsigned char length,
                     unsigned char *data);
-
+void delay_ms_i2c(unsigned int n);
+void delay_us_i2c(unsigned int n);
 void get_ms(unsigned long *time);
 
 #ifdef __cplusplus

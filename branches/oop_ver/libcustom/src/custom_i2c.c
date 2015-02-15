@@ -79,6 +79,7 @@ int i2c_write(unsigned char slave_addr,
 	// The register address to be write
     //
 	I2CMasterDataPut(I2C_PERIPH_BASE, reg_addr);
+	delay_us_i2c(1);
 
 	//
 	// Send control byte and register address byte to slave device
@@ -98,6 +99,7 @@ int i2c_write(unsigned char slave_addr,
 		// Put the data
 	    //
 		I2CMasterDataPut(I2C_PERIPH_BASE, data[i]);
+		delay_us_i2c(1);
 
 		//
 		// Send control byte and data byte to slave device
@@ -200,6 +202,16 @@ int i2c_read(unsigned char slave_addr,
 	}
 
 	return 0;
+}
+
+void delay_ms_i2c(unsigned int n)
+{
+	SysCtlDelay(n * SysCtlClockGet()/3000);
+}
+
+void delay_us_i2c(unsigned int n)
+{
+	SysCtlDelay(n * SysCtlClockGet()/3000000);
 }
 
 void get_ms(unsigned long *time)
