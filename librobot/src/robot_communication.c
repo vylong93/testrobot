@@ -15,6 +15,7 @@
 #include "libcustom\inc\custom_led.h"
 #include "libcustom\inc\custom_uart_debug.h"
 
+//#define Robot_TX_DELAY
 #define Robot_TX
 //#define Robot_RX
 
@@ -72,6 +73,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:
+#ifdef Robot_TX_DELAY
+		triggerSamplingMicSignalsWithPreDelay(0);	// DELAY_SAMPING_MICS_US
+		triggerSpeakerWithPreDelay(60 + 1000);	 	// DELAY_BEFORE_START_SPEAKER_US
+#endif
 #ifdef Robot_TX
 		triggerSamplingMicSignalsWithPreDelay(0);	// DELAY_SAMPING_MICS_US
 		triggerSpeakerWithPreDelay(60);				// DELAY_BEFORE_START_SPEAKER_US
@@ -348,7 +353,7 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 	uint32_t ui32NumberOfBytes = pui8Data[0] * 4; // pui8Data[0] is number of Word
 	uint32_t EEPROMStartAddress = construct4Byte(&pui8Data[1]);
 
-	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0);
+	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0]);
 
 	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
 	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui32ResponseSize);

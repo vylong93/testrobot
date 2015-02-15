@@ -34,20 +34,19 @@
  *      unsigned char length, unsigned char const *data)
  * i2c_read(unsigned char slave_addr, unsigned char reg_addr,
  *      unsigned char length, unsigned char *data)
- * delay_ms(unsigned long num_ms)
+ * delay_ms_i2c(unsigned long num_ms)
  * get_ms(unsigned long *count)
  * reg_int_cb(void (*cb)(void), unsigned char port, unsigned char pin)
  * labs(long x)
  * fabsf(float x)
  * min(int a, int b)
  */
-#include "libcustom\inc\custom_delay.h"
 #include "libcustom\inc\custom_i2c.h"
 #include "libcustom\inc\custom_uart_debug.h"
 
 #define i2c_write   i2c_write
 #define i2c_read	i2c_read
-#define delay_ms	delay_ms
+#define delay_ms_i2c	delay_ms_i2c
 #define get_ms     	get_ms
 
 #define fabs        fabsf
@@ -729,7 +728,7 @@ public:
 	    data[1] = 0;
 	    if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 2, data))
 	        return -1;
-	    delay_ms(200);
+	    delay_ms_i2c(200);
 	    data[0] = 0;
 	    if (i2c_write(st.hw->addr, st.reg->int_enable, 1, data))
 	        return -1;
@@ -744,7 +743,7 @@ public:
 	    data[0] = BIT_FIFO_RST | BIT_DMP_RST;
 	    if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, data))
 	        return -1;
-	    delay_ms(15);
+	    delay_ms_i2c(15);
 	    data[0] = st.test->reg_lpf;
 	    if (i2c_write(st.hw->addr, st.reg->lpf, 1, data))
 	        return -1;
@@ -765,7 +764,7 @@ public:
 	    if (i2c_write(st.hw->addr, st.reg->accel_cfg, 1, data))
 	        return -1;
 	    if (hw_test)
-	        delay_ms(200);
+	        delay_ms_i2c(200);
 
 	    /* Fill FIFO for test.wait_ms milliseconds. */
 	    data[0] = BIT_FIFO_EN;
@@ -775,7 +774,7 @@ public:
 	    data[0] = INV_XYZ_GYRO | INV_XYZ_ACCEL;
 	    if (i2c_write(st.hw->addr, st.reg->fifo_en, 1, data))
 	        return -1;
-	    delay_ms(test.wait_ms);
+	    delay_ms_i2c(test.wait_ms);
 	    data[0] = 0;
 	    if (i2c_write(st.hw->addr, st.reg->fifo_en, 1, data))
 	        return -1;

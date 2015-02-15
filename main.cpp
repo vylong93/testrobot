@@ -111,20 +111,28 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "libcustom\inc\custom_clock.h"
-#include "libcustom\inc\custom_led.h"
-#include "libcustom\inc\custom_delay.h"
-#include "libcustom\inc\custom_uart_debug.h"
 
-#include "librobot\inc\robot_lpm.h"
-#include "librobot\inc\robot_timer_delay.h"
-#include "librobot\inc\robot_speaker.h"
-#include "librobot\inc\robot_analog.h"
-#include "librobot\inc\robot_motor.h"
-#include "librobot\inc\robot_eeprom.h"
-#include "librobot\inc\robot_communication.h"
+#include "libcustom/inc/custom_clock.h"
+#include "libcustom/inc/custom_led.h"
+#include "libcustom/inc/custom_delay.h"
+#include "libcustom/inc/custom_i2c.h"
+#include "libcustom/inc/custom_uart_debug.h"
+
+#include "librobot/inc/robot_lpm.h"
+#include "librobot/inc/robot_timer_delay.h"
+#include "librobot/inc/robot_speaker.h"
+#include "librobot/inc/robot_analog.h"
+#include "librobot/inc/robot_motor.h"
+#include "librobot/inc/robot_eeprom.h"
+#include "librobot/inc/robot_imu.h"
+#include "librobot/inc/robot_communication.h"
 
 #include "interrupt_definition.h"
+
+#include "libmath/inc/quaternion.h"
+#include "libmath/inc/vector3.h"
+
+//#define HAVE_IMU
 
 extern "C"
 {
@@ -158,10 +166,12 @@ int main(void)
 
 	initUartDebug();
 
-	initLeds();
-	DEBUG_PRINT("init UART DEBUG: OK\n");
+	DEBUG_PRINTS("Current ClockSpeed: %d Hz\n", ROM_SysCtlClockGet());
 
 	initLowPowerMode();
+
+	initLeds();
+	DEBUG_PRINT("init LEDs: OK\n");
 
 	initRobotTimerDelay();
 	DEBUG_PRINT("init Robot timer delay: OK\n");
@@ -184,19 +194,38 @@ int main(void)
 	initRfModule(true);
 	DEBUG_PRINT("init RF module: OK, in rx mode.\n");
 
+	initI2C();
+	DEBUG_PRINT("init I2C: OK\n");
+
+#ifdef HAVE_IMU
+	InvMPU mpu6050;
+	initIMU(&mpu6050);
+	DEBUG_PRINT("init IMU: OK\n");
+#endif
+
 	turnOffLED(LED_ALL);
 
 	initRobotProcess();
 
-	// Test Only
-	uint16_t i;
-	uint8_t* pui8Buffer = getMicrophone0BufferPointer();
-	for(i = 0; i < NUMBER_OF_SAMPLE * 2; i++)
-		pui8Buffer[i] = (uint8_t)i;
-
 //	TDOA_initFilters();
 
 	DEBUG_PRINT("--loop start--\n");
+
+#ifdef HAVE_IMU
+	//#define OUTPUT_QUAT
+	#define OUTPUT_GRAVITY
+	//#define OUTPUT_LINEAR_ACCELERATION	//TODO: fix the ERROR
+
+	#ifdef OUTPUT_QUAT
+		Quaternion q;
+	#endif
+	#ifdef OUTPUT_GRAVITY
+		Vector3<float> gravity;
+	#endif
+	#ifdef OUTPUT_LINEAR_ACCELERATION
+		Vector3<float> linearAccel;
+	#endif
+#endif
 
 	while (1)
 	{
@@ -231,8 +260,34 @@ int main(void)
 //			break;
 
 		default:// ROBOT_STATE_IDLE state
-			delay_ms(750);
 			toggleLED(LED_RED);
+
+#ifdef HAVE_IMU
+
+#ifdef OUTPUT_QUAT
+			q = IMU_getQuaternion();
+
+			UARTprintf("q/t: %d %d %d %d \n", (int16_t)(q.w * 1000 + 0.5f),
+											  (int16_t)(q.x * 1000 + 0.5f),
+											  (int16_t)(q.y * 1000 + 0.5f),
+										      (int16_t)(q.z * 1000 + 0.5f));
+#endif
+#ifdef OUTPUT_GRAVITY
+			gravity = IMU_getGravity();
+			UARTprintf("gravity: %d %d %d \n", (int16_t)(gravity.x * 1000 + 0.5f),
+											   (int16_t)(gravity.y * 1000 + 0.5f),
+											   (int16_t)(gravity.z * 1000 + 0.5f));
+#endif
+#ifdef OUTPUT_LINEAR_ACCELERATION
+			linearAccel = IMU_getLinearAccel();
+			UARTprintf("linerAccel: %d %d %d \n", (int16_t)(linearAccel.x * 1000 + 0.5f),
+											      (int16_t)(linearAccel.y * 1000 + 0.5f),
+											      (int16_t)(linearAccel.z * 1000 + 0.5f));
+#endif
+
+#endif
+
+			delay_ms(1000);
 			break;
 		}
 	}
@@ -1676,4 +1731,24 @@ void MCU_RF_IRQ_handler(void)
 //	}
 //}
 
-
+//	float a =10.0f;
+//	float b = 3.49f;
+//
+//	float c_soft;
+//	float c_hard;
+//	uint32_t t0, t1, t2;
+//
+//	// Soft 21.25us :: Hard 12.5us
+//	uint32_t ClockSpeed = ROM_SysCtlClockGet();
+//	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, ClockSpeed);
+//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+//	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+//
+//	t0 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//	c_hard = sqrtf(b);
+//	t1 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//	c_soft = sqrt_fast(b);
+//	t2 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//
+//	ROM_TimerDisable(TIMER_DELAY_BASE, TIMER_A);
+//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
