@@ -136,6 +136,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		writeBulkToEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
 		break;
 
+	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
+		testPIDController(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;
@@ -381,6 +385,35 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 
 	free(pui8ResponseBuffer);
 }
+
+/* Test PID Controller only */
+float kP = 1;
+float kI = 0;
+float kD = 0;
+float r = 0;
+bool bIsRunPID = false;
+void testPIDController(uint8_t* pui8Data)
+{
+	int32_t i32Data;
+
+	i32Data = construct4Byte(pui8Data);
+	kP = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[4]);
+	kI = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[8]);
+	kD = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[12]);
+	r = i32Data / 65536.0f;
+
+	if(pui8Data[16] == 1)
+		bIsRunPID = true;
+	else
+		bIsRunPID = false;
+}
+//-------------------------------
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size)

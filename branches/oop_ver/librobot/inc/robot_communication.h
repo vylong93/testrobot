@@ -75,6 +75,8 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_EEPROM_DATA_READ_BULK		0x12
 #define HOST_COMMAND_EEPROM_DATA_WRITE_BULK		0x13
 
+#define HOST_COMMAND_CONFIG_PID_CONTROLLER		0x14
+
 #define ROBOT_RESPONSE_OK 			0x0A
 
 bool decodeBasicHostCommand(uint8_t ui8Cmd);
@@ -89,6 +91,7 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data);
 void synchronousEepromData(uint8_t* pui8Data);
 void writeBulkToEeprom(uint8_t* pui8Data);
 void transmitRequestBulkDataInEeprom(uint8_t* pui8Data);
+void testPIDController(uint8_t* pui8Data);
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 		uint8_t* pui8Data, uint32_t ui32Size);
