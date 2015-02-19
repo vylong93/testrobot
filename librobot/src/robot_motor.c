@@ -8,6 +8,10 @@
 #include "librobot\inc\robot_motor.h"
 #include "pwm_definition.h"
 
+static bool bIsMotorDriverEnable = false;
+static bool bIsMotorLeftEnable = false;
+static bool bIsMotorRightEnable = false;
+
 static uint32_t ui32PWMPeriod;
 
 void initMotors(void)
@@ -62,13 +66,18 @@ void initMotors(void)
 	ROM_PWMGenPeriodSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN, ui32PWMPeriod);
 	ROM_PWMPulseWidthSet(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1, 0);
 	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+
+	stopMotors();
 }
 
 void stopMotors(void)
 {
-	disableMOTOR();
-	MotorLeft_stop();
-	MotorRight_stop();
+	if(bIsMotorDriverEnable)
+	{
+		disableMOTOR();
+		MotorLeft_stop();
+		MotorRight_stop();
+	}
 }
 
 void enableMOTOR(void)
@@ -76,6 +85,8 @@ void enableMOTOR(void)
 	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
 	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
 			0x01;
+
+	bIsMotorDriverEnable = true;
 }
 
 void disableMOTOR(void)
@@ -83,6 +94,8 @@ void disableMOTOR(void)
 	ASSERT(_GPIOBaseValid(MOTOR_SLEEP_PIN_BASE));
 	HWREG(MOTOR_SLEEP_PIN_BASE + (GPIO_O_DATA + (MOTOR_SLEEP_PIN << 2))) =
 			0x00;
+
+	bIsMotorDriverEnable = false;
 }
 
 void configureMotors(Motor_t mLeftMotor, Motor_t mRightMotor)
@@ -144,6 +157,8 @@ void MotorLeft_assignActiveParameter(Motor_t mMotor)
 		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
 		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, false);
 	}
+
+	bIsMotorLeftEnable = true;
 }
 
 void MotorRight_assignActiveParameter(Motor_t mMotor)
@@ -189,24 +204,34 @@ void MotorRight_assignActiveParameter(Motor_t mMotor)
 		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, true);
 		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
 	}
+
+	bIsMotorRightEnable = true;
 }
 
 void MotorLeft_stop()
 {
-	ROM_PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
-	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
-	ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
-	ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
-	ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
+	if(bIsMotorLeftEnable)
+	{
+		ROM_PWMGenDisable(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_GEN);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT1_BIT, true);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, LEFT_MOTOR_PWM_OUT2_BIT, true);
+		ROM_GPIOPinTypeGPIOOutput(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1);
+		ROM_GPIOPinWrite(LEFT_MOTOR_PORT_BASE, LEFT_MOTOR_IN2 | LEFT_MOTOR_IN1, 0);
+		bIsMotorLeftEnable = false;
+	}
 }
 
 void MotorRight_stop()
 {
-	ROM_PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
-	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
-	ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
-	ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
-	ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+	if(bIsMotorRightEnable)
+	{
+		ROM_PWMGenDisable(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_GEN);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT1_BIT, false);
+		ROM_PWMOutputState(MOTOR_PWM_BASE, RIGHT_MOTOR_PWM_OUT2_BIT, false);
+		ROM_GPIOPinTypeGPIOOutput(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1);
+		ROM_GPIOPinWrite(RIGHT_MOTOR_PORT_BASE, RIGHT_MOTOR_IN2 | RIGHT_MOTOR_IN1, 0);
+		bIsMotorRightEnable = false;
+	}
 }
 
 

@@ -30,107 +30,108 @@ void initIMU(InvMPU* pMpu6050)
 }
 
 
-Vector3<float> IMU_getWorldLinearAccel(void)
+float IMU_getYawAngle(void)
 {
-	Vector3<float> vect3WorldLinearAccel;
-
-	Vector3<float> vect3LinearAccel;
-
-	Vector3<float> vect3Gravity;
-
 	Quaternion q;
+
 	//NOTE: this function below spin about 60-100ms
 	IMU_updateNewRaw();
 
-	q.w = quat[0] / q30;
-	q.x = quat[1] / q30;
-	q.y = quat[2] / q30;
-	q.z = quat[3] / q30;
+	IMU_extractQuaternion(&q);
 
-	Vector3<short> vect3AccelRaw(accel[0], accel[1], accel[2]);
+	return IMU_extractYawAngle(q);
+}
+
+float IMU_extractYawAngle(Quaternion q)
+{
+	return (atan2f(2*q.x*q.y - 2*q.w*q.z, 2*q.w*q.w + 2*q.x*q.x - 1));
+}
+
+
+void IMU_getWorldLinearAccel(Vector3<float>* pvect3WorldLinearAccel)
+{
+	Quaternion q;
+	Vector3<float> vect3Gravity;
+	Vector3<float> vect3AccelRaw;
+	Vector3<float> vect3LinearAccel;
+
+	//NOTE: this function below spin about 60-100ms
+	IMU_updateNewRaw();
+
+	IMU_extractQuaternion(&q);
+
+	IMU_extractRawAccel(&vect3AccelRaw);
 
 	IMU_convertQuaternionToGravity(&vect3Gravity, q);
 
 	IMU_convertAccelerationAndGravityToLinearAccel(&vect3LinearAccel, vect3AccelRaw, vect3Gravity);
 
-	IMU_convertLinearAccelAndQuaternionToWorldLinearAccel(&vect3WorldLinearAccel, vect3LinearAccel, q);
-
-	return vect3WorldLinearAccel;
+	IMU_convertLinearAccelAndQuaternionToWorldLinearAccel(pvect3WorldLinearAccel, vect3LinearAccel, q);
 }
 
-Vector3<float> IMU_getLinearAccel(void)
+void IMU_getLinearAccel(Vector3<float>* pvect3LinearAccel)
 {
-	Vector3<float> vect3LinearAccel;
-
-	Vector3<float> vect3Gravity;
-
 	Quaternion q;
+	Vector3<float> vect3Gravity;
+	Vector3<float> vect3AccelRaw;
+
 	//NOTE: this function below spin about 60-100ms
 	IMU_updateNewRaw();
 
-	q.w = quat[0] / q30;
-	q.x = quat[1] / q30;
-	q.y = quat[2] / q30;
-	q.z = quat[3] / q30;
+	IMU_extractQuaternion(&q);
 
-	Vector3<short> vect3AccelRaw(accel[0], accel[1], accel[2]);
+	IMU_extractRawAccel(&vect3AccelRaw);
 
 	IMU_convertQuaternionToGravity(&vect3Gravity, q);
 
-	IMU_convertAccelerationAndGravityToLinearAccel(&vect3LinearAccel, vect3AccelRaw, vect3Gravity);
-
-	return vect3LinearAccel;
+	IMU_convertAccelerationAndGravityToLinearAccel(pvect3LinearAccel, vect3AccelRaw, vect3Gravity);
 }
 
-Vector3<float> IMU_getYawPitchRoll(void)
-{
-	Vector3<float> vect3YawPitchRoll;
-
-	Vector3<float> vect3Gravity;
-
-	Quaternion q = IMU_getQuaternion();
-
-	IMU_convertQuaternionToGravity(&vect3Gravity, q);
-
-	IMU_convertQuaternionAndGravityToYawPitchRoll(&vect3YawPitchRoll, q, vect3Gravity);
-
-	return vect3YawPitchRoll;
-}
-
-Vector3<float> IMU_getGravity(void)
-{
-	Vector3<float> vect3Gravity;
-
-	Quaternion q = IMU_getQuaternion();
-
-	IMU_convertQuaternionToGravity(&vect3Gravity, q);
-
-	return vect3Gravity;
-}
-
-Vector3<float> IMU_getEulerAngles(void)
-{
-	Vector3<float> vect3EulerAngles;
-
-	Quaternion q = IMU_getQuaternion();
-
-	IMU_convertQuaternionToEulerAngles(&vect3EulerAngles, q);
-
-	return vect3EulerAngles;
-}
-
-Quaternion IMU_getQuaternion(void)
+void IMU_getYawPitchRoll(Vector3<float>* pvect3YawPitchRoll)
 {
 	Quaternion q;
+	Vector3<float> vect3Gravity;
+
 	//NOTE: this function below spin about 60-100ms
 	IMU_updateNewRaw();
 
-	q.w = quat[0] / q30;
-	q.x = quat[1] / q30;
-	q.y = quat[2] / q30;
-	q.z = quat[3] / q30;
+	IMU_extractQuaternion(&q);
 
-	return q;
+	IMU_convertQuaternionToGravity(&vect3Gravity, q);
+
+	IMU_convertQuaternionAndGravityToYawPitchRoll(pvect3YawPitchRoll, q, vect3Gravity);
+}
+
+void IMU_getGravity(Vector3<float>* pvect3Gravity)
+{
+	Quaternion q;
+
+	//NOTE: this function below spin about 60-100ms
+	IMU_updateNewRaw();
+
+	IMU_extractQuaternion(&q);
+
+	IMU_convertQuaternionToGravity(pvect3Gravity, q);
+}
+
+void IMU_getEulerAngles(Vector3<float>* pvect3EulerAngles)
+{
+	Quaternion q;
+
+	//NOTE: this function below spin about 60-100ms
+	IMU_updateNewRaw();
+
+	IMU_extractQuaternion(&q);
+
+	IMU_convertQuaternionToEulerAngles(pvect3EulerAngles, q);
+}
+
+void IMU_getQuaternion(Quaternion*pQuaternion)
+{
+	//NOTE: this function below spin about 60-100ms
+	IMU_updateNewRaw();
+
+	IMU_extractQuaternion(pQuaternion);
 }
 
 
@@ -169,10 +170,42 @@ void IMU_updateNewRaw(void)
 	}
 }
 
+void IMU_extractQuaternion(Quaternion* pQuaternion)
+{
+	pQuaternion->w = quat[0] / q30;
+	pQuaternion->x = quat[1] / q30;
+	pQuaternion->y = quat[2] / q30;
+	pQuaternion->z = quat[3] / q30;
+}
+
+void IMU_extractRawAccel(Vector3<float>* pvect3RawAccel)
+{
+	unsigned short accelSens;
+	float fAccelSens;
+
+	g_mpu6050->mpu_get_accel_sens(&accelSens);
+	fAccelSens = accelSens * 1.0f;
+
+	pvect3RawAccel->x = accel[0] / fAccelSens;
+	pvect3RawAccel->y = accel[1] / fAccelSens;
+	pvect3RawAccel->z = accel[2] / fAccelSens;
+}
+
+void IMU_extractRawGyro(Vector3<float>* pvect3RawGyro)
+{
+	float fGyroSens;
+
+	g_mpu6050->mpu_get_gyro_sens(&fGyroSens);
+
+	pvect3RawGyro->x = gyro[0] / fGyroSens;
+	pvect3RawGyro->y = gyro[1] / fGyroSens;
+	pvect3RawGyro->z = gyro[2] / fGyroSens;
+}
+
 
 void IMU_convertQuaternionToEulerAngles(Vector3<float> *pvect3Euler, Quaternion q)
 {
-	// Transfrom Fomulator:
+	// Transfrom Fomulator: TESTED
 	// psi = atan2(2xy - 2wz; 2w^2 + 2x^2 - 1)
 	// theta = -asin(2xz + 2wy)
 	// phi = atan2(2yz - 2wx; 2w^2 + 2z^2 - 1)
@@ -184,7 +217,7 @@ void IMU_convertQuaternionToEulerAngles(Vector3<float> *pvect3Euler, Quaternion 
 
 void IMU_convertQuaternionToGravity(Vector3<float> *pvect3Gravity, Quaternion q)
 {
-	// Transfrom Fomulator:
+	// Transfrom Fomulator: TESTED - output is +-1 (m/s^2) ~ standart gravity (0.980665)
 	// gx = 2(xz - wy)
 	// gy = 2(wx + yz)
 	// gz = w^2 - x^2 - y^2 + z^2
@@ -196,10 +229,10 @@ void IMU_convertQuaternionToGravity(Vector3<float> *pvect3Gravity, Quaternion q)
 
 void IMU_convertQuaternionAndGravityToYawPitchRoll(Vector3<float> *pvect3YPR, Quaternion q, Vector3<float> vect3Gravity)
 {
-	// Transfrom Fomulator:
-	// yaw = atan2(2qx*qy - 2qw*qz, 2qw^2 + 2qx^2 - 1)
-	// pitch = atan(gx / sqrt(gy^2 + gz^2))
-	// roll = atan(gy / sqrt(gx^2 + gz^2))
+	// Transfrom Fomulator: TESTED, with PI = 3.141592654 radian
+	// [-PI; -PI] yaw = atan2(2qx*qy - 2qw*qz, 2qw^2 + 2qx^2 - 1)
+	// [-PI/2; +PI/2] pitch = atan(gx / sqrt(gy^2 + gz^2))
+	// [-PI/2; +PI/2] roll = atan(gy / sqrt(gx^2 + gz^2))
 
 	// yaw: (about Z axis)
 	pvect3YPR->x = atan2f(2*q.x*q.y - 2*q.w*q.z, 2*q.w*q.w + 2*q.x*q.x - 1);
@@ -211,14 +244,12 @@ void IMU_convertQuaternionAndGravityToYawPitchRoll(Vector3<float> *pvect3YPR, Qu
 	pvect3YPR->z = atanf(vect3Gravity.y / sqrtf(vect3Gravity.x*vect3Gravity.x + vect3Gravity.z*vect3Gravity.z));
 }
 
-void IMU_convertAccelerationAndGravityToLinearAccel(Vector3<float> *pvect3LinearAccel, Vector3<short> vect3AccelRaw, Vector3<float> vect3Gravity)
+void IMU_convertAccelerationAndGravityToLinearAccel(Vector3<float> *pvect3LinearAccel, Vector3<float> vect3AccelRaw, Vector3<float> vect3Gravity)
 {
-	//TODO: confirm gyro and accel sensitivity
-
-    // get rid of the gravity component (+1g = +8192 in standard DMP FIFO packet, sensitivity is 2g)
-	pvect3LinearAccel->x = vect3AccelRaw.x - vect3Gravity.x*8192;
-	pvect3LinearAccel->y = vect3AccelRaw.y - vect3Gravity.y*8192;
-	pvect3LinearAccel->z = vect3AccelRaw.z - vect3Gravity.z*8192;
+	//TODO: use another method
+	pvect3LinearAccel->x = vect3AccelRaw.x - vect3Gravity.x;
+	pvect3LinearAccel->y = vect3AccelRaw.y - vect3Gravity.y;
+	pvect3LinearAccel->z = vect3AccelRaw.z - vect3Gravity.z;
 }
 
 void IMU_convertLinearAccelAndQuaternionToWorldLinearAccel(Vector3<float> *pvect3WorldLinearAccel, Vector3<float> vect3LinearAccel, Quaternion q)
