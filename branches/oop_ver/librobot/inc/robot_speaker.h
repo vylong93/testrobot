@@ -27,7 +27,7 @@ extern "C"
 
 #define SPEAKER_GO_OFF_PERIOD_US		250 // unit in microsecond
 
-#define DELAY_BEFORE_START_SPEAKER_US	1000 // unit in microsecond
+#define DELAY_BEFORE_START_SPEAKER_US	60 // unit in microsecond
 
 #define SPEAKER_PORT_BASE               GPIO_PORTF_BASE
 #define SPEAKER_PORT_CLOCK              SYSCTL_PERIPH_GPIOF

@@ -65,8 +65,8 @@ void updateNeighborInLocationTable(uint32_t neigborId, float xAxis, float yAxis)
 void deleteTable(robotMeas_t neighborTable[]);
 
 void parse32BitTo4Bytes(uint32_t value, uint8_t *buffer);
-uint32_t construct4BytesToUint32(uint8_t *buffer);
-int32_t construct4BytesToInt32(uint8_t *buffer);
+//uint32_t construct4BytesToUint32(uint8_t *buffer);
+//int32_t construct4BytesToInt32(uint8_t *buffer);
 void delayRandom(uint32_t parameterUnit);
 
 
@@ -86,7 +86,7 @@ typedef enum
 
 void debugBreakpoint();
 
-void initRobotProcess();
+//void initRobotProcess();
 void addToNeighborTable(uint32_t neighborId, uint16_t distance);
 void responseTDOAResultsToNeighbor(uint32_t neighborId);
 void storeNeighorVectorAndDistanceToTables(uint8_t RxData[]);

@@ -40,7 +40,7 @@ void softReset(void)
 	NVIC_APINT_SYSRESETREQ);
 }
 
-void returnSleep(void)
+void returnToSleep(void)
 {
 	DEBUG_PRINT("returnSleep()\n");
 
