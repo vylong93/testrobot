@@ -5,19 +5,277 @@
  *      Author: VyLong
  */
 
-#include "librobot\inc\robot_communication.h"
-#include "librobot\inc\robot_lpm.h"
-#include "librobot\inc\robot_speaker.h"
-#include "librobot\inc\robot_analog.h"
-#include "librobot\inc\robot_motor.h"
-#include "librobot\inc\robot_eeprom.h"
+#include "librobot/inc/robot_communication.h"
+#include "librobot/inc/robot_process.h"
+#include "librobot/inc/robot_lpm.h"
+#include "librobot/inc/robot_speaker.h"
+#include "librobot/inc/robot_analog.h"
+#include "librobot/inc/robot_motor.h"
+#include "librobot/inc/robot_eeprom.h"
 
-#include "libcustom\inc\custom_led.h"
-#include "libcustom\inc\custom_uart_debug.h"
+#include "libcustom/inc/custom_led.h"
+
+#include "libalgorithm/inc/TDOA.h"
 
 //#define Robot_TX_DELAY
 #define Robot_TX
 //#define Robot_RX
+
+//------------------------ Message Decoder ------------------------
+void RobotResponseIntHandler(void)
+{
+	uint8_t* pui8RequestData = getRequestMessageDataPointer();
+	uint32_t ui32RequestRobotID;
+
+	switch (getRobotResponseState())
+	{
+		case ROBOT_RESPONSE_STATE_SAMPLING_MICS:
+			TDOA_clearNewResultsFlag();
+			triggerSamplingMicSignalsWithPreDelay(0);
+			// while(!isSamplingCompleted()); 		// This line can be optimized!
+			while(TDOA_getNewResultsFlag() == false);
+			ui32RequestRobotID = construct4Byte(pui8RequestData);
+			responseTDOAResultsToNeighbor(ui32RequestRobotID);
+			break;
+
+		default:	// ROBOT_RESPONSE_STATE_NONE
+			break;
+	}
+	setRobotResponseState(ROBOT_RESPONSE_STATE_NONE);
+
+	free(pui8RequestData);
+}
+
+void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
+{
+	MessageHeader* pMessageHeader = (MessageHeader*) pui8MessageBuffer;
+
+	if (getCpuMode() != CPU_MODE_RUN)
+	{
+		if (pMessageHeader->eMessageType != MESSAGE_TYPE_HOST_COMMAND)
+			returnToSleep();
+
+		if (!decodeBasicHostCommand(pMessageHeader->ui8Cmd))
+			returnToSleep();
+	}
+	else
+	{
+		switch (pMessageHeader->eMessageType)
+		{
+		case MESSAGE_TYPE_HOST_COMMAND:
+			decodeAdvanceHostCommand(pMessageHeader->ui8Cmd, &pui8MessageBuffer[MESSAGE_DATA_START_IDX], ui32MessSize - MESSAGE_HEADER_LENGTH);
+			break;
+
+		case MESSAGE_TYPE_ROBOT_REQUEST:
+			decodeRobotRequestMessage(pMessageHeader->ui8Cmd, &pui8MessageBuffer[MESSAGE_DATA_START_IDX], ui32MessSize - MESSAGE_HEADER_LENGTH);
+			break;
+
+		case MESSAGE_TYPE_ROBOT_RESPONSE:
+			decodeRobotResponseMessage(pMessageHeader->ui8Cmd, &pui8MessageBuffer[MESSAGE_DATA_START_IDX], ui32MessSize - MESSAGE_HEADER_LENGTH);
+			break;
+
+		default:
+			break;
+		}
+
+//		case ROBOT_REQUEST_SAMPLING_MIC:
+//			// DO NOT INSERT ANY CODE IN HERE!
+//			startSamplingMicSignals();
+//			if (g_bIsValidVector)
+//			{
+//				turnOnLED(LED_GREEN);
+//				g_ui32RequestRobotID = construct4BytesToUint32(&RF24_RX_buffer[1]);
+//				g_eRobotResponseState = TDOA;
+//				IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
+//			}
+//			break;
+//
+//		// EXCHANGE_TABLE state
+//		case ROBOT_REQUEST_NEIGHBORS_TABLE:
+//			reloadDelayTimerA();
+//			checkAndResponeMyNeighborsTableToOneRobot();
+//			delayTimerB(g_ui8RandomNumber, false);
+//			break;
+//
+//		// VOTE_ORIGIN state
+//		case ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN:
+//			turnOnLED(LED_RED);
+//			reloadDelayTimerA();
+//			updateOrRejectNetworkOrigin(RF24_RX_buffer);
+//			turnOffLED(LED_RED);
+//			break;
+//
+//		// ROTATE_NETWORK state
+//		case ROBOT_REQUEST_ROTATE_NETWORK:
+//			getHopOriginTableAndRotate(RF24_RX_buffer);
+//			break;
+//
+//		// REDUCE_ERROR state
+//		case ROBOT_REQUEST_MY_VECTOR:
+//			tryToResponeNeighborVector();
+//			delayTimerB(g_ui8RandomNumber, false);
+//			break;
+
+//		case ROBOT_REQUEST_VECTOR_AND_FLAG:
+//			tryToResponeVectorAndFlag();
+//			delayTimerB(g_ui8RandomNumber, false);
+//			break;
+//
+//		case ROBOT_REQUEST_VECTOR:
+//			tryToResponseVector();
+//			delayTimerB(g_ui8RandomNumber, false);
+//			break;
+//
+//		// LOCOMOTION state
+//		case ROBOT_REQUEST_TO_RUN:
+//			clearRequestNeighbor(RF24_RX_buffer);
+//			reloadDelayTimerB();
+//			break;
+//
+//		case ROBOT_REQUEST_UPDATE_VECTOR:
+//			updateNeighborVectorInLocsTableByRequest(RF24_RX_buffer);
+//			break;
+//
+//		// T shape
+//		case ROBOT_ALLOW_MOVE_TO_T_SHAPE:
+//			if (construct4BytesToUint32(&RF24_RX_buffer[1]) == g_ui32RobotID)
+//				g_bIsAllowToMove = true;
+//			break;
+//
+//		case ROBOT_REPONSE_MOVE_COMPLETED:
+//			g_bIsRobotResponse = true;
+//			break;
+
+//		// DeBug command
+//		case PC_SEND_ROTATE_CORRECTION_ANGLE:
+//			if(g_bIsCounterClockwiseOriented)
+//				rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
+//			else
+//				rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+//			g_fRobotOrientedAngle = 0;
+//			break;
+//
+//		case PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF:
+//			rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+//			g_fRobotOrientedAngle = 0;
+//			break;
+//
+//		case PC_SEND_ROTATE_CORRECTION_ANGLE_SAME:
+//			rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
+//			g_fRobotOrientedAngle = 0;
+//			break;
+//
+//		case PC_SEND_READ_CORRECTION_ANGLE:
+//			responseCorrectionAngleAndOriented();
+//			break;
+//
+//		case PC_SEND_SET_ROBOT_STATE:
+//			g_eProcessState = (ProcessState_t)(RF24_RX_buffer[1]);
+//			break;
+//
+//		case PC_SEND_ROTATE_CLOCKWISE:
+//			rotateClockwiseTest(RF24_RX_buffer);
+//			break;
+//
+//		case PC_SEND_ROTATE_CLOCKWISE_ANGLE:
+//			rotateClockwiseAngleTest(RF24_RX_buffer);
+//			break;
+//
+//		case PC_SEND_FORWARD_PERIOD:
+//			forwardPeriodTest(RF24_RX_buffer);
+//			break;
+//
+//		case PC_SEND_FORWARD_DISTANCE:
+//			forwardDistanceTest(RF24_RX_buffer);
+//			break;
+//
+//		case PC_SEND_LOCAL_LOOP_STOP:
+//			g_ui32LocalLoopStop = construct4BytesToUint32(&RF24_RX_buffer[1]);
+//			break;
+//
+//		case PC_SEND_SET_STEPSIZE:
+//			g_fStepSize = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
+//			break;
+//
+//		case PC_SEND_SET_STOP_CONDITION_ONE:
+//			g_fStopCondition = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
+//			break;
+//
+//		case PC_SEND_SET_STOP_CONDITION_TWO:
+//			g_fStopCondition2 = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
+//			break;
+
+//		case PC_SEND_MEASURE_DISTANCE:
+//
+//			turnOffLED(LED_ALL);
+//
+//			g_eProcessState = MEASURE_DISTANCE;
+//
+//			for (g_ui8NeighborsCounter = 0;
+//					g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH;
+//					g_ui8NeighborsCounter++)
+//			{
+//				NeighborsTable[g_ui8NeighborsCounter].ID = 0;
+//				NeighborsTable[g_ui8NeighborsCounter].distance = 0;
+//				OneHopNeighborsTable[g_ui8NeighborsCounter].firstHopID = 0;
+//			}
+//
+//			Tri_clearLocs(locs, &g_ui8LocsCounter);
+//
+//			g_ui8NeighborsCounter = 0;
+//
+//			break;
+//
+//		case PC_SEND_READ_VECTOR:
+//			sendVectorToControlBoard();
+//			break;
+//
+//		case PC_SEND_READ_NEIGHBORS_TABLE:
+//			sendNeighborsTableToControlBoard();
+//			break;
+//
+//		case PC_SEND_READ_LOCS_TABLE:
+//			sendLocationsTableToControlBoard();
+//
+//		case PC_SEND_READ_ONEHOP_TABLE:
+//			sendOneHopNeighborsTableToControlBoard();
+//			break;
+
+//		case SMART_PHONE_COMMAND:
+//			switch (RF24_RX_buffer[1])
+//			{
+//			case SP_SEND_STOP_TWO_MOTOR:
+//				stopMotors();
+//				break;
+//
+//			case SP_SEND_FORWAR:
+//				goStraight();
+//				break;
+//
+//			case SP_SEND_SPIN_CLOCKWISE:
+//				spinClockwise();
+//				break;
+//
+//			case SP_SEND_SPIN_COUNTERCLOCKWISE:
+//				spinCounterclockwise();
+//				break;
+//
+//			case SP_SEND_RESERVED:
+//				goBackward();
+//				break;
+//
+//			default:
+//				break;
+//			}
+//			break;
+//
+//		default:
+//			break;
+//		}
+//		break;
+
+	}
+}
 
 bool decodeBasicHostCommand(uint8_t ui8Cmd)
 {
@@ -45,30 +303,27 @@ bool decodeBasicHostCommand(uint8_t ui8Cmd)
 	return true;
 }
 
-void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
+void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
 	switch (ui8Cmd)
 	{
 	case HOST_COMMAND_TEST_RF_TRANSMISTER:
-		testRfTransmister(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		testRfTransmister(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_TEST_RF_RECEIVER:
-		testRfReceiver(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		testRfReceiver(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_TOGGLE_ALL_STATUS_LEDS:
-		DEBUG_PRINT("Test: Toggle all status leds\n");
 		toggleLED(LED_ALL);
 		break;
 
 	case HOST_COMMAND_START_SAMPLING_MIC:
-		DEBUG_PRINT("Start sampling two microphones !!!\n");
 		triggerSamplingMicSignalsWithPreDelay(DELAY_SAMPING_MICS_US);
 		break;
 
 	case HOST_COMMAND_REQUEST_BATT_VOLT:
-		DEBUG_PRINT("Sampling battery voltage\n");
 		sendBatteryVoltageToHost();
 		break;
 
@@ -87,7 +342,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		break;
 
 	case HOST_COMMAND_CHANGE_MOTORS_SPEED:
-		modifyMotorsConfiguration(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		modifyMotorsConfiguration(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_STOP_MOTOR_LEFT:
@@ -99,45 +354,35 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 		break;
 
 	case HOST_COMMAND_DATA_ADC0_TO_HOST:
-		turnOnLED(LED_BLUE);
-		if (sendDataToHost(getMicrophone0BufferPointer(), NUMBER_OF_SAMPLE * 2))
-		{
-			turnOffLED(LED_BLUE);
-			DEBUG_PRINT("ADC0 data Transmitted!\n");
-		}
-		else
-			DEBUG_PRINT("Failed to sent ADC0 data...\n");
+		transmitADCResultsToHost((uint8_t*)getMicrophone0BufferPointer());
 		break;
 
 	case HOST_COMMAND_DATA_ADC1_TO_HOST:
-		turnOnLED(LED_BLUE);
-		if (sendDataToHost(getMicrophone1BufferPointer(), NUMBER_OF_SAMPLE * 2))
-		{
-			turnOffLED(LED_BLUE);
-			DEBUG_PRINT("ADC1 data Transmitted!\n");
-		}
-		else
-			DEBUG_PRINT("Failed to sent ADC1 data...\n");
+		transmitADCResultsToHost((uint8_t*)getMicrophone1BufferPointer());
 		break;
 
 	case HOST_COMMAND_EEPROM_DATA_READ:
-		transmitRequestDataInEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		transmitRequestDataInEeprom(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_EEPROM_DATA_WRITE:
-		synchronousEepromData(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		synchronousEepromData(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_EEPROM_DATA_READ_BULK:
-		transmitRequestBulkDataInEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		transmitRequestBulkDataInEeprom(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_EEPROM_DATA_WRITE_BULK:
-		writeBulkToEeprom(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		writeBulkToEeprom(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
-		testPIDController(&pui8MessageBuffer[MESSAGE_DATA_START_IDX]);
+		testPIDController(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_CALIBRATE_TDOA_TX:
+		calibrationTx_TDOA(pui8MessageData);
 		break;
 
 	default:
@@ -146,294 +391,46 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer)
 	}
 }
 
-void testRfReceiver(uint8_t* pui8Data)
+void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
-	DEBUG_PRINT("Test: Rf Receiver\n");
-
-	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
-
-	turnOnLED(LED_GREEN);
-
-	if (RfTryToCaptureRfSignal(1000000, checkForCorrectRxDataStream,
-			ui32TestDataSize))
+	switch (ui8Cmd)
 	{
-		MessageHeader responseReader;
-		responseReader.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
-		responseReader.ui8Cmd = ROBOT_RESPONSE_OK;
+	case ROBOT_REQUEST_SAMPLING_MIC:
+		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_MICS, pui8MessageData, ui32DataSize);
+		break;
 
-		sendDataToHost((uint8_t *) (&responseReader), 2);
-
-		turnOffLED(LED_GREEN);
-
-		DEBUG_PRINT("Test RF Transmission RX: OK\n");
-	}
-	else
-	{
-		DEBUG_PRINT("Test RF Transmission RX: Connection failed...\n");
+	default:
+		// Invalid Request
+		break;
 	}
 }
 
-bool checkForCorrectRxDataStream(va_list argp)
+void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt one argument in order:
-	//				1/ uint32_t ui32TestDataSize
-
-	// Get the input arguments
-	uint32_t ui32TestDataSize;
-	ui32TestDataSize = va_arg(argp, uint32_t);
-
-	uint16_t i;
-	uint8_t ui8TestValue = 0;
-	uint32_t ui32ReceivedDataSize = 0;
-	uint8_t* pui8DataHolder = 0;
-
-	if (Network_receivedMessage(&pui8DataHolder, &ui32ReceivedDataSize))
+	switch (ui8Cmd)
 	{
-		if (ui32ReceivedDataSize == ui32TestDataSize)
-		{
-			for (i = 0; i < ui32TestDataSize; i++)
-			{
-				if (ui8TestValue != pui8DataHolder[i])
-				{
-					DEBUG_PRINT(
-							"checkForCorrectRxDataStream: Invalid data...\n");
+	case ROBOT_RESPONSE_TDOA_RESULT:
+		//TODO: get result in pui8MessageData
+		break;
 
-					if (pui8DataHolder != 0)
-						Network_deleteBuffer(pui8DataHolder);
-
-					return false;
-				}
-				else
-				{
-					ui8TestValue++;
-				}
-			}
-
-			return true;
-		}
-		else
-		{
-			DEBUG_PRINT("checkForCorrectRxDataStream: Invalid size...\n");
-		}
+	default:
+		// Invalid Response
+		break;
 	}
-	else
-	{
-		DEBUG_PRINT("Network_receivedMessage: Timeout...\n");
-	}
-
-	if (pui8DataHolder != 0)
-		Network_deleteBuffer(pui8DataHolder);
-
-	return false;
 }
 
-void testRfTransmister(uint8_t* pui8Data)
-{
-	DEBUG_PRINT("Test: Rf Transmitter\n");
-
-	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
-
-	uint16_t* pui16TestData = malloc(sizeof(uint16_t) * (ui32TestDataSize >> 1));
-
-	uint16_t i;
-	for (i = 0; i < (ui32TestDataSize >> 1); i++)
-	{
-		pui16TestData[i] = i;
-	}
-
-	turnOnLED(LED_GREEN);
-
-	if (sendDataToHost((uint8_t *) pui16TestData, ui32TestDataSize))
-	{
-		turnOffLED(LED_GREEN);
-		DEBUG_PRINT("Test RF Transmission TX: OK\n");
-	}
-	else
-	{
-		DEBUG_PRINT("Test RF Transmission TX: Connection failed...\n");
-	}
-
-	free(pui16TestData);
-}
-
-void sendBatteryVoltageToHost(void)
-{
-	turnOnLED(LED_GREEN);
-
-	triggerSamplingBatteryVoltage(true);
-}
-
-void modifyMotorsConfiguration(uint8_t* pui8Data)
-{
-	DEBUG_PRINT("Configure motors\n");
-
-	Motor_t mLeftMotor;
-	Motor_t mRightMotor;
-
-	mLeftMotor.eDirection = (e_MotorDirection)pui8Data[0];
-	mLeftMotor.ui8Speed = pui8Data[1];
-
-	mRightMotor.eDirection = (e_MotorDirection)pui8Data[2];
-	mRightMotor.ui8Speed = pui8Data[3];
-
-	configureMotors(mLeftMotor, mRightMotor);
-}
-
-void transmitRequestDataInEeprom(uint8_t* pui8Data)
-{
-	uint32_t ui32DataCount = pui8Data[0];
-
-	DEBUG_PRINTS("Host request read %d word(s) in EEPROM\n", ui32DataCount);
-
-	uint8_t ui8ResponseSize = ui32DataCount * 6 + 1;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui8ResponseSize);
-
-	pui8ResponseBuffer[0] = ui32DataCount;
-
-	uint16_t ui16WordIndex;
-	uint32_t ui32Data;
-	uint32_t ui32Pointer = 1;
-	uint16_t i;
-	for (i = 1; i <= ui32DataCount * 2; i += 2)
-	{
-		ui16WordIndex = (uint16_t)((pui8Data[i] << 8) | pui8Data[i + 1]);
-		ui32Data = readWordFormEEPROM(ui16WordIndex);
-
-		pui8ResponseBuffer[ui32Pointer++] = pui8Data[i];
-		pui8ResponseBuffer[ui32Pointer++] = pui8Data[i + 1];
-		parse32bitTo4Bytes(&pui8ResponseBuffer[ui32Pointer], ui32Data);
-		ui32Pointer += 4;
-	}
-
-	turnOnLED(LED_GREEN);
-
-	if (sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK, (uint8_t *) pui8ResponseBuffer, ui8ResponseSize))
-	{
-		turnOffLED(LED_GREEN);
-		DEBUG_PRINT("Send eeprom data to host: OK!\n");
-	}
-	else
-	{
-		DEBUG_PRINT("Send eeprom data to host: Failed...\n");
-	}
-
-	free(pui8ResponseBuffer);
-}
-
-void synchronousEepromData(uint8_t* pui8Data)
-{
-	DEBUG_PRINT("Synchronous EEPROM Data\n");
-	uint8_t ui8DataNum = pui8Data[0];
-	uint32_t ui32WordIndex;
-	uint32_t ui32Data;
-	uint8_t i;
-	for(i = 1; i <= ui8DataNum * 6; i += 6)
-	{
-		ui32WordIndex = (pui8Data[i] << 8) | pui8Data[i + 1];
-		ui32Data = construct4Byte(&pui8Data[i + 2]);
-		if(!writeWordToEEPROM(ui32WordIndex, ui32Data))
-		{
-			DEBUG_PRINT("Failed to write to EEPROM...\n");
-			return;
-		}
-	}
-	DEBUG_PRINT("EEPROM Data Synchronized!\n");
-}
-
-void writeBulkToEeprom(uint8_t* pui8Data)
-{
-	DEBUG_PRINT("Write Bulk to EEPROM\n");
-	uint32_t ui32NumberOfBytes = pui8Data[0] * 4; // pui8Data[0] is number of Word
-	uint32_t EEPROMStartAddress = construct4Byte(&pui8Data[1]);
-
-	EEPROMProgram((uint32_t*)(&pui8Data[5]), EEPROMStartAddress, ui32NumberOfBytes);
-	//!!! Returns only after all data has been written or an error occurs.
-}
-
-void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
-{
-	uint32_t ui32NumberOfBytes = pui8Data[0] * 4; // pui8Data[0] is number of Word
-	uint32_t EEPROMStartAddress = construct4Byte(&pui8Data[1]);
-
-	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0]);
-
-	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui32ResponseSize);
-
-	// Number of words
-	pui8ResponseBuffer[0] = pui8Data[0];
-
-	// Start address
-	parse32bitTo4Bytes(&pui8ResponseBuffer[1], EEPROMStartAddress);
-
-	// Read bulk
-	EEPROMRead((uint32_t*)(&pui8ResponseBuffer[5]), EEPROMStartAddress, ui32NumberOfBytes);
-
-	turnOnLED(LED_GREEN);
-
-	if (sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK, (uint8_t *) pui8ResponseBuffer, ui32ResponseSize))
-	{
-		turnOffLED(LED_GREEN);
-		DEBUG_PRINT("Send eeprom bulk data to host: OK!\n");
-	}
-	else
-	{
-		DEBUG_PRINT("Send eeprom bulk data to host: Failed...\n");
-	}
-
-	free(pui8ResponseBuffer);
-}
-
-/* Test PID Controller only */
-float kP = 1;
-float kI = 0;
-float kD = 0;
-float r = 0;
-bool bIsRunPID = false;
-void testPIDController(uint8_t* pui8Data)
-{
-	int32_t i32Data;
-
-	i32Data = construct4Byte(pui8Data);
-	kP = i32Data / 65536.0f;
-
-	i32Data = construct4Byte(&pui8Data[4]);
-	kI = i32Data / 65536.0f;
-
-	i32Data = construct4Byte(&pui8Data[8]);
-	kD = i32Data / 65536.0f;
-
-	i32Data = construct4Byte(&pui8Data[12]);
-	r = i32Data / 65536.0f;
-
-	if(pui8Data[16] == 1)
-		bIsRunPID = true;
-	else
-		bIsRunPID = false;
-}
-//-------------------------------
-
+//------------------------ Host side ------------------------
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
-		uint8_t* pui8Data, uint32_t ui32Size)
+		uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
-	uint32_t i;
 	bool bReturn;
 
-	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32Size;
-
+	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
 	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
+	if(puiMessageBuffer == 0)
+		return false;
 
-	//TODO: construct MessageHeader instead
-	puiMessageBuffer[MESSAGE_TYPE_IDX] = eMessType;
-	puiMessageBuffer[MESSAGE_COMMAND_IDX] = ui8Command;
-
-	// Fill data
-	for (i = 0; i < ui32Size; i++)
-	{
-		puiMessageBuffer[i + MESSAGE_DATA_START_IDX] = pui8Data[i];
-	}
+	constructMessage(puiMessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
 
 	bReturn = sendDataToHost(puiMessageBuffer, ui32TotalSize);
 
@@ -442,141 +439,78 @@ bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 	return bReturn;
 }
 
-bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length)
+bool sendDataToHost(uint8_t* pui8Data, uint32_t ui32DataLength)
 {
-	if (Network_sendMessage(RF_CONTOLBOARD_ADDR, pui8Data, ui32Length, true))
+	if (Network_sendMessage(RF_CONTOLBOARD_ADDR, pui8Data, ui32DataLength, true))
 		return true;
 	return false;
 }
 
-//=========================================================
-
-void sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
-		uint32_t length)
+//------------------------ Robot side ------------------------
+void broadcastToLocalNeighbors(uint8_t ui8Command, uint8_t* pui8MessageData, uint8_t ui32DataSize)
 {
-//	uint8_t addr[3];
-//
-//	addr[2] = neighborID >> 16;
-//	addr[1] = neighborID >> 8;
-//	addr[0] = neighborID;
-//	RF24_RX_setAddress(RF24_PIPE0, addr);
-//	RF24_TX_setAddress(addr);
-//
-//	uint32_t pointer = 0;
-//	uint32_t i;
-//
-//	RF24_RX_flush();
-//	RF24_clearIrqFlag(RF24_IRQ_RX);
-//	RF24_TX_activate();
-//	RF24_RETRANS_setCount(RF24_RETRANS_COUNT15);
-//	RF24_RETRANS_setDelay(RF24_RETRANS_DELAY_2000u);
-//
-//	disableRF24Interrupt();
-//
-//	RF24_clearIrqFlag(RF24_IRQ_RX);
-//	GPIOIntClear(RF24_INT_PORT, RF24_INT_Channel);
-//
-//	while (1)
-//	{
-//		rfDelayLoop(DELAY_CYCLES_1MS5);
-//
-//		if (messageBuffer != RF24_TX_buffer)
-//		{
-//			for (i = 0; (i < length) && (i < 32); i++)
-//			{
-//				RF24_TX_buffer[i] = *(messageBuffer + pointer);
-//				pointer++;
-//			}
-//		}
-//		else
-//		{
-//			i = length;
-//		}
-//
-//		RF24_TX_writePayloadAck(i, RF24_TX_buffer);
-//
-//		RF24_TX_pulseTransmit();
-//
-//		while (1)
-//		{
-//			if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
-//			{
-//				if (RF24_getIrqFlag(RF24_IRQ_TX))
-//					break;
-//				if (RF24_getIrqFlag(RF24_IRQ_MAX_RETRANS))
-//				{
-//					RF24_clearIrqFlag(RF24_IRQ_MAX_RETRANS);
-//
-//					if (g_ui8ReTransmitCounter != 0) // software trigger reTransmit
-//					{
-//						g_ui8ReTransmitCounter++;
-//					}
-//
-//					addr[2] = g_ui32RobotID >> 16;
-//					addr[1] = g_ui32RobotID >> 8;
-//					addr[0] = g_ui32RobotID;
-//					RF24_RX_setAddress(RF24_PIPE0, addr);
-//					RF24_RX_activate();
-//
-//					enableRF24Interrupt();
-//
-//					return false;
-//				}
-//				else
-//				{
-//					RF24_clearIrqFlag(RF24_IRQ_MASK);
-//				}
-//			}
-//		}
-//		RF24_clearIrqFlag(RF24_IRQ_TX);
-//
-//		if (length > 32)
-//			length -= 32;
-//		else
-//		{
-//			addr[2] = g_ui32RobotID >> 16;
-//			addr[1] = g_ui32RobotID >> 8;
-//			addr[0] = g_ui32RobotID;
-//			RF24_RX_setAddress(RF24_PIPE0, addr);
-//			RF24_RX_activate();
-//
-//			enableRF24Interrupt();
-//
-//			return true;
-//		}
-//	}
+	broatcastMessageToNeighbor(NETWORK_BROADCAST_ADDRESS, ui8Command, pui8MessageData, ui32DataSize);
 }
 
-void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length)
+void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
-//	// WARNING!: must call RF24_RX_activate() to switch back RX mode after this function servered
-//
-//	uint8_t addr[3];
-//
-//	RF24_TX_activate();
-//
-//	addr[2] = RF24_LOCAL_BOARDCAST_BYTE2;
-//	addr[1] = RF24_LOCAL_BOARDCAST_BYTE1;
-//	addr[0] = RF24_LOCAL_BOARDCAST_BYTE0;
-//	RF24_TX_setAddress(addr);
-//
-//	RF24_TX_writePayloadNoAck(ui8Length, pData);
-//
-//	disableRF24Interrupt();
-//
-//	RF24_TX_pulseTransmit();
-//
-//	while (1)
-//	{
-//		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
-//		{
-//			if (RF24_getIrqFlag(RF24_IRQ_TX))
-//				break;
-//		}
-//	}
-//
-//	RF24_clearIrqFlag(RF24_IRQ_TX);
-//
-//	enableRF24Interrupt();
+	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
+	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
+	if(puiMessageBuffer == 0)
+		return false;
+
+	constructMessage(puiMessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
+
+	broadcastDataToNeighbor(ui32NeighborId, puiMessageBuffer, ui32TotalSize);
+
+	free(puiMessageBuffer);
+}
+
+void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize)
+{
+	Network_sendMessage(ui32NeighborId, pui8Data, ui32DataSize, false);
+}
+
+bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	bool bReturn;
+
+	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
+	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
+	if(puiMessageBuffer == 0)
+		return false;
+
+	constructMessage(puiMessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
+
+	bReturn = sendDataToNeighbor(ui32NeighborId, puiMessageBuffer, ui32TotalSize);
+
+	free(puiMessageBuffer);
+
+	return bReturn;
+}
+
+bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize)
+{
+	if (Network_sendMessage(ui32NeighborId, pui8Data, ui32DataSize, true))
+		return true;
+	return false;
+}
+
+void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType,
+		uint8_t ui8Command, uint8_t* pui8Data, uint32_t ui32DataSize)
+{
+	int32_t i;
+
+	// Construct header
+	puiMessageBuffer[MESSAGE_TYPE_IDX] = eMessType;
+	puiMessageBuffer[MESSAGE_COMMAND_IDX] = ui8Command;
+
+	// Fill data
+	for (i = 0; i < ui32DataSize; i++)
+	{
+		puiMessageBuffer[i + MESSAGE_DATA_START_IDX] = pui8Data[i];
+	}
 }
 

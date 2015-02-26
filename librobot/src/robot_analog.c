@@ -5,11 +5,12 @@
  *      Author: VyLong
  */
 
-#include "librobot\inc\robot_motor.h"
-#include "librobot\inc\robot_analog.h"
-#include "librobot\inc\robot_timer_delay.h"
-#include "librobot\inc\robot_communication.h"
-#include "libcustom\inc\custom_led.h"
+#include "librobot/inc/robot_analog.h"
+#include "librobot/inc/robot_motor.h"
+#include "librobot/inc/robot_timer_delay.h"
+#include "librobot/inc/robot_communication.h"
+#include "libcustom/inc/custom_led.h"
+#include "libalgorithm/inc/TDOA.h"
 #include "interrupt_definition.h"
 
 //*****************************************************************************
@@ -47,13 +48,13 @@ static uint8_t ui8ControlTable[1024] __attribute__ ((aligned (1024)));
 static uint8_t ui8ControlTable[1024];
 #endif
 
-uint8_t* getMicrophone0BufferPointer(void)
+uint16_t* getMicrophone0BufferPointer(void)
 {
-	return (uint8_t*)g_pui16ADC0Result;
+	return g_pui16ADC0Result;
 }
-uint8_t* getMicrophone1BufferPointer(void)
+uint16_t* getMicrophone1BufferPointer(void)
 {
-	return (uint8_t*)g_pui16ADC1Result;
+	return g_pui16ADC1Result;
 }
 
 void initPeripheralsForAnalogFunction(void)
@@ -222,6 +223,11 @@ void initPeripheralsForAnalogFunction(void)
 	ROM_TimerControlTrigger(ADC_TIMER, TIMER_A, true);
 }
 
+bool isSamplingCompleted(void)
+{
+	return (g_bIsSamplingMic0Done & g_bIsSamplingMic1Done);
+}
+
 void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs)
 {
 	disableMOTOR();
@@ -287,8 +293,7 @@ void ADC0IntHandler(void)
 		if (g_bIsSamplingMic1Done)
 		{
 			enableMOTOR();
-			//TODO: uncomment
-//			TDOA_run();
+			TDOA_run(g_pui16ADC0Result, g_pui16ADC1Result);
 		}
 	}
 }
@@ -317,8 +322,7 @@ void ADC1IntHandler(void)
 		if (g_bIsSamplingMic0Done)
 		{
 			enableMOTOR();
-			//TODO: uncomment
-//			TDOA_run();
+			TDOA_run(g_pui16ADC0Result, g_pui16ADC1Result);
 		}
 	}
 }
@@ -342,7 +346,7 @@ void BatterySequenceIntHandler(void)
 
 		if (g_bSendToHost)
 		{
-			sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_OK,
+			sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_TO_HOST_OK,
 					(uint8_t *) &g_ui16BatteryVoltage, 2);
 
 			g_bSendToHost = false;

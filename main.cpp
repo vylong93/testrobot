@@ -124,41 +124,24 @@
 #include "librobot/inc/robot_analog.h"
 #include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_eeprom.h"
+
 #include "librobot/inc/robot_imu.h"
 #include "librobot/inc/robot_communication.h"
 
-#include "interrupt_definition.h"
-
-#include "libmath/inc/quaternion.h"
-#include "libmath/inc/vector3.h"
+#include "librobot/inc/robot_process.h"
 
 //#define HAVE_IMU
 
 extern "C"
 {
+extern float kP;
+extern float kI;
+extern float kD;
+extern float r;	// Not use
+extern bool bIsRunPID;
+
 void MCU_RF_IRQ_handler();
-
-void RobotResponseIntHandler(void);
 }
-
-void initRobotProcess(void);
-void decodeMessage(uint8_t* pui8Message, uint32_t ui32MessSize);
-
-void RobotResponseIntHandler(void){}
-
-typedef enum tag_RobotState
-{
-	ROBOT_STATE_IDLE = 0,
-	ROBOT_STATE_MEASURE_DISTANCE = 1,
-	ROBOT_STATE_EXCHANGE_TABLE = 2,
-	ROBOT_STATE_VOTE_ORIGIN = 3,
-	ROBOT_STATE_ROTATE_NETWORK = 4,
-	ROBOT_STATE_REDUCE_ERROR = 5,
-	ROBOT_STATE_LOCOMOTION = 6,
-	ROBOT_STATE_T_SHAPE = 7,
-} e_RobotState;
-
-e_RobotState g_eCurrentRobotState = ROBOT_STATE_IDLE;
 
 int main(void)
 {
@@ -197,349 +180,135 @@ int main(void)
 	initI2C();
 	DEBUG_PRINT("init I2C: OK\n");
 
-#ifdef HAVE_IMU
-	InvMPU mpu6050;
-	initIMU(&mpu6050);
-	DEBUG_PRINT("init IMU: OK\n");
-#endif
+	initRobotProcess();
 
 	turnOffLED(LED_ALL);
 
-	initRobotProcess();
-
-//	TDOA_initFilters();
-
-	DEBUG_PRINT("--loop start--\n");
-
 #ifdef HAVE_IMU
-	//#define OUTPUT_QUAT
-	#define OUTPUT_GRAVITY
-	//#define OUTPUT_LINEAR_ACCELERATION	//TODO: fix the ERROR
+	InvMPU mpu6050;
+	initIMU(&mpu6050);
 
-	#ifdef OUTPUT_QUAT
-		Quaternion q;
-	#endif
-	#ifdef OUTPUT_GRAVITY
-		Vector3<float> gravity;
-	#endif
-	#ifdef OUTPUT_LINEAR_ACCELERATION
-		Vector3<float> linearAccel;
-	#endif
-#endif
+	turnOnLED(LED_RED);
 
-	while (1)
+	delay_ms(30000);	// delay 30 second for IMU output stable
+
+	turnOffLED(LED_RED);
+	turnOnLED(LED_GREEN);
+
+	DEBUG_PRINT("init IMU: OK\n");
+
+	// System Variables
+	Motor_t m1_Left;
+	Motor_t m2_Right;
+	uint8_t ui8NextPWM;
+
+	// Memmory Storages
+	float fYawAngleInRad = 0;
+	float e_old = 0;
+	float E = 0;
+
+	// Controller Variables
+	Vector3<float> vect3YawPitchRoll(0, 0, 0);
+	float fOriginR = 0;
+	float fReferenceYawAngleInRad = 0;
+	float e = 0;
+	float e_dot = 0;
+	float u = 0;
+
+	// Initialize
+	// get reference for PID Controller
+//	fReferenceYawAngleInRad = IMU_getYawAngle();
+//	fOriginR = fReferenceYawAngleInRad;
+
+	// Setup motor
+	m1_Left.eDirection = FORWARD;
+	m2_Right.eDirection = REVERSE;
+	m1_Left.ui8Speed = u;
+	m2_Right.ui8Speed = u;
+
+	while(1)
 	{
-		switch (g_eCurrentRobotState)
+		stopMotors();
+		fReferenceYawAngleInRad = IMU_getYawAngle();
+		fOriginR = fReferenceYawAngleInRad;
+
+		while(!bIsRunPID);
+		e = 0;
+		e_old = 0;
+		e_dot = 0;
+		E = 0;
+		fReferenceYawAngleInRad = fOriginR + r;
+		while(bIsRunPID)
 		{
-//		case MEASURE_DISTANCE:
-//			StateOne_MeasureDistance();
-//			break;
-//
-//		case EXCHANGE_TABLE:
-//			StateTwo_ExchangeTableAndCalculateLocsTable();
-//			break;
-//
-//		case VOTE_ORIGIN:
-//			StateThree_VoteOrigin();
-//			break;
-//
-//		case ROTATE_NETWORK:
-//			StateFour_RequestRotateNetwork();
-//			break;
-//
-//		case REDUCE_ERROR:
-//			StateFive_ReduceCoordinatesError();
-//			break;
-//
-//		case LOCOMOTION:
-//			StateSix_Locomotion();
-//			break;
-//
-//		case T_SHAPE:
-//			SwarmStateOne_TShape();
-//			break;
+			/* PID controll robot: moving forward in straight line */
+			// read current yaw angle
+			fYawAngleInRad = IMU_getYawAngle();
 
-		default:// ROBOT_STATE_IDLE state
-			toggleLED(LED_RED);
+			// calculate the error
+			e = fYawAngleInRad - fReferenceYawAngleInRad;
 
-#ifdef HAVE_IMU
+			// Because e is an angle so need extra-handle
+			e = atan2f(sinf(e), cosf(e));
 
-#ifdef OUTPUT_QUAT
-			q = IMU_getQuaternion();
+			// calculate the error dynamic
+			e_dot = e - e_old;
 
-			UARTprintf("q/t: %d %d %d %d \n", (int16_t)(q.w * 1000 + 0.5f),
-											  (int16_t)(q.x * 1000 + 0.5f),
-											  (int16_t)(q.y * 1000 + 0.5f),
-										      (int16_t)(q.z * 1000 + 0.5f));
+			// integral the error
+			E = E + e;
+
+			// compute the control input
+			u = kP*e + kI*E + kD*e_dot;
+
+			// save 'e' for the next loop
+			e_old = e;
+
+
+			/* PWM control signal */
+			if(u < 0)
+			{
+				u = 0 - u;
+				m1_Left.eDirection = REVERSE;
+				m2_Right.eDirection = FORWARD;
+			}
+			else
+			{
+				m1_Left.eDirection = FORWARD;
+				m2_Right.eDirection = REVERSE;
+			}
+			ui8NextPWM = u * 100;
+
+			if(ui8NextPWM < MOTOR_SPEED_MINIMUM)
+				ui8NextPWM = 0;
+
+			if(ui8NextPWM > MOTOR_SPEED_MAXIMUM)
+				ui8NextPWM = MOTOR_SPEED_MAXIMUM;
+
+			m1_Left.ui8Speed = ui8NextPWM;
+			m2_Right.ui8Speed = ui8NextPWM;
+
+			configureMotors(m1_Left, m2_Right);
+
+			DEBUG_PRINTF("u = %d, %d %d \n", (int32_t)(u * 63356 + 0.5f),
+										  (int32_t)(m1_Left.eDirection),
+										  (int32_t)(m1_Left.ui8Speed));
+
+			delay_ms(10);
+		}
+	}
 #endif
-#ifdef OUTPUT_GRAVITY
-			gravity = IMU_getGravity();
-			UARTprintf("gravity: %d %d %d \n", (int16_t)(gravity.x * 1000 + 0.5f),
-											   (int16_t)(gravity.y * 1000 + 0.5f),
-											   (int16_t)(gravity.z * 1000 + 0.5f));
-#endif
-#ifdef OUTPUT_LINEAR_ACCELERATION
-			linearAccel = IMU_getLinearAccel();
-			UARTprintf("linerAccel: %d %d %d \n", (int16_t)(linearAccel.x * 1000 + 0.5f),
-											      (int16_t)(linearAccel.y * 1000 + 0.5f),
-											      (int16_t)(linearAccel.z * 1000 + 0.5f));
-#endif
-
-#endif
-
-			delay_ms(1000);
+#ifndef HAVE_IMU
+	while(true)
+	{
+		switch (getRobotState())
+		{
+			default: // ROBOT_STATE_IDLE
+				toggleLED(LED_RED);
+				delay_ms(750);
 			break;
 		}
 	}
-}
+#endif
 
-void initRobotProcess(void)
-{
-	uint32_t ui32ReadEEPROMData;
-
-	//
-	// Initilize self ID in eeprom
-	//
-	ui32ReadEEPROMData = getRobotIDInEEPROM();
-	if(ui32ReadEEPROMData != 0xFFFFFFFF)
-	{
-		Network_setSelfAddress(ui32ReadEEPROMData);
-		DEBUG_PRINTS("set Network Self Address to 0x%08x\n", ui32ReadEEPROMData);
-	}
-	else
-	{
-		Network_setSelfAddress(RF_DEFAULT_ROBOT_ID);
-		DEBUG_PRINTS("set Self Address to Default Address: 0x%08x\n", RF_DEFAULT_ROBOT_ID);
-	}
-
-	//	EEPROMRead(&temp, EEPROM_INTERCEPT, sizeof(&temp));
-	//	g_f32Intercept = temp / 65536.0;
-	//
-	//	EEPROMRead(&temp, EEPROM_SLOPE, sizeof(&temp));
-	//	g_f32Slope = temp / 65536.0;
-}
-
-void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
-{
-	MessageHeader* pMessageHeader = (MessageHeader*) pui8MessageBuffer;
-
-	if (getCpuMode() != CPU_MODE_RUN)
-	{
-		if (pMessageHeader->eMessageType != MESSAGE_TYPE_HOST_COMMAND)
-			returnSleep();
-
-		if (!decodeBasicHostCommand(pMessageHeader->ui8Cmd))
-			returnSleep();
-	}
-	else
-	{
-		switch (pMessageHeader->eMessageType)
-		{
-		case MESSAGE_TYPE_HOST_COMMAND:
-			decodeAdvanceHostCommand(pMessageHeader->ui8Cmd, pui8MessageBuffer);
-			break;
-
-		default:
-			break;
-		}
-
-//		case ROBOT_REQUEST_SAMPLING_MIC:
-//			// DO NOT INSERT ANY CODE IN HERE!
-//			startSamplingMicSignals();
-//			if (g_bIsValidVector)
-//			{
-//				turnOnLED(LED_GREEN);
-//				g_ui32RequestRobotID = construct4BytesToUint32(&RF24_RX_buffer[1]);
-//				g_eRobotResponseState = TDOA;
-//				IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
-//			}
-//			break;
-//
-//		// EXCHANGE_TABLE state
-//		case ROBOT_REQUEST_NEIGHBORS_TABLE:
-//			reloadDelayTimerA();
-//			checkAndResponeMyNeighborsTableToOneRobot();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
-//		// VOTE_ORIGIN state
-//		case ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN:
-//			turnOnLED(LED_RED);
-//			reloadDelayTimerA();
-//			updateOrRejectNetworkOrigin(RF24_RX_buffer);
-//			turnOffLED(LED_RED);
-//			break;
-//
-//		// ROTATE_NETWORK state
-//		case ROBOT_REQUEST_ROTATE_NETWORK:
-//			getHopOriginTableAndRotate(RF24_RX_buffer);
-//			break;
-//
-//		// REDUCE_ERROR state
-//		case ROBOT_REQUEST_MY_VECTOR:
-//			tryToResponeNeighborVector();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-
-//		case ROBOT_REQUEST_VECTOR_AND_FLAG:
-//			tryToResponeVectorAndFlag();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
-//		case ROBOT_REQUEST_VECTOR:
-//			tryToResponseVector();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
-//		// LOCOMOTION state
-//		case ROBOT_REQUEST_TO_RUN:
-//			clearRequestNeighbor(RF24_RX_buffer);
-//			reloadDelayTimerB();
-//			break;
-//
-//		case ROBOT_REQUEST_UPDATE_VECTOR:
-//			updateNeighborVectorInLocsTableByRequest(RF24_RX_buffer);
-//			break;
-//
-//		// T shape
-//		case ROBOT_ALLOW_MOVE_TO_T_SHAPE:
-//			if (construct4BytesToUint32(&RF24_RX_buffer[1]) == g_ui32RobotID)
-//				g_bIsAllowToMove = true;
-//			break;
-//
-//		case ROBOT_REPONSE_MOVE_COMPLETED:
-//			g_bIsRobotResponse = true;
-//			break;
-
-//		// DeBug command
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE:
-//			if(g_bIsCounterClockwiseOriented)
-//				rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
-//			else
-//				rotateClockwiseWithAngle(g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF:
-//			rotateClockwiseWithAngle(g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE_SAME:
-//			rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_READ_CORRECTION_ANGLE:
-//			responseCorrectionAngleAndOriented();
-//			break;
-//
-//		case PC_SEND_SET_ROBOT_STATE:
-//			g_eProcessState = (ProcessState_t)(RF24_RX_buffer[1]);
-//			break;
-//
-//		case PC_SEND_ROTATE_CLOCKWISE:
-//			rotateClockwiseTest(RF24_RX_buffer);
-//			break;
-//
-//		case PC_SEND_ROTATE_CLOCKWISE_ANGLE:
-//			rotateClockwiseAngleTest(RF24_RX_buffer);
-//			break;
-//
-//		case PC_SEND_FORWARD_PERIOD:
-//			forwardPeriodTest(RF24_RX_buffer);
-//			break;
-//
-//		case PC_SEND_FORWARD_DISTANCE:
-//			forwardDistanceTest(RF24_RX_buffer);
-//			break;
-//
-//		case PC_SEND_LOCAL_LOOP_STOP:
-//			g_ui32LocalLoopStop = construct4BytesToUint32(&RF24_RX_buffer[1]);
-//			break;
-//
-//		case PC_SEND_SET_STEPSIZE:
-//			g_fStepSize = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
-//			break;
-//
-//		case PC_SEND_SET_STOP_CONDITION_ONE:
-//			g_fStopCondition = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
-//			break;
-//
-//		case PC_SEND_SET_STOP_CONDITION_TWO:
-//			g_fStopCondition2 = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
-//			break;
-
-//		case PC_SEND_MEASURE_DISTANCE:
-//
-//			turnOffLED(LED_ALL);
-//
-//			g_eProcessState = MEASURE_DISTANCE;
-//
-//			for (g_ui8NeighborsCounter = 0;
-//					g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH;
-//					g_ui8NeighborsCounter++)
-//			{
-//				NeighborsTable[g_ui8NeighborsCounter].ID = 0;
-//				NeighborsTable[g_ui8NeighborsCounter].distance = 0;
-//				OneHopNeighborsTable[g_ui8NeighborsCounter].firstHopID = 0;
-//			}
-//
-//			Tri_clearLocs(locs, &g_ui8LocsCounter);
-//
-//			g_ui8NeighborsCounter = 0;
-//
-//			break;
-//
-//		case PC_SEND_READ_VECTOR:
-//			sendVectorToControlBoard();
-//			break;
-//
-//		case PC_SEND_READ_NEIGHBORS_TABLE:
-//			sendNeighborsTableToControlBoard();
-//			break;
-//
-//		case PC_SEND_READ_LOCS_TABLE:
-//			sendLocationsTableToControlBoard();
-//
-//		case PC_SEND_READ_ONEHOP_TABLE:
-//			sendOneHopNeighborsTableToControlBoard();
-//			break;
-
-//		case SMART_PHONE_COMMAND:
-//			switch (RF24_RX_buffer[1])
-//			{
-//			case SP_SEND_STOP_TWO_MOTOR:
-//				stopMotors();
-//				break;
-//
-//			case SP_SEND_FORWAR:
-//				goStraight();
-//				break;
-//
-//			case SP_SEND_SPIN_CLOCKWISE:
-//				spinClockwise();
-//				break;
-//
-//			case SP_SEND_SPIN_COUNTERCLOCKWISE:
-//				spinCounterclockwise();
-//				break;
-//
-//			case SP_SEND_RESERVED:
-//				goBackward();
-//				break;
-//
-//			default:
-//				break;
-//			}
-//			break;
-//
-//		default:
-//			break;
-//		}
-//		break;
-
-	}
 }
 
 void MCU_RF_IRQ_handler(void)
@@ -572,7 +341,7 @@ void MCU_RF_IRQ_handler(void)
 	}
 
 	if(getCpuMode() != CPU_MODE_RUN)
-		returnSleep();
+		returnToSleep();
 }
 
 //void StateOne_MeasureDistance()
@@ -688,7 +457,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = EXCHANGE_TABLE;
 //}
-
+//
 //void StateTwo_ExchangeTableAndCalculateLocsTable()
 //{
 //	uint16_t ui16RandomValue;
@@ -788,7 +557,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = VOTE_ORIGIN;
 //}
-
+//
 //void StateThree_VoteOrigin()
 //{
 //	if(g_ui32OriginID == g_ui32RobotID) // haven't update
@@ -854,7 +623,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = ROTATE_NETWORK;
 //}
-
+//
 //void StateFour_RequestRotateNetwork()
 //{
 //	uint8_t ui8RandomRfChannel;
@@ -982,7 +751,7 @@ void MCU_RF_IRQ_handler(void)
 //	turnOffLED(LED_ALL);
 //	g_eProcessState = REDUCE_ERROR;
 //}
-
+//
 //void StateFive_ReduceCoordinatesError()
 //{
 //	int8_t i;
@@ -1227,7 +996,7 @@ void MCU_RF_IRQ_handler(void)
 //	//g_eProcessState = LOCOMOTION;
 //	g_eProcessState = IDLE;
 //}
-
+//
 //void StateSix_Locomotion()
 //{
 //	vector2_t vectZero;
@@ -1349,7 +1118,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-
+//
 //void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 //{
 //	float const RESOLUTION = 18; // in cm
@@ -1715,20 +1484,6 @@ void MCU_RF_IRQ_handler(void)
 //	}
 //
 //	g_eProcessState = IDLE;
-//}
-
-//void RobotResponseIntHandler(void)
-//{
-//	switch (g_eRobotResponseState)
-//	{
-//		case TDOA:
-//			responseTDOAResultsToNeighbor(g_ui32RequestRobotID);
-//			g_eRobotResponseState = DONE;
-//			break;
-//
-//		default:
-//			break;
-//	}
 //}
 
 //	float a =10.0f;

@@ -504,6 +504,8 @@ bool Network_receivedMessage(uint8_t** ppui8MessBuffer, uint32_t* pui32MessSize)
 
 				// Allocated message buffer space
 				(*ppui8MessBuffer) = new uint8_t[ui32MessSize];
+				if((*ppui8MessBuffer) == 0)
+					return false;
 
 				// Fill message content
 				for(i = 0; i < ui32ReceivedSize; i++)

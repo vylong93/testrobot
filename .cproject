@@ -87,7 +87,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="librobot/src/MainBoardDriver.c|librobot/src/Trilateration.c|librobot/src/TDOA.c|librobot/src/robot_smartphone.c|librobot/src/robot_math.c|tm4c123gh6pm_startup_ccs_gcc.c|tm4c123gh6pm.lds|main1.c|backup|Backup" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="libalgorithm/src/Trilateration.c|librobot/src/MainBoardDriver.c|librobot/src/Trilateration.c|librobot/src/robot_smartphone.c|librobot/src/robot_math.c|tm4c123gh6pm_startup_ccs_gcc.c|tm4c123gh6pm.lds|main1.c|backup|Backup" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

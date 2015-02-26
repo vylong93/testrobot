@@ -5,116 +5,115 @@
  *      Author: MasterE
  */
 
-#include "librobot/inc/TDOA.h"
+#include "libalgorithm/inc/TDOA.h"
 
-extern uint16_t g_pui16ADC0Result[];
-extern uint16_t g_pui16ADC1Result[];
-
-extern unsigned char countAdcDMAsStopped;
-
-// Initialize two filter, input and output buffer pointers
-float32_t OutputMicA[NUMBER_OF_SAMPLE] =
-{ 0 };
-float32_t OutputMicB[NUMBER_OF_SAMPLE] =
-{ 0 };
-
-float32_t SamplesMicA[NUMBER_OF_SAMPLE] =
-{ 0 };
-float32_t SamplesMicB[NUMBER_OF_SAMPLE] =
-{ 0 };
+static float FilterCoeffs[FILTER_ORDER] =
+{ -0.003472f, 0.000573f, 0.006340f, 0.014220f, 0.022208f, 0.025940f, 0.020451f,
+		0.002990f, -0.024527f, -0.054834f, -0.077140f, -0.081033f, -0.060950f,
+		-0.019268f, 0.033526f, 0.081934f, 0.110796f, 0.110796f, 0.081934f,
+		0.033526f, -0.019268f, -0.060950f, -0.081033f, -0.077140f, -0.054834f,
+		-0.024527f, 0.002990f, 0.020451f, 0.025940f, 0.022208f, 0.014220f,
+		0.006340f, 0.000573f, -0.003472f };
 
 arm_fir_instance_f32 FilterA;
 arm_fir_instance_f32 FilterB;
-static float32_t pStateA[BLOCK_SIZE + FILTER_ORDER - 1] =
-{ 0 };
-static float32_t pStateB[BLOCK_SIZE + FILTER_ORDER - 1] =
-{ 0 };
 
-float32_t g_f32PeakEnvelopeA;
-float32_t g_f32MaxEnvelopeA;
-float32_t g_f32PeakEnvelopeB;
-float32_t g_f32MaxEnvelopeB;
+float pStateA[STATE_BUFFER_SIZE] = { 0 };
+float pStateB[STATE_BUFFER_SIZE] = { 0 };
 
-bool g_bIsNewTDOAResults;
+bool g_bNewResultsAvailable = false;
+
+float SamplesMic[NUMBER_OF_SAMPLE] = { 0 };
+float OutputMic[NUMBER_OF_SAMPLE] = { 0 };
+
+float g_f32PeakEnvelopeA;
+float g_f32MaxEnvelopeA;
+float g_f32PeakEnvelopeB;
+float g_f32MaxEnvelopeB;
+
+float g_f32Intercept = 1;
+float g_f32Slope = 1;
 
 void TDOA_initFilters()
 {
-	float32_t FilterCoeffs[FILTER_ORDER] =
-	{ -0.0029093551f, 0.0004931756f, 0.0055870397f, 0.0128101468f, 0.0204126528f,
-			0.0242806916f, 0.0194602352f, 0.0028870622f, -0.0239973079f,
-			-0.0542697369f, -0.0771116411f, -0.0816930439f, -0.0618794434f,
-			-0.0196709112f, 0.0343706554f, 0.0842319561f, 0.1140602871f,
-			0.1140602871f, 0.0842319561f, 0.0343706554f, -0.0196709112f,
-			-0.0618794434f, -0.0816930439f, -0.0771116411f, -0.0542697369f,
-			-0.0239973079f, 0.0028870622f, 0.0194602352f, 0.0242806916f,
-			0.0204126528f, 0.0128101468f, 0.0055870397f, 0.0004931756f,
-			-0.0029093551f };
-
 	// Call FIR init function to initialize the instance structure.
 	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
 	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);
 }
 
-void TDOA_run(void)
+bool TDOA_getNewResultsFlag(void)
 {
-//	float32_t OutputMicA[NUMBER_OF_SAMPLE] = { 0 };
-//	float32_t OutputMicB[NUMBER_OF_SAMPLE] = { 0 };
-//
-//	float32_t SamplesMicA[NUMBER_OF_SAMPLE] = { 0 };
-//	float32_t SamplesMicB[NUMBER_OF_SAMPLE] = { 0 };
+	return g_bNewResultsAvailable;
+}
+void TDOA_clearNewResultsFlag(void)
+{
+	g_bNewResultsAvailable = false;
+}
 
-	int i;
+float TDOA_getPeakEnvelopeA(void)
+{
+	return g_f32PeakEnvelopeA;
+}
+float TDOA_getPeakEnvelopeB(void)
+{
+	return g_f32PeakEnvelopeB;
+}
 
-//	while (countAdcDMAsStopped != 2)
-//		;
+float TDOA_calculateDistanceFromTwoPeaks(void)
+{
+	float fDistanceA = (g_f32PeakEnvelopeA - g_f32Intercept) / g_f32Slope;
+	float fDistanceB = (g_f32PeakEnvelopeB - g_f32Intercept) / g_f32Slope;
 
-	// Convert g_ui32ADC0/1Result to SamplesMicA/B
+	float fSquareDistance = (((fDistanceA * fDistanceA + fDistanceB * fDistanceB) / 2.0)
+					- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536.0; // * 256^2
+
+	return sqrtf(fSquareDistance);
+}
+
+void TDOA_run(uint16_t* pui16ADC0Result, uint16_t* pui16ADC1Result)
+{
+	TDOA_process(pui16ADC0Result, &FilterA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
+	TDOA_process(pui16ADC1Result, &FilterB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
+	g_bNewResultsAvailable = true;
+}
+
+void TDOA_process(uint16_t* pui16ADCResult, arm_fir_instance_f32* pFilter,
+		float* pfPeakEnvelope, float* pfMaxEnvelope)
+{
+	int32_t i;
+
+	// Convert ui32ADCResult to SamplesMic
 	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
 	{
-		SamplesMicA[i] = g_pui16ADC0Result[i];
-		SamplesMicB[i] = g_pui16ADC1Result[i];
+		SamplesMic[i] = pui16ADCResult[i];
 	}
 
 	// Filter signals
 	for (i = 0; i < NUM_BLOCKS; i++)
 	{
-		arm_fir_f32(&FilterA, SamplesMicA + (i * BLOCK_SIZE),
-				OutputMicA + (i * BLOCK_SIZE),
-				BLOCK_SIZE);
-		arm_fir_f32(&FilterB, SamplesMicB + (i * BLOCK_SIZE),
-				OutputMicB + (i * BLOCK_SIZE),
-				BLOCK_SIZE);
+		arm_fir_f32(pFilter, SamplesMic + (i * BLOCK_SIZE),
+				OutputMic + (i * BLOCK_SIZE), BLOCK_SIZE);
 	}
 
-	// Drop some invalid samples at the begin output buffer
-	for (i = 0; i < NUMBER_OF_SAMPLE; i++)
-	{
-		OutputMicA[i] = OutputMicA[i + START_SAMPLES_POSTITION];
-		OutputMicB[i] = OutputMicB[i + START_SAMPLES_POSTITION];
-	}
-
-	TDOA_getDistances(OutputMicA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
-	TDOA_getDistances(OutputMicB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
-
-	g_bIsNewTDOAResults = true;
+	// Run Alogrithm
+	TDOA_getDistances((float*)(OutputMic + START_SAMPLES_POSTITION), pfPeakEnvelope, pfMaxEnvelope);
 }
 
-float32_t TDOA_getDistances(float32_t *myData, float32_t *peakEnvelope,
-		float32_t *maxEnvelope)
+float TDOA_getDistances(float *myData, float *peakEnvelope, float *maxEnvelope)
 {
-	float32_t step = +0.125f;
-	float32_t localPeaksPosition[3] =
+	float step = +0.125f;
+	float localPeaksPosition[3] =
 	{ 0 };
-	float32_t localMaxValue[3] =
+	float localMaxValue[3] =
 	{ 0 };
 
 	TDOA_find3LocalPeaks(myData, localPeaksPosition);
 	if (localPeaksPosition[0] != 0 && localPeaksPosition[1] != 0
 			&& localPeaksPosition[2] != 0)
 	{
-		float32_t PositionsArray[3] =
+		float PositionsArray[3] =
 		{ 0 };
-		float32_t ValuesArray[3] =
+		float ValuesArray[3] =
 		{ 0 };
 		int i;
 		for (i = 0; i < 3; i++)
@@ -140,7 +139,7 @@ float32_t TDOA_getDistances(float32_t *myData, float32_t *peakEnvelope,
 	return 1;
 }
 
-void TDOA_find3LocalPeaks(float32_t *myData, float32_t* LocalPeaksStoragePointer)
+void TDOA_find3LocalPeaks(float *myData, float* LocalPeaksStoragePointer)
 {
 	uint32_t SamplePosition = 0;
 	uint32_t maxSamplePosition = 0;
@@ -165,7 +164,7 @@ void TDOA_find3LocalPeaks(float32_t *myData, float32_t* LocalPeaksStoragePointer
 	}
 }
 
-uint32_t TDOA_reachBottom(float32_t *myData, uint32_t const PeakPosition,
+uint32_t TDOA_reachBottom(float *myData, uint32_t const PeakPosition,
 		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
@@ -185,7 +184,7 @@ uint32_t TDOA_reachBottom(float32_t *myData, uint32_t const PeakPosition,
 	return 0;
 }
 
-uint32_t TDOA_reachPeak(float32_t *myData, uint32_t const PeakPosition,
+uint32_t TDOA_reachPeak(float *myData, uint32_t const PeakPosition,
 		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
@@ -205,16 +204,16 @@ uint32_t TDOA_reachPeak(float32_t *myData, uint32_t const PeakPosition,
 	return 0;
 }
 
-void TDOA_interPeak(float32_t* PositionsArray, float32_t* ValuesArray,
-		float32_t UserPosition, float32_t UserMaxValue, float32_t const step,
-		float32_t* ReturnPosition, float32_t* ReturnValue)
+void TDOA_interPeak(float* PositionsArray, float* ValuesArray,
+		float UserPosition, float UserMaxValue, float const step,
+		float* ReturnPosition, float* ReturnValue)
 {
-	float32_t realLocalPeak = UserPosition;
-	float32_t realLocalMax = UserMaxValue;
-	float32_t samplePosition = realLocalPeak - step;
-	float32_t interpolateValue = TDOA_larange(PositionsArray, ValuesArray,
+	float realLocalPeak = UserPosition;
+	float realLocalMax = UserMaxValue;
+	float samplePosition = realLocalPeak - step;
+	float interpolateValue = TDOA_larange(PositionsArray, ValuesArray,
 			samplePosition);
-	float32_t PointerDirection = 0;
+	float PointerDirection = 0;
 	if (interpolateValue > UserMaxValue)
 	{
 		PointerDirection = -1;
@@ -244,12 +243,12 @@ void TDOA_interPeak(float32_t* PositionsArray, float32_t* ValuesArray,
 	}
 }
 
-float32_t TDOA_larange(float32_t *PositionsArray, float32_t *ValuesArray,
-		float32_t interpolatePoint)
+float TDOA_larange(float *PositionsArray, float *ValuesArray,
+		float interpolatePoint)
 {
-	float32_t result = 0;
+	float result = 0;
 	int i, j;
-	float32_t temp;
+	float temp;
 
 	for (j = 0; j < 3; j++)
 	{

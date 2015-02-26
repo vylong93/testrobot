@@ -34,7 +34,7 @@ void setCpuMode(e_CpuMode eMode);
 e_CpuMode getCpuMode(void);
 
 void softReset(void);
-void returnSleep(void);
+void returnToSleep(void);
 
 void LowPowerModeIntHandler(void);
 

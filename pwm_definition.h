@@ -13,7 +13,7 @@ extern "C"
 {
 #endif
 
-#include "driverlib\sysctl.h"
+#include "driverlib/sysctl.h"
 
 #define PWM_CLOCK_SELECT        SYSCTL_PWMDIV_16
 #define PWM_CLOCK_PRESCALE      16 // Must match with PWM_CLOCK_SELECT

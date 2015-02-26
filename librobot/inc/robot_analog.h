@@ -15,20 +15,20 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc\hw_memmap.h"
-#include "inc\hw_types.h"
-#include "inc\hw_ints.h"
-#include "inc\hw_nvic.h"
-#include "inc\hw_gpio.h"
-#include "inc\hw_adc.h"
-#include "inc\hw_udma.h"
-#include "driverlib\pin_map.h"
-#include "driverlib\interrupt.h"
-#include "driverlib\sysctl.h"
-#include "driverlib\gpio.h"
-#include "driverlib\adc.h"
-#include "driverlib\udma.h"
-#include "driverlib\rom.h"
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "inc/hw_ints.h"
+#include "inc/hw_nvic.h"
+#include "inc/hw_gpio.h"
+#include "inc/hw_adc.h"
+#include "inc/hw_udma.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/adc.h"
+#include "driverlib/udma.h"
+#include "driverlib/rom.h"
 
 #define DELAY_SAMPING_MICS_US	1000	// unit in microsecond
 
@@ -81,10 +81,11 @@ extern "C"
 #define DMA_RANDOM_GEN_CHANNEL			UDMA_CH24_ADC1_0
 #define RANDOM_GEN_INT                	INT_ADC1SS0
 
-uint8_t* getMicrophone0BufferPointer(void);
-uint8_t* getMicrophone1BufferPointer(void);
+uint16_t* getMicrophone0BufferPointer(void);
+uint16_t* getMicrophone1BufferPointer(void);
 
 void initPeripheralsForAnalogFunction(void);
+bool isSamplingCompleted(void);
 void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs);
 
 void triggerSamplingBatteryVoltage(bool bIsSendToHost);

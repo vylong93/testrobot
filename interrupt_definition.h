@@ -13,7 +13,7 @@ extern "C"
 {
 #endif
 
-#include "inc\hw_ints.h"
+#include "inc/hw_ints.h"
 
 // Priority level definition, High to Low:
 #define LEVEL_0		0x00
@@ -36,7 +36,7 @@ extern "C"
 #define PRIORITY_MOTOR_TIMERA       LEVEL_3
 #define PRIORITY_MOTOR_TIMERB       LEVEL_3
 
-#define PRIORITY_ROBOT_RESPONSE		LEVEL_5
+#define PRIORITY_ROBOT_RESPONSE		LEVEL_6
 
 #define PRIORITY_LOW_POWER_MODE		LEVEL_7
 

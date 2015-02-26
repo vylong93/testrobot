@@ -26,7 +26,7 @@ extern "C"
 #include "libnrf24l01/inc/TM4C123_nRF24L01.h"
 #endif
 
-#include "libprotocol\inc\network.h"
+#include "libprotocol/inc/network.h"
 
 #define RF_DEFAULT_ROBOT_ID		0x00BEAD00
 #define RF_CONTOLBOARD_ADDR		0x00C1AC02
@@ -53,6 +53,7 @@ typedef struct tag_MessageHeader
 #define MESSAGE_COMMAND_IDX			1
 #define MESSAGE_DATA_START_IDX		MESSAGE_HEADER_LENGTH
 
+//----------------------------------------------------
 #define HOST_COMMAND_RESET			0x01
 #define HOST_COMMAND_SLEEP			0x02
 #define	HOST_COMMAND_DEEP_SLEEP		0x03
@@ -76,35 +77,37 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_EEPROM_DATA_WRITE_BULK		0x13
 
 #define HOST_COMMAND_CONFIG_PID_CONTROLLER		0x14
+#define HOST_COMMAND_CALIBRATE_TDOA_TX			0x15
+//----------------------------------------------------
+#define ROBOT_RESPONSE_TO_HOST_OK 				0x0A
+#define ROBOT_RESPONSE_TDOA_RESULT				0xB0
+//----------------------------------------------------
+#define ROBOT_REQUEST_SAMPLING_MIC				0xA0
+//----------------------------------------------------
 
-#define ROBOT_RESPONSE_OK 			0x0A
+void RobotResponseIntHandler(void);
+void decodeMessage(uint8_t* pui8Message, uint32_t ui32MessSize);
 
 bool decodeBasicHostCommand(uint8_t ui8Cmd);
-void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageBuffer);
-
-void testRfReceiver(uint8_t* pui8Data);
-bool checkForCorrectRxDataStream(va_list argp);
-void testRfTransmister(uint8_t* pui8Data);
-void sendBatteryVoltageToHost(void);
-void modifyMotorsConfiguration(uint8_t* pui8Data);
-void transmitRequestDataInEeprom(uint8_t* pui8Data);
-void synchronousEepromData(uint8_t* pui8Data);
-void writeBulkToEeprom(uint8_t* pui8Data);
-void transmitRequestBulkDataInEeprom(uint8_t* pui8Data);
-void testPIDController(uint8_t* pui8Data);
+void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
 bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
-		uint8_t* pui8Data, uint32_t ui32Size);
-bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
+		uint8_t* pui8MessageData, uint32_t ui32DataSize);
+bool sendDataToHost(uint8_t* pui8Data, uint32_t ui32DataLength);
+
+void broadcastToLocalNeighbors(uint8_t ui8Command, uint8_t* pui8MessageData, uint8_t ui32DataSize);
+
+void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize);
+
+bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
+bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize);
+
+void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_t ui8Command, uint8_t* pui8Data, uint32_t ui32DataSize);
 
 //=============================================================================
-
-#define PC_SEND_DATA_ADC0_TO_PC         0xA0
-#define PC_SEND_DATA_ADC1_TO_PC         0xA1
-
-#define PC_SEND_BATT_VOLT_TO_PC			0xA3
-#define PC_SEND_STOP_MOTOR_LEFT			0xA4
-#define PC_SEND_STOP_MOTOR_RIGHT		0xA5
 #define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
 #define PC_SEND_READ_ONEHOP_TABLE		0xA7
 #define PC_SEND_READ_LOCS_TABLE			0xA8
@@ -126,15 +129,6 @@ bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
 #define PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF	0xBD
 #define PC_SEND_ROTATE_CORRECTION_ANGLE_SAME	0xBE
 
-#define PC_TEST_RF_TRANSMISSION         0xC0
-#define PC_TOGGLE_ALL_STATUS_LEDS       0xC1
-#define PC_START_SAMPLING_MIC           0xC2
-#define PC_CHANGE_MOTORS_SPEED          0xC4
-#define PC_TEST_RF_CARRIER_DETECTION    0xC5
-#define PC_SEND_TEST_DATA_TO_PC         0xC6
-#define PC_START_SPEAKER                0xC8
-
-#define ROBOT_REQUEST_SAMPLING_MIC				0xD0
 #define ROBOT_REQUEST_NEIGHBORS_TABLE 			0xD1
 #define ROBOT_RESPONSE_HELLO_NEIGHBOR			0xD2
 #define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 		0xD3
@@ -152,14 +146,9 @@ bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
 #define ROBOT_RESPONSE_VECTOR					0xDF
 
 #define ROBOT_REQUEST_TO_RUN				0x90
-#define ROBOT_RESPONSE_TDOA_DISTANCE		0x92
 #define ROBOT_REQUEST_UPDATE_VECTOR			0x93
 #define ROBOT_ALLOW_MOVE_TO_T_SHAPE			0x94
 #define ROBOT_REPONSE_MOVE_COMPLETED		0x95
-
-#define PC_SEND_READ_EEPROM             0xE0
-#define PC_SEND_WRITE_EEPROM            0xE1
-#define PC_SEND_SET_ADDRESS_EEPROM      0xE2
 
 // Format <SMART_PHONE_COMMAND><SP_SEND_...>
 #define SMART_PHONE_COMMAND				0xF0
@@ -168,10 +157,6 @@ bool sendDataToHost(uint8_t * pui8Data, uint32_t ui32Length);
 #define SP_SEND_SPIN_CLOCKWISE			0xF3
 #define SP_SEND_SPIN_COUNTERCLOCKWISE	0xF4
 #define SP_SEND_RESERVED				0xF5
-
-void sendMessageToOneNeighbor(uint32_t neighborID, uint8_t * messageBuffer,
-		uint32_t length);
-void broadcastLocalNeighbor(uint8_t* pData, uint8_t ui8Length);
 
 #ifdef __cplusplus
 }
