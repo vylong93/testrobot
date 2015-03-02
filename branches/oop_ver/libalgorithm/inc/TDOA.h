@@ -29,22 +29,23 @@ extern "C"
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 
+#define NOISY_THRESHOLD		12
+
 //#define MAX_THRESHOLD					50
 //#define MAX_SAMPLE_POSITION			215
 
+// Pure Peak test =======================
+void TDOA_process2(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope);
+float TDOA_findPeak(float *myData);
+// ======================= Pure Peak test
+
 void TDOA_initFilters();
 
-bool TDOA_getNewResultsFlag(void);
-void TDOA_clearNewResultsFlag(void);
+float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB);
 
-float TDOA_getPeakEnvelopeA(void);
-float TDOA_getPeakEnvelopeB(void);
-
-float TDOA_calculateDistanceFromTwoPeaks(void);
-
-void TDOA_run(uint16_t* pui16ADC0Result, uint16_t* pui16ADC1Result);
-void TDOA_process(uint16_t* pui16ADCResult, arm_fir_instance_f32* pFilter,
-		float* pfPeakEnvelope, float* pfMaxEnvelope);
+void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope);
+void TDOA_filterSignalsMic(uint16_t* pui16ADCResult);
+bool TDOA_isFilteredSignalNoisy(void);
 
 float TDOA_getDistances(float *myData, float *peakEnvelope, float *maxEnvelope);
 

@@ -15,54 +15,50 @@ static float FilterCoeffs[FILTER_ORDER] =
 		-0.024527f, 0.002990f, 0.020451f, 0.025940f, 0.022208f, 0.014220f,
 		0.006340f, 0.000573f, -0.003472f };
 
-arm_fir_instance_f32 FilterA;
-arm_fir_instance_f32 FilterB;
-
-float pStateA[STATE_BUFFER_SIZE] = { 0 };
-float pStateB[STATE_BUFFER_SIZE] = { 0 };
-
-bool g_bNewResultsAvailable = false;
-
+arm_fir_instance_f32 Filter;
+float pState[STATE_BUFFER_SIZE] = { 0 };
 float SamplesMic[NUMBER_OF_SAMPLE] = { 0 };
 float OutputMic[NUMBER_OF_SAMPLE] = { 0 };
-
-float g_f32PeakEnvelopeA;
-float g_f32MaxEnvelopeA;
-float g_f32PeakEnvelopeB;
-float g_f32MaxEnvelopeB;
 
 float g_f32Intercept = 1;
 float g_f32Slope = 1;
 
+// Pure Peak test =======================
+void TDOA_process2(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope)
+{
+	// Filter signal: data output at OutputMic buffer
+	TDOA_filterSignalsMic(pui16ADCResult);
+
+	// Get pure peak
+	*pfPeakEnvelope = TDOA_findPeak((float*)(OutputMic + START_SAMPLES_POSTITION));
+	*pfMaxEnvelope = OutputMic[START_SAMPLES_POSTITION + (uint32_t)*pfPeakEnvelope];
+}
+
+float TDOA_findPeak(float *myData)
+{
+	uint32_t maxSamplePosition = 0;
+	int i;
+	for (i = 0; i < NUM_DATAS; i++)
+	{
+		if (*(myData + i) > *(myData + maxSamplePosition))
+		{
+			maxSamplePosition = i;
+		}
+	}
+	return maxSamplePosition;
+}
+// ======================= Pure Peak test
+
 void TDOA_initFilters()
 {
 	// Call FIR init function to initialize the instance structure.
-	arm_fir_init_f32(&FilterA, FILTER_ORDER, FilterCoeffs, pStateA, BLOCK_SIZE);
-	arm_fir_init_f32(&FilterB, FILTER_ORDER, FilterCoeffs, pStateB, BLOCK_SIZE);
+	arm_fir_init_f32(&Filter, FILTER_ORDER, FilterCoeffs, pState, BLOCK_SIZE);
 }
 
-bool TDOA_getNewResultsFlag(void)
+float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB)
 {
-	return g_bNewResultsAvailable;
-}
-void TDOA_clearNewResultsFlag(void)
-{
-	g_bNewResultsAvailable = false;
-}
-
-float TDOA_getPeakEnvelopeA(void)
-{
-	return g_f32PeakEnvelopeA;
-}
-float TDOA_getPeakEnvelopeB(void)
-{
-	return g_f32PeakEnvelopeB;
-}
-
-float TDOA_calculateDistanceFromTwoPeaks(void)
-{
-	float fDistanceA = (g_f32PeakEnvelopeA - g_f32Intercept) / g_f32Slope;
-	float fDistanceB = (g_f32PeakEnvelopeB - g_f32Intercept) / g_f32Slope;
+	float fDistanceA = (fPeakEnvelopeA - g_f32Intercept) / g_f32Slope;
+	float fDistanceB = (fPeakEnvelopeB - g_f32Intercept) / g_f32Slope;
 
 	float fSquareDistance = (((fDistanceA * fDistanceA + fDistanceB * fDistanceB) / 2.0)
 					- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536.0; // * 256^2
@@ -70,15 +66,16 @@ float TDOA_calculateDistanceFromTwoPeaks(void)
 	return sqrtf(fSquareDistance);
 }
 
-void TDOA_run(uint16_t* pui16ADC0Result, uint16_t* pui16ADC1Result)
+void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope)
 {
-	TDOA_process(pui16ADC0Result, &FilterA, &g_f32PeakEnvelopeA, &g_f32MaxEnvelopeA);
-	TDOA_process(pui16ADC1Result, &FilterB, &g_f32PeakEnvelopeB, &g_f32MaxEnvelopeB);
-	g_bNewResultsAvailable = true;
+	// Filter signal: data output at OutputMic buffer
+	TDOA_filterSignalsMic(pui16ADCResult);
+
+	// Run Alogrithm
+	TDOA_getDistances((float*)(OutputMic + START_SAMPLES_POSTITION), pfPeakEnvelope, pfMaxEnvelope);
 }
 
-void TDOA_process(uint16_t* pui16ADCResult, arm_fir_instance_f32* pFilter,
-		float* pfPeakEnvelope, float* pfMaxEnvelope)
+void TDOA_filterSignalsMic(uint16_t* pui16ADCResult)
 {
 	int32_t i;
 
@@ -91,12 +88,21 @@ void TDOA_process(uint16_t* pui16ADCResult, arm_fir_instance_f32* pFilter,
 	// Filter signals
 	for (i = 0; i < NUM_BLOCKS; i++)
 	{
-		arm_fir_f32(pFilter, SamplesMic + (i * BLOCK_SIZE),
+		arm_fir_f32(&Filter, SamplesMic + (i * BLOCK_SIZE),
 				OutputMic + (i * BLOCK_SIZE), BLOCK_SIZE);
 	}
+}
 
-	// Run Alogrithm
-	TDOA_getDistances((float*)(OutputMic + START_SAMPLES_POSTITION), pfPeakEnvelope, pfMaxEnvelope);
+bool TDOA_isFilteredSignalNoisy(void)
+{
+	int i;
+	for(i = START_SAMPLES_POSTITION; i < NUMBER_OF_SAMPLE; i++)
+	{
+		if((OutputMic[i] > NOISY_THRESHOLD) ||
+			(OutputMic[i] < -NOISY_THRESHOLD))
+			return true;
+	}
+	return false;
 }
 
 float TDOA_getDistances(float *myData, float *peakEnvelope, float *maxEnvelope)
@@ -144,7 +150,7 @@ void TDOA_find3LocalPeaks(float *myData, float* LocalPeaksStoragePointer)
 	uint32_t SamplePosition = 0;
 	uint32_t maxSamplePosition = 0;
 	int i;
-	for (i = START_SAMPLES_POSTITION; i < NUM_DATAS; i++)
+	for (i = 0; i < NUM_DATAS; i++)
 	{
 		if (*(myData + i) > *(myData + maxSamplePosition))
 		{
