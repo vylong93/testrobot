@@ -140,6 +140,8 @@ extern float kD;
 extern float r;	// Not use
 extern bool bIsRunPID;
 
+extern float OutputMic;
+
 void MCU_RF_IRQ_handler();
 }
 

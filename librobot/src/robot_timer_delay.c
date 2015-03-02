@@ -38,29 +38,29 @@ void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
 		return;
 
 	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
+	uint32_t delayPeriod = (SysCtlClockGet() / (uint32_t)unit) * period;
 
 	//
 	// Reset timer counter
 	//
-	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, delayPeriod);
+	TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, delayPeriod);
 
 	//
 	// Clear timer interrupt flag
 	//
-	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+	TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
 
 	//
 	// Start timer
 	//
-	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+	TimerEnable(TIMER_DELAY_BASE, TIMER_A);
 
 	while(1)
 	{
 		//
 		// Get delay status
 		//
-		ui32Status = ROM_TimerIntStatus(TIMER_DELAY_BASE, false);
+		ui32Status = TimerIntStatus(TIMER_DELAY_BASE, false);
 
 		//
 		// Check for delay timeout
@@ -72,5 +72,51 @@ void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
 	//
 	// Clear timer interrupt flag
 	//
-	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+	TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
 }
+
+//void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
+//{
+//	//
+//	// Skip for zero period
+//	//
+//	if (period == 0)
+//		return;
+//
+//	uint32_t ui32Status;
+//	uint32_t delayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
+//
+//	//
+//	// Reset timer counter
+//	//
+//	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, delayPeriod);
+//
+//	//
+//	// Clear timer interrupt flag
+//	//
+//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+//
+//	//
+//	// Start timer
+//	//
+//	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+//
+//	while(1)
+//	{
+//		//
+//		// Get delay status
+//		//
+//		ui32Status = ROM_TimerIntStatus(TIMER_DELAY_BASE, false);
+//
+//		//
+//		// Check for delay timeout
+//		//
+//		if (ui32Status & TIMER_TIMA_TIMEOUT)
+//			break;
+//	}
+//
+//	//
+//	// Clear timer interrupt flag
+//	//
+//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+//}

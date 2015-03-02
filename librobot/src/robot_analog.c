@@ -10,7 +10,6 @@
 #include "librobot/inc/robot_timer_delay.h"
 #include "librobot/inc/robot_communication.h"
 #include "libcustom/inc/custom_led.h"
-#include "libalgorithm/inc/TDOA.h"
 #include "interrupt_definition.h"
 
 //*****************************************************************************
@@ -244,8 +243,7 @@ void triggerSamplingBatteryVoltage(bool bIsSendToHost)
 {
 	g_bSendToHost = bIsSendToHost;
 
-	//TODO: uncomment
-//	disableMOTOR();
+	disableMOTOR();
 
 	ROM_ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
@@ -293,7 +291,6 @@ void ADC0IntHandler(void)
 		if (g_bIsSamplingMic1Done)
 		{
 			enableMOTOR();
-			TDOA_run(g_pui16ADC0Result, g_pui16ADC1Result);
 		}
 	}
 }
@@ -322,7 +319,6 @@ void ADC1IntHandler(void)
 		if (g_bIsSamplingMic0Done)
 		{
 			enableMOTOR();
-			TDOA_run(g_pui16ADC0Result, g_pui16ADC1Result);
 		}
 	}
 }

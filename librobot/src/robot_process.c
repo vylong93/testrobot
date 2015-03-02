@@ -102,6 +102,25 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
 }
 
+bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
+{
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted());
+
+	TDOA_filterSignalsMic(getMicrophone0BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	TDOA_filterSignalsMic(getMicrophone1BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	broadcastCommandWithSelfIdToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MIC);
+	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
+
+	return true;
+}
+
 //========= Calibration Tab ================================
 void testRfReceiver(uint8_t* pui8Data)
 {
@@ -377,10 +396,26 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 	if(pui8ResponseToHostBuffer == 0)
 		return;
 
-	for(i = 0; i < ui8TestTimes; i++)
+	i = 0;
+	while(i < ui8TestTimes)
 	{
-		broadcastCommandWithSelfIdToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MIC);
-		triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
+		if(tryToRequestLocalNeighborsForDistanceMeasurement() == false)
+			continue;
+
+//		triggerSamplingMicSignalsWithPreDelay(0);
+//		while(!isSamplingCompleted());
+//
+//		TDOA_filterSignalsMic(getMicrophone0BufferPointer());
+//		if(TDOA_isFilteredSignalNoisy())
+//			continue;
+//
+//		TDOA_filterSignalsMic(getMicrophone1BufferPointer());
+//		if(TDOA_isFilteredSignalNoisy())
+//			continue;
+//
+//		broadcastCommandWithSelfIdToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MIC);
+//		triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
+
 
 		if (RfTryToCaptureRfSignal(100000, isCorrectTDOAResponse, ui32RespectedRxSize, ui32TargetId, &ui16PeakA, &ui16PeakB))
 		{
@@ -388,7 +423,6 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 			pui8ResponseToHostBuffer[ui32DataPointer++] = (uint8_t)ui16PeakA;
 			pui8ResponseToHostBuffer[ui32DataPointer++] = (uint8_t)(ui16PeakB >> 8);
 			pui8ResponseToHostBuffer[ui32DataPointer++] = (uint8_t)ui16PeakB;
-
 		}
 		else
 		{
@@ -397,6 +431,8 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 			pui8ResponseToHostBuffer[ui32DataPointer++] = 0;
 			pui8ResponseToHostBuffer[ui32DataPointer++] = 0;
 		}
+
+		i++;
 
 		delay_ms(ui32DelayMs);
 	}
@@ -460,23 +496,37 @@ bool isCorrectTDOAResponse(va_list argp)
 	return false;
 }
 
-bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId)
+void responseSamplingMics(uint32_t ui32RequestRobotID)
+{
+	float fPeakA, fMaxA;
+	float fPeakB, fMaxB;
+
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted());
+
+//	TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+//	TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+
+	TDOA_process2(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+	TDOA_process2(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+
+	responseTDOAResultsToNeighbor(ui32RequestRobotID, fPeakA, fPeakB);
+}
+
+bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB)
 {
 	uint8_t pui8ResponseData[8];	// <self id 4b><peak A 2b><peak B 2b>
 	uint32_t ui32SelfId;
-	float fTemplatePeak;
 	uint16_t ui16TemplatePeak;
 
 	ui32SelfId = Network_getSelfAddress();
 	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
 
-	fTemplatePeak = TDOA_getPeakEnvelopeA();
-	ui16TemplatePeak = (uint16_t)(fTemplatePeak * 256 + 0.5);
+	ui16TemplatePeak = (uint16_t)(fPeakA * 256 + 0.5);
 	pui8ResponseData[4] = (uint8_t)(ui16TemplatePeak >> 8);
 	pui8ResponseData[5] = (uint8_t)ui16TemplatePeak;
 
-	fTemplatePeak = TDOA_getPeakEnvelopeB();
-	ui16TemplatePeak = (uint16_t)(fTemplatePeak * 256 + 0.5);
+	ui16TemplatePeak = (uint16_t)(fPeakB * 256 + 0.5);
 	pui8ResponseData[6] = (uint8_t)(ui16TemplatePeak >> 8);
 	pui8ResponseData[7] = (uint8_t)ui16TemplatePeak;
 
@@ -491,7 +541,7 @@ void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command)
 	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 4);
 }
 
-bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId)
+bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB)
 {
 	uint8_t pui8ResponseData[6];	// <self id 4b><distance 8.8 2b>
 	uint32_t ui32SelfId;
@@ -501,7 +551,7 @@ bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId)
 	ui32SelfId = Network_getSelfAddress();
 	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
 
-	fDistance = TDOA_calculateDistanceFromTwoPeaks();
+	fDistance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB);
 	ui16Distance = (uint16_t)(fDistance + 0.5);
 	pui8ResponseData[4] = (uint8_t)(ui16Distance >> 8);
 	pui8ResponseData[5] = (uint8_t)(ui16Distance & 0xFF);

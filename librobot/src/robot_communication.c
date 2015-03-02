@@ -18,8 +18,8 @@
 #include "libalgorithm/inc/TDOA.h"
 
 //#define Robot_TX_DELAY
-#define Robot_TX
-//#define Robot_RX
+//#define Robot_TX
+#define Robot_RX
 
 //------------------------ Message Decoder ------------------------
 void RobotResponseIntHandler(void)
@@ -30,12 +30,12 @@ void RobotResponseIntHandler(void)
 	switch (getRobotResponseState())
 	{
 		case ROBOT_RESPONSE_STATE_SAMPLING_MICS:
-			TDOA_clearNewResultsFlag();
-			triggerSamplingMicSignalsWithPreDelay(0);
-			// while(!isSamplingCompleted()); 		// This line can be optimized!
-			while(TDOA_getNewResultsFlag() == false);
 			ui32RequestRobotID = construct4Byte(pui8RequestData);
-			responseTDOAResultsToNeighbor(ui32RequestRobotID);
+			responseSamplingMics(ui32RequestRobotID);
+			break;
+
+		case ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER:
+			calibrationTx_TDOA(pui8RequestData);
 			break;
 
 		default:	// ROBOT_RESPONSE_STATE_NONE
@@ -382,7 +382,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		break;
 
 	case HOST_COMMAND_CALIBRATE_TDOA_TX:
-		calibrationTx_TDOA(pui8MessageData);
+		triggerResponseState(ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
 		break;
 
 	default:
@@ -458,7 +458,7 @@ void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
 	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
 	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
 	if(puiMessageBuffer == 0)
-		return false;
+		return;
 
 	constructMessage(puiMessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
 
