@@ -29,15 +29,10 @@ extern "C"
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 
-#define NOISY_THRESHOLD		12
+#define NOISY_THRESHOLD		31
 
 //#define MAX_THRESHOLD					50
 //#define MAX_SAMPLE_POSITION			215
-
-// Pure Peak test =======================
-void TDOA_process2(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope);
-float TDOA_findPeak(float *myData);
-// ======================= Pure Peak test
 
 void TDOA_initFilters();
 

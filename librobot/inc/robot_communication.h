@@ -78,6 +78,8 @@ typedef struct tag_MessageHeader
 
 #define HOST_COMMAND_CONFIG_PID_CONTROLLER		0x14
 #define HOST_COMMAND_CALIBRATE_TDOA_TX			0x15
+
+#define HOST_COMMAND_INDICATE_BATT_VOLT			0x16
 //----------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 				0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT				0xB0

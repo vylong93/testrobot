@@ -23,32 +23,6 @@ float OutputMic[NUMBER_OF_SAMPLE] = { 0 };
 float g_f32Intercept = 1;
 float g_f32Slope = 1;
 
-// Pure Peak test =======================
-void TDOA_process2(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope)
-{
-	// Filter signal: data output at OutputMic buffer
-	TDOA_filterSignalsMic(pui16ADCResult);
-
-	// Get pure peak
-	*pfPeakEnvelope = TDOA_findPeak((float*)(OutputMic + START_SAMPLES_POSTITION));
-	*pfMaxEnvelope = OutputMic[START_SAMPLES_POSTITION + (uint32_t)*pfPeakEnvelope];
-}
-
-float TDOA_findPeak(float *myData)
-{
-	uint32_t maxSamplePosition = 0;
-	int i;
-	for (i = 0; i < NUM_DATAS; i++)
-	{
-		if (*(myData + i) > *(myData + maxSamplePosition))
-		{
-			maxSamplePosition = i;
-		}
-	}
-	return maxSamplePosition;
-}
-// ======================= Pure Peak test
-
 void TDOA_initFilters()
 {
 	// Call FIR init function to initialize the instance structure.
@@ -57,6 +31,11 @@ void TDOA_initFilters()
 
 float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB)
 {
+	//TODO: (fPeakA + fPeakB) / 2 or cal disA, disB first
+
+	/* Attempt 1: cost many floating-point operator and sqrt
+	 * cal disA, disB and response (disA + disB) / 2
+	 */
 	float fDistanceA = (fPeakEnvelopeA - g_f32Intercept) / g_f32Slope;
 	float fDistanceB = (fPeakEnvelopeB - g_f32Intercept) / g_f32Slope;
 
@@ -64,6 +43,12 @@ float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelo
 					- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536.0; // * 256^2
 
 	return sqrtf(fSquareDistance);
+
+	/* Attempt 2: fast response
+	 * fPeak = (fPeakA + fPeakB) / 2, cal dis from fPeak and response
+	 */
+//	float fPeak = (fPeakEnvelopeA + fPeakEnvelopeB) / 2.0f;
+//	return ((fPeak - g_f32Intercept) / g_f32Slope);
 }
 
 void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope)
