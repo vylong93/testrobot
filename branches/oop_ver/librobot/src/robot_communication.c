@@ -18,8 +18,8 @@
 #include "libalgorithm/inc/TDOA.h"
 
 //#define Robot_TX_DELAY
-//#define Robot_TX
-#define Robot_RX
+#define Robot_TX
+//#define Robot_RX
 
 //------------------------ Message Decoder ------------------------
 void RobotResponseIntHandler(void)
@@ -36,6 +36,10 @@ void RobotResponseIntHandler(void)
 
 		case ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER:
 			calibrationTx_TDOA(pui8RequestData);
+			break;
+
+		case ROBOT_RESPONSE_STATE_SAMPLING_BATTERY:
+			indicateBatteryVoltage();
 			break;
 
 		default:	// ROBOT_RESPONSE_STATE_NONE
@@ -325,6 +329,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 
 	case HOST_COMMAND_REQUEST_BATT_VOLT:
 		sendBatteryVoltageToHost();
+		break;
+
+	case HOST_COMMAND_INDICATE_BATT_VOLT:
+		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_BATTERY, 0, 0);
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:

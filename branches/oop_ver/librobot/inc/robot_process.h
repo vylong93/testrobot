@@ -34,7 +34,8 @@ typedef enum tag_RobotResponseState
 {
 	ROBOT_RESPONSE_STATE_NONE = 0,
 	ROBOT_RESPONSE_STATE_SAMPLING_MICS,
-	ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER
+	ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER,
+	ROBOT_RESPONSE_STATE_SAMPLING_BATTERY
 } e_RobotResponseState;
 
 void initRobotProcess(void);
@@ -47,12 +48,17 @@ e_RobotResponseState getRobotResponseState(void);
 uint8_t* getRequestMessageDataPointer(void);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
+void responseMeasuringDistance(uint32_t ui32RequestRobotID);
+bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
+void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command);
 
+//========= Calibration Tab ================================
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
 void testRfTransmister(uint8_t* pui8Data);
 void sendBatteryVoltageToHost(void);
+void indicateBatteryVoltage(void);
 void modifyMotorsConfiguration(uint8_t* pui8Data);
 void transmitADCResultsToHost(uint8_t* pui8Buffer);
 void transmitRequestDataInEeprom(uint8_t* pui8Data);
@@ -64,9 +70,6 @@ void calibrationTx_TDOA(uint8_t* pui8Data);
 bool isCorrectTDOAResponse(va_list argp);
 void responseSamplingMics(uint32_t ui32RequestRobotID);
 bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
-
-void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command);
-bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
 
 void testPIDController(uint8_t* pui8Data);
 

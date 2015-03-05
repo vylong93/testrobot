@@ -35,6 +35,7 @@ static uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE] =
 // Battery monitoring's vairables
 //*****************************************************************************
 static bool g_bSendToHost = false;
+static bool g_bNewBattVoltAvailable = false;
 static uint16_t g_ui16BatteryVoltage = 0;
 
 //*****************************************************************************
@@ -239,11 +240,21 @@ void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs)
 	ROM_TimerEnable(ADC_TIMER, TIMER_A);
 }
 
+bool isNewBattVoltAvailable(void)
+{
+	return g_bNewBattVoltAvailable;
+}
+
+uint16_t getBatteryVoltage(void)
+{
+	return g_ui16BatteryVoltage;
+}
+
 void triggerSamplingBatteryVoltage(bool bIsSendToHost)
 {
 	g_bSendToHost = bIsSendToHost;
 
-	disableMOTOR();
+	g_bNewBattVoltAvailable = false;
 
 	ROM_ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
@@ -340,6 +351,8 @@ void BatterySequenceIntHandler(void)
 				&g_ui16BatteryVoltage, 1);
 		ROM_uDMAChannelEnable(BATT_DMA_CHANNEL);
 
+		g_bNewBattVoltAvailable = true;
+
 		if (g_bSendToHost)
 		{
 			sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_TO_HOST_OK,
@@ -349,9 +362,6 @@ void BatterySequenceIntHandler(void)
 
 			turnOffLED(LED_GREEN);
 		}
-
-		//TODO: uncomment
-//		enableMOTOR();
 	}
 }
 

@@ -71,6 +71,9 @@ extern "C"
 #define BATT_DMA_CHANNEL       			UDMA_CHANNEL_ADC2
 #define DMA_BATT_CHANNEL        		UDMA_CH16_ADC0_2
 
+#define BATTERY_LEVEL_FULL				2429	// 3950mV : (3330 / 2048)
+#define BATTERY_LEVEL_LOW				2276	// 3700mV : (3330 / 2048)
+
 // For random generator
 #define ADC_RANDOM_GEN_BASE			    ADC1_BASE
 #define ADC_RANDOM_GEN_SEQUENCE_TYPE	0
@@ -88,6 +91,8 @@ void initPeripheralsForAnalogFunction(void);
 bool isSamplingCompleted(void);
 void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs);
 
+bool isNewBattVoltAvailable(void);
+uint16_t getBatteryVoltage(void);
 void triggerSamplingBatteryVoltage(bool bIsSendToHost);
 
 float generateRandomFloatInRange(float min, float max);

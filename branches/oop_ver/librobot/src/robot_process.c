@@ -81,25 +81,66 @@ uint8_t* getRequestMessageDataPointer(void)
 	return g_pui8RequestData;
 }
 
+
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize)
 {
 	int32_t i;
 
 	g_eRobotResponseState = eResponse;
-	g_pui8RequestData = malloc(sizeof(uint8_t) * ui32DataSize);
-	if(g_pui8RequestData == 0)
-		return;
 
-	// WARNING!: We must be copied the message content to another spaces. Because the network layer
-	// will delete the current dynamic stogare after this function return!
-	// Data at which pui8RequestData point to become invalid.
-	// This new dynamic will be free at the end of RobotResponseIntHandler.
-	for(i = 0; i < ui32DataSize; i++)
+	if(ui32DataSize > 0)
 	{
-		g_pui8RequestData[i] = pui8RequestData[i];
+		g_pui8RequestData = malloc(sizeof(uint8_t) * ui32DataSize);
+		if(g_pui8RequestData == 0)
+			return;
+
+		// WARNING!: We must be copied the message content to another spaces. Because the network layer
+		// will delete the current dynamic stogare after this function return!
+		// Data at which pui8RequestData point to become invalid.
+		// This new dynamic will be free at the end of RobotResponseIntHandler.
+		for(i = 0; i < ui32DataSize; i++)
+		{
+			g_pui8RequestData[i] = pui8RequestData[i];
+		}
+	}
+	else
+	{
+		g_pui8RequestData = 0;
 	}
 
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
+}
+
+void responseMeasuringDistance(uint32_t ui32RequestRobotID)
+{
+	float fPeakA, fMaxA;
+	float fPeakB, fMaxB;
+
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted());
+
+	TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+	TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+
+	responseMeasuredDistanceToNeighbor(ui32RequestRobotID, fPeakA, fPeakB);
+}
+
+bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB)
+{
+	uint8_t pui8ResponseData[6];	// <self id 4b><distance 8.8 2b>
+	uint32_t ui32SelfId;
+	uint16_t ui16Distance;
+	float fDistance;
+
+	ui32SelfId = Network_getSelfAddress();
+	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
+
+	fDistance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB);
+	ui16Distance = (uint16_t)(fDistance + 0.5);
+	pui8ResponseData[4] = (uint8_t)(ui16Distance >> 8);
+	pui8ResponseData[5] = (uint8_t)(ui16Distance & 0xFF);
+
+	return sendMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 6);
 }
 
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
@@ -119,6 +160,14 @@ bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
 	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
 
 	return true;
+}
+
+void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command)
+{
+	uint32_t ui32SelfId = Network_getSelfAddress();
+	uint8_t pui8MessageData[4];
+	parse32bitTo4Bytes(pui8MessageData, ui32SelfId);
+	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 4);
 }
 
 //========= Calibration Tab ================================
@@ -241,6 +290,23 @@ void sendBatteryVoltageToHost(void)
 	turnOnLED(LED_GREEN);
 
 	triggerSamplingBatteryVoltage(true);
+}
+
+void indicateBatteryVoltage(void)
+{
+	turnOffLED(LED_ALL);
+
+	triggerSamplingBatteryVoltage(false);
+	while(!isNewBattVoltAvailable());
+
+	uint16_t ui16BattVolt = getBatteryVoltage();
+
+	if(ui16BattVolt < BATTERY_LEVEL_LOW)
+		turnOnLED(LED_RED);
+	else if(ui16BattVolt < BATTERY_LEVEL_FULL)
+		turnOnLED(LED_BLUE);
+	else
+		turnOnLED(LED_GREEN);
 }
 
 void modifyMotorsConfiguration(uint8_t* pui8Data)
@@ -402,21 +468,6 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 		if(tryToRequestLocalNeighborsForDistanceMeasurement() == false)
 			continue;
 
-//		triggerSamplingMicSignalsWithPreDelay(0);
-//		while(!isSamplingCompleted());
-//
-//		TDOA_filterSignalsMic(getMicrophone0BufferPointer());
-//		if(TDOA_isFilteredSignalNoisy())
-//			continue;
-//
-//		TDOA_filterSignalsMic(getMicrophone1BufferPointer());
-//		if(TDOA_isFilteredSignalNoisy())
-//			continue;
-//
-//		broadcastCommandWithSelfIdToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MIC);
-//		triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
-
-
 		if (RfTryToCaptureRfSignal(100000, isCorrectTDOAResponse, ui32RespectedRxSize, ui32TargetId, &ui16PeakA, &ui16PeakB))
 		{
 			pui8ResponseToHostBuffer[ui32DataPointer++] = (uint8_t)(ui16PeakA >> 8);
@@ -504,11 +555,8 @@ void responseSamplingMics(uint32_t ui32RequestRobotID)
 	triggerSamplingMicSignalsWithPreDelay(0);
 	while(!isSamplingCompleted());
 
-//	TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
-//	TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
-
-	TDOA_process2(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
-	TDOA_process2(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+	TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+	TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
 
 	responseTDOAResultsToNeighbor(ui32RequestRobotID, fPeakA, fPeakB);
 }
@@ -533,31 +581,6 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 	return sendMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 8);
 }
 
-void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command)
-{
-	uint32_t ui32SelfId = Network_getSelfAddress();
-	uint8_t pui8MessageData[4];
-	parse32bitTo4Bytes(pui8MessageData, ui32SelfId);
-	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 4);
-}
-
-bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB)
-{
-	uint8_t pui8ResponseData[6];	// <self id 4b><distance 8.8 2b>
-	uint32_t ui32SelfId;
-	uint16_t ui16Distance;
-	float fDistance;
-
-	ui32SelfId = Network_getSelfAddress();
-	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
-
-	fDistance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB);
-	ui16Distance = (uint16_t)(fDistance + 0.5);
-	pui8ResponseData[4] = (uint8_t)(ui16Distance >> 8);
-	pui8ResponseData[5] = (uint8_t)(ui16Distance & 0xFF);
-
-	return sendMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 6);
-}
 
 /* Test PID Controller only */
 float kP = 1;
