@@ -19,6 +19,9 @@ extern "C"
 #include "arm_math.h"
 #include "librobot/inc/robot_analog.h"
 
+#define DEFAULT_INTERCEPT_VALUE			8.4049f
+#define DEFAULT_SLOPE_VALUE				3.169f
+
 #define DISTANCE_BETWEEN_TWO_MICS		5.0
 #define DISTANCE_BETWEEN_TWO_MICS_SQR	25.0	// DISTANCE_BETWEEN_TWO_MICS * DISTANCE_BETWEEN_TWO_MICS
 
@@ -29,14 +32,17 @@ extern "C"
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 
-#define NOISY_THRESHOLD		31
-
-//#define MAX_THRESHOLD					50
+#define NOISY_THRESHOLD					50
 //#define MAX_SAMPLE_POSITION			215
+
+void TDOA_setIntercept(float);
+float TDOA_getIntercept(void);
+void TDOA_setSlope(float);
+float TDOA_getSlope(void);
 
 void TDOA_initFilters();
 
-float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB);
+float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope);
 
 void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope);
 void TDOA_filterSignalsMic(uint16_t* pui16ADCResult);

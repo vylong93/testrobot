@@ -20,8 +20,26 @@ float pState[STATE_BUFFER_SIZE] = { 0 };
 float SamplesMic[NUMBER_OF_SAMPLE] = { 0 };
 float OutputMic[NUMBER_OF_SAMPLE] = { 0 };
 
-float g_f32Intercept = 1;
-float g_f32Slope = 1;
+float g_f32Intercept = DEFAULT_INTERCEPT_VALUE;
+float g_f32Slope = DEFAULT_SLOPE_VALUE;
+
+void TDOA_setIntercept(float fIntercept)
+{
+	g_f32Intercept = fIntercept;
+}
+float TDOA_getIntercept(void)
+{
+	return g_f32Intercept;
+}
+
+void TDOA_setSlope(float fSlope)
+{
+	g_f32Slope = fSlope;
+}
+float TDOA_getSlope(void)
+{
+	return g_f32Slope;
+}
 
 void TDOA_initFilters()
 {
@@ -29,15 +47,15 @@ void TDOA_initFilters()
 	arm_fir_init_f32(&Filter, FILTER_ORDER, FilterCoeffs, pState, BLOCK_SIZE);
 }
 
-float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB)
+float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope)
 {
 	//TODO: (fPeakA + fPeakB) / 2 or cal disA, disB first
 
 	/* Attempt 1: cost many floating-point operator and sqrt
 	 * cal disA, disB and response (disA + disB) / 2
 	 */
-	float fDistanceA = (fPeakEnvelopeA - g_f32Intercept) / g_f32Slope;
-	float fDistanceB = (fPeakEnvelopeB - g_f32Intercept) / g_f32Slope;
+	float fDistanceA = (fPeakEnvelopeA - fIntercept) / fSlope;
+	float fDistanceB = (fPeakEnvelopeB - fIntercept) / fSlope;
 
 	float fSquareDistance = (((fDistanceA * fDistanceA + fDistanceB * fDistanceB) / 2.0)
 					- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536.0; // * 256^2

@@ -43,6 +43,7 @@ extern "C"
 
 void initEEPROM(void);
 uint32_t getRobotIDInEEPROM(void);
+bool getTDOAParameterInEEPROM(float* pfIntercept, float* pfSlope);
 
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data);
 uint32_t readWordFormEEPROM(uint32_t ui32WordIndex);

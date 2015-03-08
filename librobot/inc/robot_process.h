@@ -33,9 +33,10 @@ typedef enum tag_RobotState
 typedef enum tag_RobotResponseState
 {
 	ROBOT_RESPONSE_STATE_NONE = 0,
-	ROBOT_RESPONSE_STATE_SAMPLING_MICS,
-	ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER,
-	ROBOT_RESPONSE_STATE_SAMPLING_BATTERY
+	ROBOT_RESPONSE_STATE_CALIBRATE_SAMPLING_MICS,
+	ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER,
+	ROBOT_RESPONSE_STATE_SAMPLING_BATTERY,
+	ROBOT_RESPONSE_STATE_SAMPLING_MICS
 } e_RobotResponseState;
 
 void initRobotProcess(void);
@@ -48,10 +49,10 @@ e_RobotResponseState getRobotResponseState(void);
 uint8_t* getRequestMessageDataPointer(void);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
-void responseMeasuringDistance(uint32_t ui32RequestRobotID);
-bool responseMeasuredDistanceToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
-void broadcastCommandWithSelfIdToLocalNeighbors(uint8_t ui8Command);
+void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope);
+void handleSamplingMicsRequest(uint8_t* pui8RequestData);
+bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 
 //========= Calibration Tab ================================
 void testRfReceiver(uint8_t* pui8Data);
@@ -67,10 +68,10 @@ void writeBulkToEeprom(uint8_t* pui8Data);
 void transmitRequestBulkDataInEeprom(uint8_t* pui8Data);
 
 void calibrationTx_TDOA(uint8_t* pui8Data);
+bool tryToCalibrateLocalNeighborsForDistanceMeasurement(void);
 bool isCorrectTDOAResponse(va_list argp);
-void responseSamplingMics(uint32_t ui32RequestRobotID);
+void handleCalibrateSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
-
 void testPIDController(uint8_t* pui8Data);
 
 #ifdef __cplusplus
