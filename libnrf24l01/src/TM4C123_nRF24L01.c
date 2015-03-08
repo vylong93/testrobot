@@ -17,6 +17,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/systick.h"
 #include "driverlib/ssi.h"
+#include "driverlib/timer.h"
 
 #include "libnrf24l01/inc/nRF24L01.h"
 #include "libnrf24l01/inc/TM4C123_nRF24L01.h"
@@ -27,7 +28,6 @@ static char CEState;
 static bool g_bIsIntEnable = false;
 
 extern void MCU_RF_IRQ_handler();
-
 
 void MCU_RF_InitSpiForRf(void)
 {
@@ -103,6 +103,18 @@ void MCU_RF_ConfigIRQPin(bool bEnable)
 	  // Enable the interrupts.
 	  MCU_RF_EnableInterrupt();
   }
+}
+
+void MCU_RF_InitTimerDelay(void)
+{
+	ROM_SysCtlPeripheralEnable(RF_TIMER_CLOCK);
+	TimerClockSourceSet(RF_TIMER, TIMER_CLOCK_SYSTEM);
+
+	ROM_TimerConfigure(RF_TIMER, TIMER_CFG_ONE_SHOT);
+
+	ROM_TimerIntEnable(RF_TIMER, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
 }
 
 void MCU_RF_WaitUs(unsigned int cycles)

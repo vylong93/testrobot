@@ -80,10 +80,14 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_CALIBRATE_TDOA_TX			0x15
 
 #define HOST_COMMAND_INDICATE_BATT_VOLT			0x16
+#define HOST_COMMAND_START_LOCALIZATION			0x17
+#define HOST_COMMAND_READ_NEIGHBORS_TABLE		0x18
+
 //----------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 				0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT				0xB0
 #define ROBOT_RESPONSE_DISTANCE_RESULT			0xB1
+#define ROBOT_RESPONSE_RESET_STATE_ONE			0xB2
 //----------------------------------------------------
 #define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS	0xA0
 #define ROBOT_REQUEST_SAMPLING_MICS				0xA1
@@ -106,6 +110,14 @@ void broadcastToLocalNeighbors(uint8_t ui8Command, uint8_t* pui8MessageData, uin
 void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
 void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize);
 
+bool responseMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize);
+bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize);
+bool reponseCommandToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command);
+bool transmitMessageToNeighbor(e_MessageType eMessType, uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
 bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
 bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize);
 
@@ -116,7 +128,6 @@ void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_
 #define PC_SEND_READ_ONEHOP_TABLE		0xA7
 #define PC_SEND_READ_LOCS_TABLE			0xA8
 
-#define PC_SEND_MEASURE_DISTANCE		0xB0
 #define PC_SEND_READ_VECTOR				0xB1
 #define PC_SEND_LOCAL_LOOP_STOP			0xB2
 #define PC_SEND_SET_STEPSIZE			0xB3

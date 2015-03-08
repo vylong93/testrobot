@@ -18,7 +18,7 @@ extern "C"
 
 // These following definition use for 32-bit Timer delay, 1 stand for 1ms
 // so the range must between 1ms to 85s (85000ms)
-#define DELAY_MEASURE_DISTANCE_STATE 500 	// move to exchange table state timeout period
+
 #define DELAY_EXCHANGE_TABLE_STATE	 2000	// move to next state timeout period
 #define DELAY_GET_TABLE_PERIOD	 	 1000	// wait for neighbor check his table and send to me
 #define DELAY_ROTATE_NETWORK		 4000

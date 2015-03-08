@@ -18,6 +18,7 @@
 #include "librobot/inc/robot_communication.h"
 
 #include "librobot/inc/robot_process.h"
+#include "libstorage/inc/robot_data.h"
 
 //#define HAVE_IMU
 
@@ -47,7 +48,7 @@ int main(void)
 	initLeds();
 	DEBUG_PRINT("init LEDs: OK\n");
 
-	initRobotTimerDelay();
+	initRobotTimerDelay(); // For main proccess
 	DEBUG_PRINT("init Robot timer delay: OK\n");
 
 	initPeripheralsForAnalogFunction();
@@ -62,8 +63,11 @@ int main(void)
 	initEEPROM();
 	DEBUG_PRINT("init EEPROM: OK\n");
 
-	initDelay();
+	initDelay(); // For network layer
 	DEBUG_PRINT("init Delay: OK\n");
+
+	MCU_RF_InitTimerDelay(); // For RF layer
+	DEBUG_PRINT("init RF Timer Delay: OK\n");
 
 	initRfModule(true);
 	DEBUG_PRINT("init RF module: OK, in rx mode.\n");
@@ -192,6 +196,10 @@ int main(void)
 	{
 		switch (getRobotState())
 		{
+			case ROBOT_STATE_MEASURE_DISTANCE:
+				StateOne_MeasureDistance();
+			break;
+
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
 				delay_ms(750);
@@ -235,120 +243,7 @@ void MCU_RF_IRQ_handler(void)
 		returnToSleep();
 }
 
-//void StateOne_MeasureDistance()
-//{
-//	uint16_t ui16RandomValue;
-//	float32_t f32_inputValue;
-//	float32_t f32_outputValue;
-//
-//	// set this as origin
-//	g_ui32OriginID = g_ui32RobotID;
-//	g_vector.x = 0;
-//	g_vector.y = 0;
-//
-//	//init variables
-//	g_bIsNetworkRotated = false;
-//
-//	turnOnLED(LED_BLUE);
-//
-//	g_bBypassThisState = false;
-//
-//	delayTimerA(DELAY_MEASURE_DISTANCE_STATE*4, false);
-//
-//	while (!g_bDelayTimerAFlagAssert)
-//	{
-//		generateRandomByte();
-//
-//		while (g_ui8RandomNumber == 0)
-//			;
-//		g_ui8RandomNumber =
-//				(g_ui8RandomNumber < 100) ?
-//						(g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-//		ui16RandomValue = (g_ui32RobotID << 8) | g_ui8RandomNumber;
-//
-//		delayTimerB(ui16RandomValue, false);
-//
-//		while (!g_bDelayTimerBFlagAssert)
-//		{
-//			g_bIsNewTDOAResults = false;
-//
-//			if (NeighborsTable[g_ui8NeighborsCounter].ID != 0)
-//			{
-//				turnOnLED(LED_GREEN);
-//
-//				reloadDelayTimerA();
-//
-//				while(!g_bIsNewTDOAResults);
-//
-//				g_bIsNewTDOAResults = false;
-//
-//				if (g_f32MaxEnvelopeA < MAX_THRESHOLD
-//						|| g_f32MaxEnvelopeB < MAX_THRESHOLD
-//						|| g_f32PeakEnvelopeA > MAX_SAMPLE_POSITION
-//						|| g_f32PeakEnvelopeB > MAX_SAMPLE_POSITION)
-//				{
-//					NeighborsTable[g_ui8NeighborsCounter].ID = 0;
-//				}
-//				else
-//				{
-//					g_f32PeakEnvelopeA = (g_f32PeakEnvelopeA - g_f32Intercept)
-//							/ g_f32Slope;
-//					g_f32PeakEnvelopeB = (g_f32PeakEnvelopeB - g_f32Intercept)
-//							/ g_f32Slope;
-//
-//					f32_inputValue =
-//							(((g_f32PeakEnvelopeA * g_f32PeakEnvelopeA
-//									+ g_f32PeakEnvelopeB
-//											* g_f32PeakEnvelopeB) / 2.0)
-//									- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0))
-//									* 65536.0; // * 256^2
-//
-//					f32_outputValue = vsqrtf(f32_inputValue);
-//
-//					NeighborsTable[g_ui8NeighborsCounter].distance =
-//							(uint16_t) (f32_outputValue + 0.5);
-//
-//					g_ui8NeighborsCounter++;
-//
-//					//TODO: search the worth result and replace it by the current result if better
-//					g_ui8NeighborsCounter =
-//							(g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH) ?
-//									(g_ui8NeighborsCounter) :
-//									(NEIGHBOR_TABLE_LENGTH);
-//				}
-//				turnOffLED(LED_GREEN);
-//			}
-//		}
-//
-//		if (!g_bBypassThisState)
-//		{
-//			turnOffLED(LED_BLUE);
-//
-//			reloadDelayTimerA();
-//
-//			RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
-//			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
-//			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
-//			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
-//			RF24_TX_buffer[4] = g_ui32RobotID;
-//
-//			broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
-//			// WARING!!! DO NOT INSERT ANY CODE IN HERE!
-//			ROM_SysCtlDelay(DELAY_START_SPEAKER);
-//			// WARING!!! DO NOT INSERT ANY CODE IN HERE!
-//			startSpeaker();
-//
-//			RF24_RX_activate();
-//
-//			g_bBypassThisState = true;
-//		}
-//	}
-//
-//	turnOnLED(LED_ALL);
-//
-//	g_eProcessState = EXCHANGE_TABLE;
-//}
-//
+
 //void StateTwo_ExchangeTableAndCalculateLocsTable()
 //{
 //	uint16_t ui16RandomValue;

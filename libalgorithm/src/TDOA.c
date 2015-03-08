@@ -47,20 +47,29 @@ void TDOA_initFilters()
 	arm_fir_init_f32(&Filter, FILTER_ORDER, FilterCoeffs, pState, BLOCK_SIZE);
 }
 
-float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope)
+uint16_t TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope)
 {
+	//NOTE: output is Fixed-Point <8.8>
+
 	//TODO: (fPeakA + fPeakB) / 2 or cal disA, disB first
 
 	/* Attempt 1: cost many floating-point operator and sqrt
 	 * cal disA, disB and response (disA + disB) / 2
 	 */
-	float fDistanceA = (fPeakEnvelopeA - fIntercept) / fSlope;
-	float fDistanceB = (fPeakEnvelopeB - fIntercept) / fSlope;
+	float fDistanceA = ((fPeakEnvelopeA - fIntercept) / fSlope) + OFFSET_DISTANCE_IN_CM;
+	float fDistanceB = ((fPeakEnvelopeB - fIntercept) / fSlope) + OFFSET_DISTANCE_IN_CM;
+//	float fDistanceA = (fPeakEnvelopeA - fIntercept) / fSlope;
+//	float fDistanceB = (fPeakEnvelopeB - fIntercept) / fSlope;
 
-	float fSquareDistance = (((fDistanceA * fDistanceA + fDistanceB * fDistanceB) / 2.0)
-					- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0)) * 65536.0; // * 256^2
+	float fSquareDistance = (((fDistanceA * fDistanceA
+								+ fDistanceB * fDistanceB) / 2.0)
+								- (DISTANCE_BETWEEN_TWO_MICS_SQR / 4.0))
+								* 65536.0; // * 256^2
 
-	return sqrtf(fSquareDistance);
+	fSquareDistance = sqrtf(fSquareDistance);
+//	fSquareDistance = sqrtf(fSquareDistance) + OFFSET_DISTANCE_IN_CM * 256;
+
+	return (uint16_t)(fSquareDistance + 0.5);
 
 	/* Attempt 2: fast response
 	 * fPeak = (fPeakA + fPeakB) / 2, cal dis from fPeak and response
