@@ -25,21 +25,23 @@
 void RobotResponseIntHandler(void)
 {
 	uint8_t* pui8RequestData = getRequestMessageDataPointer();
-	uint32_t ui32RequestRobotID;
 
 	switch (getRobotResponseState())
 	{
-		case ROBOT_RESPONSE_STATE_SAMPLING_MICS:
-			ui32RequestRobotID = construct4Byte(pui8RequestData);
-			responseSamplingMics(ui32RequestRobotID);
+		case ROBOT_RESPONSE_STATE_CALIBRATE_SAMPLING_MICS:
+			handleCalibrateSamplingMicsRequest(pui8RequestData);
 			break;
 
-		case ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER:
+		case ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER:
 			calibrationTx_TDOA(pui8RequestData);
 			break;
 
 		case ROBOT_RESPONSE_STATE_SAMPLING_BATTERY:
 			indicateBatteryVoltage();
+			break;
+
+		case ROBOT_RESPONSE_STATE_SAMPLING_MICS:
+			handleSamplingMicsRequest(pui8RequestData);
 			break;
 
 		default:	// ROBOT_RESPONSE_STATE_NONE
@@ -390,7 +392,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		break;
 
 	case HOST_COMMAND_CALIBRATE_TDOA_TX:
-		triggerResponseState(ROBOT_RESPONSE_STATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
+		triggerResponseState(ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
 		break;
 
 	default:
@@ -403,7 +405,11 @@ void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_
 {
 	switch (ui8Cmd)
 	{
-	case ROBOT_REQUEST_SAMPLING_MIC:
+	case ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS:
+		triggerResponseState(ROBOT_RESPONSE_STATE_CALIBRATE_SAMPLING_MICS, pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_REQUEST_SAMPLING_MICS:
 		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_MICS, pui8MessageData, ui32DataSize);
 		break;
 

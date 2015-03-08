@@ -24,11 +24,26 @@ uint32_t getRobotIDInEEPROM(void)
 	EEPROMRead(&ui32RobotID, EEPROM_ROBOT_ID_ADDRESS, sizeof(&ui32RobotID));
 
 	return ui32RobotID;
-//	EEPROMRead(&temp, EEPROM_INTERCEPT, sizeof(&temp));
-//	g_f32Intercept = temp / 65536.0;
-//
-//	EEPROMRead(&temp, EEPROM_SLOPE, sizeof(&temp));
-//	g_f32Slope = temp / 65536.0;
+}
+
+bool getTDOAParameterInEEPROM(float* pfIntercept, float* pfSlope)
+{
+	uint32_t ui32ReadData;
+	int32_t i32ReadData;
+
+	EEPROMRead(&ui32ReadData, EEPROM_INTERCEPT_WORD_ADDRESS, sizeof(&ui32ReadData));
+	if(ui32ReadData == 0xFFFFFFFF)
+		return false;
+	i32ReadData = (int32_t)ui32ReadData;
+	*pfIntercept = i32ReadData / 32768.0f;
+
+	EEPROMRead(&ui32ReadData, EEPROM_SLOPE_WORD_ADDRESS, sizeof(&ui32ReadData));
+	if(ui32ReadData == 0xFFFFFFFF)
+			return false;
+	i32ReadData = (int32_t)ui32ReadData;
+	*pfSlope = i32ReadData / 32768.0f;
+
+	return true;
 }
 
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data)

@@ -1,114 +1,3 @@
-//#include "inc/hw_memmap.h"
-//#include "inc/hw_types.h"
-//#include "inc/hw_ints.h"
-//#include "inc/hw_nvic.h"
-//#include "inc/hw_gpio.h"
-//#include "inc/hw_adc.h"
-//#include "inc/hw_udma.h"
-//#include "inc/hw_timer.h"
-//#include "inc/hw_ssi.h"
-//#include "inc/hw_i2c.h"
-//#include "inc/hw_eeprom.h"
-//#include "driverlib/debug.h"
-//#include "driverlib/pin_map.h"
-//#include "driverlib/interrupt.h"
-//#include "driverlib/sysctl.h"
-//#include "driverlib/gpio.h"
-//#include "driverlib/adc.h"
-//#include "driverlib/udma.h"
-//#include "driverlib/timer.h"
-//#include "driverlib/ssi.h"
-//#include "driverlib/fpu.h"
-//#include "driverlib/rom.h"
-//#include "driverlib/pwm.h"
-//#include "driverlib/eeprom.h"
-//
-//#include "libnrf24l01/inc/TM4C123_nRF24L01.h"
-//#include "libnrf24l01/inc/nRF24L01.h"
-//#include "librobot/inc/TDOA.h"
-//#include "librobot/inc/Trilateration.h"
-//
-//extern float32_t g_f32PeakEnvelopeA;
-//extern float32_t g_f32MaxEnvelopeA;
-//extern float32_t g_f32PeakEnvelopeB;
-//extern float32_t g_f32MaxEnvelopeB;
-//
-//extern CpuState_t g_eCPUState;
-//
-//extern bool g_bDelayTimerAFlagAssert;
-//extern bool g_bDelayTimerBFlagAssert;
-//
-//extern uint32_t g_ui32RobotID;
-//extern vector2_t g_vector;
-//extern bool g_bIsValidVector;
-//extern bool g_bIsCounterClockwiseOriented;
-//extern float g_fRobotOrientedAngle;
-//
-//extern uint32_t g_ui32RequestRobotID;
-//
-//extern bool g_bIsNetworkRotated;
-//extern bool g_bIsActiveCoordinatesFixing;
-//extern bool g_bIsGradientSearchStop;
-//extern uint32_t g_ui32LocalLoop;
-//uint32_t g_ui32LocalLoopStop; // Debug Only
-//
-//extern ProcessState_t g_eProcessState;
-//extern RobotResponseState_t g_eRobotResponseState;
-//extern bool g_bBypassThisState;
-//extern uint8_t g_ui8ReBroadcastCounter;
-//
-//extern robotMeas_t NeighborsTable[];
-//extern oneHopMeas_t OneHopNeighborsTable[];
-//extern uint8_t g_ui8NeighborsCounter;
-//
-//extern location_t locs[];
-//extern location_t oriLocs[];
-//
-//extern uint8_t g_ui8LocsCounter;
-//
-//extern uint32_t g_ui32OriginID;
-//extern uint32_t g_ui32RotationHopID;
-//extern uint8_t g_ui8Hopth;
-//extern uint8_t g_ui8OriginNumberOfNeighbors;
-//
-//extern uint8_t RF24_RX_buffer[];
-//extern uint8_t RF24_TX_buffer[];
-//extern uint8_t g_ui8ReTransmitCounter;
-//
-//extern uint8_t g_ui8RandomNumber;
-//extern uint16_t g_pui16ADC0Result[];
-//extern uint16_t g_pui16ADC1Result[];
-//extern bool g_bIsNewTDOAResults;
-//
-//extern "C"
-//{
-//	void RF24_IntHandler();
-//	void RobotResponseIntHandler(void);
-//	void LowPowerModeIntHandler(void);
-//	void DelayTimerAIntHanler(void);
-//	void DelayTimerBIntHanler(void);
-//}
-//
-//void RobotProcess();
-//void StateOne_MeasureDistance();
-//void StateTwo_ExchangeTableAndCalculateLocsTable();
-//void StateThree_VoteOrigin();
-//void StateFour_RequestRotateNetwork();
-//void StateFive_ReduceCoordinatesError();
-//void StateSix_Locomotion();
-//
-//void SwarmStateOne_TShape();
-//
-//extern float g_f32Intercept;
-//extern float g_f32Slope;
-//
-//float g_fStepSize;
-//float g_fStopCondition;
-//float g_fStopCondition2;
-//
-//bool g_bIsRobotResponse; // T shape
-//bool g_bIsAllowToMove;	// T shape
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -134,13 +23,13 @@
 
 extern "C"
 {
+#ifdef HAVE_IMU
 extern float kP;
 extern float kI;
 extern float kD;
-extern float r;	// Not use
+extern float r;
 extern bool bIsRunPID;
-
-extern float OutputMic;
+#endif
 
 void MCU_RF_IRQ_handler();
 }
