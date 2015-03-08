@@ -21,7 +21,9 @@ extern "C"
 #include "driverlib/sysctl.h"
 #include "driverlib/systick.h"
 #include "driverlib/ssi.h"
+#include "driverlib/timer.h"
 #include "libnrf24l01/inc/nRF24L01.h"
+#include "timers_definition.h"
 
 #ifndef _TM4C123_NRF24L01_H
 #define _TM4C123_NRF24L01_H
@@ -51,6 +53,7 @@ extern "C"
 
 void MCU_RF_InitSpiForRf(void);
 void MCU_RF_ConfigIRQPin(bool enable);
+void MCU_RF_InitTimerDelay(void);
 void MCU_RF_WaitUs(unsigned int cycles);
 
 bool MCU_RF_GetInterruptState(void);

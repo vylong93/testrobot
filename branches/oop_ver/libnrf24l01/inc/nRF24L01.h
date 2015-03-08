@@ -322,6 +322,8 @@ void RfFlushRxFifo(void);
 
 void RfWaitUs(uint32_t periodUs);
 
+//TODO: move RfTryToGetRxPacket and RfTryToCaptureRfSignal to another library extend from this pure rf libary
+
 bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 			bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...);
 

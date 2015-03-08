@@ -29,6 +29,7 @@ extern "C"
 #include "driverlib/adc.h"
 #include "driverlib/udma.h"
 #include "driverlib/rom.h"
+#include "timers_definition.h"
 
 #define DELAY_SAMPING_MICS_US	1000	// unit in microsecond
 
@@ -45,9 +46,6 @@ extern "C"
 #define ADC1_CHANNEL            	ADC_CTL_CH0
 #define ADC0_INT                	INT_ADC0SS3
 #define ADC1_INT                	INT_ADC1SS3
-
-#define ADC_TIMER_CLOCK         	SYSCTL_PERIPH_TIMER0
-#define ADC_TIMER               	TIMER0_BASE
 
 #define ADC_AVERAGING_FACTOR    	8
 #define ADC_SEQUENCE_TYPE       	3

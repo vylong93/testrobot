@@ -21,15 +21,13 @@ extern "C"
 #include "driverlib/rom.h"
 #include "driverlib/timer.h"
 #include "driverlib/sysctl.h"
+#include "timers_definition.h"
 
 typedef enum {
 	MILISECOND_DIV = 1000,
 	MICROSECOND_DIV = 1000000
 } delayunit_t;
 
-// Non-Interrtup Timer
-#define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER1
-#define DELAY_TIMER_BASE_NON_INT	WTIMER1_BASE
 
 //*****************************************************************************
 //
@@ -46,7 +44,7 @@ void delay_ms(uint32_t period);
 void delay_us(uint32_t period);
 
 void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...);
-void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...);
+void delay2_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...);
 
 #ifdef __cplusplus
 }

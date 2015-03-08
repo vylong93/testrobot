@@ -54,6 +54,14 @@ void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t
 void handleSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 
+#define DELAY_MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_US		3000000	// 3s
+
+void StateOne_MeasureDistance(void);
+void StateOne_MeasureDistance_ResetFlag(void);
+bool StateOne_MeasureDistance_MainTask(va_list argp);
+bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp);
+void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
 //========= Calibration Tab ================================
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
@@ -73,6 +81,8 @@ bool isCorrectTDOAResponse(va_list argp);
 void handleCalibrateSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
 void testPIDController(uint8_t* pui8Data);
+
+void sendNeighborsTableToHost(void);
 
 #ifdef __cplusplus
 }

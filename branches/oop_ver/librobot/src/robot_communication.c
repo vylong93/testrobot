@@ -121,7 +121,7 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			tryToResponeNeighborVector();
 //			delayTimerB(g_ui8RandomNumber, false);
 //			break;
-
+//
 //		case ROBOT_REQUEST_VECTOR_AND_FLAG:
 //			tryToResponeVectorAndFlag();
 //			delayTimerB(g_ui8RandomNumber, false);
@@ -151,7 +151,7 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //		case ROBOT_REPONSE_MOVE_COMPLETED:
 //			g_bIsRobotResponse = true;
 //			break;
-
+//
 //		// DeBug command
 //		case PC_SEND_ROTATE_CORRECTION_ANGLE:
 //			if(g_bIsCounterClockwiseOriented)
@@ -210,7 +210,7 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //		case PC_SEND_SET_STOP_CONDITION_TWO:
 //			g_fStopCondition2 = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
 //			break;
-
+//
 //		case PC_SEND_MEASURE_DISTANCE:
 //
 //			turnOffLED(LED_ALL);
@@ -246,7 +246,7 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //		case PC_SEND_READ_ONEHOP_TABLE:
 //			sendOneHopNeighborsTableToControlBoard();
 //			break;
-
+//
 //		case SMART_PHONE_COMMAND:
 //			switch (RF24_RX_buffer[1])
 //			{
@@ -395,6 +395,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		triggerResponseState(ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
 		break;
 
+	case HOST_COMMAND_START_LOCALIZATION:
+		setRobotState(ROBOT_STATE_MEASURE_DISTANCE);
+		break;
+
+	case HOST_COMMAND_READ_NEIGHBORS_TABLE:
+		sendNeighborsTableToHost();
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;
@@ -423,8 +431,12 @@ void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32
 {
 	switch (ui8Cmd)
 	{
-	case ROBOT_RESPONSE_TDOA_RESULT:
-		//TODO: get result in pui8MessageData
+	case ROBOT_RESPONSE_DISTANCE_RESULT:
+		StateOne_MeasureDistance_UpdateNeighborsTableHandler(pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_RESPONSE_RESET_STATE_ONE:
+		StateOne_MeasureDistance_ResetFlag();
 		break;
 
 	default:
@@ -486,7 +498,24 @@ void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_
 	Network_sendMessage(ui32NeighborId, pui8Data, ui32DataSize, false);
 }
 
+bool responseMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	return transmitMessageToNeighbor(MESSAGE_TYPE_ROBOT_RESPONSE, ui32NeighborId, ui8Command, pui8MessageData, ui32DataSize);
+}
+
 bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+		uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	return transmitMessageToNeighbor(MESSAGE_TYPE_ROBOT_REQUEST, ui32NeighborId, ui8Command, pui8MessageData, ui32DataSize);
+}
+
+bool reponseCommandToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command)
+{
+	return transmitMessageToNeighbor(MESSAGE_TYPE_ROBOT_RESPONSE, ui32NeighborId, ui8Command, 0, 0);
+}
+
+bool transmitMessageToNeighbor(e_MessageType eMessType, uint32_t ui32NeighborId, uint8_t ui8Command,
 		uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
 	bool bReturn;
@@ -496,7 +525,7 @@ bool sendMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
 	if(puiMessageBuffer == 0)
 		return false;
 
-	constructMessage(puiMessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
+	constructMessage(puiMessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
 
 	bReturn = sendDataToNeighbor(ui32NeighborId, puiMessageBuffer, ui32TotalSize);
 

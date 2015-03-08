@@ -35,6 +35,9 @@ extern "C"
 #define NOISY_THRESHOLD					50
 //#define MAX_SAMPLE_POSITION			215
 
+#define SPEAKER_RADIUS_IN_CM		2.0
+#define OFFSET_DISTANCE_IN_CM		SPEAKER_RADIUS_IN_CM
+
 void TDOA_setIntercept(float);
 float TDOA_getIntercept(void);
 void TDOA_setSlope(float);
@@ -42,7 +45,7 @@ float TDOA_getSlope(void);
 
 void TDOA_initFilters();
 
-float TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope);
+uint16_t TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope);
 
 void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope);
 void TDOA_filterSignalsMic(uint16_t* pui16ADCResult);

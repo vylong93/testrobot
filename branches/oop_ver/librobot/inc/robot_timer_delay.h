@@ -20,9 +20,7 @@ extern "C"
 #include "driverlib\sysctl.h"
 #include "driverlib\rom.h"
 #include "driverlib\timer.h"
-
-#define TIMER_DELAY_CLOCK             SYSCTL_PERIPH_TIMER1
-#define TIMER_DELAY_BASE              TIMER1_BASE
+#include "timers_definition.h"
 
 typedef enum {
 	TIMER_MILISECOND_DIV = 1000,
@@ -33,6 +31,9 @@ void initRobotTimerDelay(void);
 void delay_timer_us(uint32_t period);
 void delay_timer_ms(uint32_t period);
 void delay_timer_unit(uint32_t period, timerdelayunit_t unit);
+
+void delay_timer_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...);
+void delay_timer_reset(void);
 
 #ifdef __cplusplus
 }

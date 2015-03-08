@@ -87,7 +87,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="libalgorithm/src/Trilateration.c|librobot/src/MainBoardDriver.c|librobot/src/Trilateration.c|librobot/src/robot_smartphone.c|librobot/src/robot_math.c|tm4c123gh6pm_startup_ccs_gcc.c|tm4c123gh6pm.lds|main1.c|backup|Backup" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="backup|librobot/src/robot_math.c|librobot/src/MainBoardDriver.c|tm4c123gh6pm.lds|libalgorithm/src/Trilateration.c|librobot/src/robot_smartphone.c|librobot/src/Trilateration.c|tm4c123gh6pm_startup_ccs_gcc.c|Backup|main1.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -155,7 +155,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="tm4c123gh6pm_startup_ccs.c|tm4c123gh6pm.cmd|main1.c|backup|Backup" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="backup|tm4c123gh6pm.cmd|tm4c123gh6pm_startup_ccs.c|Backup|main1.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -243,7 +243,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="main1.c|backup|Backup" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="backup|Backup|main1.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

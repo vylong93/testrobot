@@ -17,6 +17,8 @@
 #include "libcustom/inc/custom_delay.h"
 #include "libalgorithm/inc/TDOA.h"
 #include "libprotocol/inc/network.h"
+#include "libstorage/inc/robot_data.h"
+#include "librobot/inc/robot_timer_delay.h"
 #include "interrupt_definition.h"
 
 e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
@@ -55,12 +57,18 @@ void initRobotProcess(void)
 	}
 	TDOA_initFilters();
 
+	//
+	// Initilize Data Storages
+	//
+	initLinkedList();
+
 	//==============================================
 	// IMPORTANCE: Configure Software Interrupt
 	//==============================================
 	ROM_IntPrioritySet(INT_SW_TRIGGER_ROBOT_RESPONSE, PRIORITY_ROBOT_RESPONSE);
 
 	ROM_IntEnable(INT_SW_TRIGGER_ROBOT_RESPONSE);
+
 }
 
 void setRobotState(e_RobotState eState)
@@ -84,7 +92,6 @@ uint8_t* getRequestMessageDataPointer(void)
 {
 	return g_pui8RequestData;
 }
-
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize)
 {
@@ -114,6 +121,10 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
 }
+
+//========= State 1 - Measure Distances ================================
+
+bool g_bIsSuccessMeasuredDistances;
 
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
 {
@@ -158,32 +169,48 @@ void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t
 
 void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 {
+	bool bIsSkipTheRest = false;
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 	float fPeakA, fMaxA;
 	float fPeakB, fMaxB;
 
-	//TODO: enhance process
-	// 1/ disable RF interrupt
-	// 2/ triggerSamplingMicSignalsWithPreDelay(0);
-	// 3/ while(!isSamplingCompleted()) {
-	//      if RF IRQ pin assert then
-	//		  response false to request robot
-	//    }
-	//    ...
-	// 4/ enable RF interrupt at the end of this function
+	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
+	MCU_RF_DisableInterrupt();
+
 	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted());
+	while(!isSamplingCompleted())
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
 
-	TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
-	TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+			reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_RESET_STATE_ONE);
 
-	float fInterceptOfRequestRobot = (int16_t)((pui8RequestData[4] << 8) | pui8RequestData[5]) / 1024.0f;
-	float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
-	float fDistance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);
-	uint16_t ui16Distance = (uint16_t)(fDistance * 256 + 0.5);	// Fixed-point <8.8>
+			bIsSkipTheRest = true;
+		}
+	}
 
-	//TODO: enhance response process
-	responseDistanceToNeighbor(ui32RequestRobotID, ui16Distance);
+	if(!bIsSkipTheRest)
+	{
+		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+
+		float fInterceptOfRequestRobot = (int16_t)((pui8RequestData[4] << 8) | pui8RequestData[5]) / 1024.0f;
+		float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
+		uint16_t ui16Distance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);	// Fixed-point <8.8>
+
+		// random 1->100: delay unit (5ms)
+		uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 5000);
+		delay_us(ui32RandomUs + 1000);
+
+		responseDistanceToNeighbor(ui32RequestRobotID, ui16Distance);
+	}
+
+	// Because previous action may have assert interrupt flag
+    MCU_RF_ClearIntFlag();
+    MCU_RF_ClearPending();
+	if (bCurrentInterruptStage)
+		MCU_RF_EnableInterrupt();	// recover last interrupt state
 }
 
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
@@ -199,7 +226,157 @@ bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	pui8ResponseData[4] = (uint8_t)(ui16Distance >> 8);
 	pui8ResponseData[5] = (uint8_t)ui16Distance;
 
-	return sendMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_DISTANCE_RESULT, pui8ResponseData, 6);
+	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_DISTANCE_RESULT, pui8ResponseData, 6);
+}
+
+void StateOne_MeasureDistance(void)
+{
+	/* Pseudo-Code
+	   clear isSuccessMeasureDistance flag
+	   call Robot timer delay [DELAY_MEASURE_DISTANCE_STATE_US] with TASK(*isSuccessMeasureDistance)
+	   {
+	   	   DO
+	   	   {
+	   	   	   generate random values
+			   clear isFlagAssert flag
+			   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+				   handlerInDelayRandom()
+				   -- {
+							call RF handler()
+							-- {
+								-> call handleSamplingMicsRequest:
+								-- trigger sampling
+								-- run TDOA
+								-- cal distance
+								-- delay random(1->100) * 50us
+								-- responseDistanceToNeighbor()
+							-- }
+							return true; // alway return true to reset task timer
+				    -- }
+
+			   if (isFlagAssert == true)
+			   	   reset Robot timer delay();
+
+		   } WHILE (isFlagAssert == true);
+
+		   // Now, robot timer delay random is expired
+		   IF isSuccessMeasureDistance == false THEN
+				if (tryToCalibrateLocalNeighborsForDistanceMeasurement() == true)
+				{
+					RfTryToCaptureRfSignal(15ms, updateTable1Process);
+					   updateTable1Process()
+					   -- {
+					   	    get Response ID
+					   	    get Distance
+					   	    add to Table1
+
+					   	    return false; // continue task updateTable1Process()
+					   -- }
+					isSuccessMeasureDistance = true;
+				}
+		   END
+
+		   return false; // continue the main TASK
+	   }
+	*/
+
+	StateOne_MeasureDistance_ResetFlag();
+
+	delay_timer_ms_with_task(DELAY_MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_US, StateOne_MeasureDistance_MainTask, &g_bIsSuccessMeasuredDistances);
+
+	turnOnLED(LED_ALL);
+
+	setRobotState(ROBOT_STATE_IDLE);	//TODO: switch to next state
+}
+
+void StateOne_MeasureDistance_ResetFlag(void)
+{
+	clearNeighborsTable();
+	g_bIsSuccessMeasuredDistances = false;
+}
+
+bool StateOne_MeasureDistance_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by delay_timer_ms_with_task() because the content below call to delay_timer_reset()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt one argument in order:
+	//				1/ bool* pbisSuccessMeasureDistance
+
+	// Get the input arguments
+	bool* pbIsSuccessMeasuredDistances;
+	pbIsSuccessMeasuredDistances = va_arg(argp, bool*);
+
+	turnOnLED(LED_BLUE);
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask1;
+	do
+	{
+		ui32LifeTimeInUsOfSubTask1 = generateRandomFloatInRange(50000, 1000000); // 10ms to 1s
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask1, StateOne_MeasureDistance_SubTask_DelayRandom_Handler);
+
+		if (isRfFlagAssert)		// if subtask 1 is forced to terminal then reset delay
+			delay_timer_reset();
+	}
+	while (isRfFlagAssert);
+
+	// In here, robot timer delay is expired
+	if(*pbIsSuccessMeasuredDistances == false)
+	{
+		delay_timer_reset();
+
+	    if (tryToRequestLocalNeighborsForDistanceMeasurement())
+	    {
+			*pbIsSuccessMeasuredDistances = true;
+
+			turnOffLED(LED_BLUE);
+		}
+	    // else { Do nothing! There are too noisy in sound! }
+	}
+	// else { Nothing to do! Already broadcast request successed! }
+
+	return false; // continue the main TASK
+}
+
+bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	uint32_t ui32MessageSize;
+	uint8_t* pui8RxBuffer = 0;
+
+	turnOnLED(LED_RED);
+
+	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+	{
+		decodeMessage(pui8RxBuffer, ui32MessageSize);
+	}
+
+	if (pui8RxBuffer != 0)
+		Network_deleteBuffer(pui8RxBuffer);
+
+	turnOffLED(LED_RED);
+
+	return true; // Terminal SubTask 1 whether correct rf message or not
+}
+
+void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	turnOnLED(LED_GREEN);
+
+	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
+	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
+
+	addToNeighborsTable(ui32ResponseRobotId, ui16Distance);
+
+	turnOffLED(LED_GREEN);
 }
 
 //========= Calibration Tab ================================
@@ -580,7 +757,7 @@ bool isCorrectTDOAResponse(va_list argp)
 		{
 			MessageHeader* pMessageHeader = (MessageHeader*) pui8DataHolder;
 
-			if(pMessageHeader->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
+			if(pMessageHeader->eMessageType == MESSAGE_TYPE_ROBOT_RESPONSE &&
 					pMessageHeader->ui8Cmd == ROBOT_RESPONSE_TDOA_RESULT)
 			{
 				pui8MessageData = &pui8DataHolder[MESSAGE_DATA_START_IDX];
@@ -634,7 +811,7 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 	pui8ResponseData[6] = (uint8_t)(ui16TemplatePeak >> 8);
 	pui8ResponseData[7] = (uint8_t)ui16TemplatePeak;
 
-	return sendMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 8);
+	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 8);
 }
 
 
@@ -666,3 +843,18 @@ void testPIDController(uint8_t* pui8Data)
 		bIsRunPID = false;
 }
 //-------------------------------
+
+// ======================= Debug Tab ===============================
+void sendNeighborsTableToHost(void)
+{
+	uint32_t ui32Length = NEIGHBOR_TABLE_LENGTH * 6;
+	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32Length);
+	if(pui8DataBuffer == 0)
+		return;
+
+	fillNeighborsTableToByteBuffer(pui8DataBuffer, ui32Length);
+
+	sendDataToHost(pui8DataBuffer, ui32Length);
+
+	free(pui8DataBuffer);
+}

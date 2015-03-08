@@ -7,6 +7,8 @@
 
 #include "librobot\inc\robot_timer_delay.h"
 
+uint32_t g_ui32LastDelayPeriod = 0;
+
 void initRobotTimerDelay(void)
 {
 	ROM_SysCtlPeripheralEnable(TIMER_DELAY_CLOCK);
@@ -38,29 +40,29 @@ void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
 		return;
 
 	uint32_t ui32Status;
-	uint32_t delayPeriod = (SysCtlClockGet() / (uint32_t)unit) * period;
+	g_ui32LastDelayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
 
 	//
 	// Reset timer counter
 	//
-	TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, delayPeriod);
+	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, g_ui32LastDelayPeriod);
 
 	//
 	// Clear timer interrupt flag
 	//
-	TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
 
 	//
 	// Start timer
 	//
-	TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
 
-	while(1)
+	while(true)
 	{
 		//
 		// Get delay status
 		//
-		ui32Status = TimerIntStatus(TIMER_DELAY_BASE, false);
+		ui32Status = ROM_TimerIntStatus(TIMER_DELAY_BASE, false);
 
 		//
 		// Check for delay timeout
@@ -72,51 +74,50 @@ void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
 	//
 	// Clear timer interrupt flag
 	//
-	TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
 }
 
-//void delay_timer_unit(uint32_t period, timerdelayunit_t unit)
-//{
-//	//
-//	// Skip for zero period
-//	//
-//	if (period == 0)
-//		return;
-//
-//	uint32_t ui32Status;
-//	uint32_t delayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
-//
-//	//
-//	// Reset timer counter
-//	//
-//	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, delayPeriod);
-//
-//	//
-//	// Clear timer interrupt flag
-//	//
-//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
-//
-//	//
-//	// Start timer
-//	//
-//	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
-//
-//	while(1)
-//	{
-//		//
-//		// Get delay status
-//		//
-//		ui32Status = ROM_TimerIntStatus(TIMER_DELAY_BASE, false);
-//
-//		//
-//		// Check for delay timeout
-//		//
-//		if (ui32Status & TIMER_TIMA_TIMEOUT)
-//			break;
-//	}
-//
-//	//
-//	// Clear timer interrupt flag
-//	//
-//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
-//}
+void delay_timer_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...)
+{
+	if (period == 0)
+		return;
+
+	va_list argp;
+
+	va_start(argp, pfnTask);
+
+	uint32_t ui32Status;
+	g_ui32LastDelayPeriod = (ROM_SysCtlClockGet() / TIMER_MILISECOND_DIV) * period;
+
+	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, g_ui32LastDelayPeriod);
+
+	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+
+	while(true)
+	{
+		ui32Status = ROM_TimerIntStatus(TIMER_DELAY_BASE, false);
+
+		if (ui32Status & TIMER_TIMA_TIMEOUT)
+			break;
+
+	    if((*pfnTask)(argp))
+	    	break;
+	}
+
+	va_end(argp);
+
+	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+void delay_timer_reset(void)
+{
+	ROM_TimerDisable(TIMER_DELAY_BASE, TIMER_A);
+
+	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, g_ui32LastDelayPeriod);
+
+	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+}
