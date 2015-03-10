@@ -53,8 +53,11 @@ extern "C"
 
 void MCU_RF_InitSpiForRf(void);
 void MCU_RF_ConfigIRQPin(bool enable);
-void MCU_RF_InitTimerDelay(void);
+
 void MCU_RF_WaitUs(unsigned int cycles);
+void MCU_RF_InitTimerDelay(void);
+void MCU_RF_ConfigureRfTimer(uint64_t ui64PeriodInUs);
+bool MCU_RF_IsRfTimerExpired(void);
 
 bool MCU_RF_GetInterruptState(void);
 void MCU_RF_EnableInterrupt(void);

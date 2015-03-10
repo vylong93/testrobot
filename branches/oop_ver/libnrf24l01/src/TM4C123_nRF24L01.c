@@ -105,6 +105,11 @@ void MCU_RF_ConfigIRQPin(bool bEnable)
   }
 }
 
+void MCU_RF_WaitUs(unsigned int cycles)
+{
+	ROM_SysCtlDelay((ROM_SysCtlClockGet() / (1000000 * 3)) * cycles);
+}
+
 void MCU_RF_InitTimerDelay(void)
 {
 	ROM_SysCtlPeripheralEnable(RF_TIMER_CLOCK);
@@ -117,9 +122,25 @@ void MCU_RF_InitTimerDelay(void)
 	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
 }
 
-void MCU_RF_WaitUs(unsigned int cycles)
+void MCU_RF_ConfigureRfTimer(uint64_t ui64PeriodInUs)
 {
-	ROM_SysCtlDelay((ROM_SysCtlClockGet() / (1000000 * 3)) * cycles);
+	uint32_t ui32DelayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui64PeriodInUs;
+
+	ROM_TimerLoadSet(RF_TIMER, TIMER_A, ui32DelayPeriod);
+
+	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerEnable(RF_TIMER, TIMER_A);
+}
+
+bool MCU_RF_IsRfTimerExpired(void)
+{
+	uint32_t ui32Status = ROM_TimerIntStatus(RF_TIMER, false);
+
+	if (ui32Status & TIMER_TIMA_TIMEOUT)
+		return true;
+	else
+		return false;
 }
 
 

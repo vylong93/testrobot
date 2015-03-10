@@ -154,6 +154,8 @@ void initRfModule(bool isEnableInt)
 	RF24_TX_setAddress(addr);
 
 	RfSetRxMode();
+
+	MCU_RF_InitTimerDelay();
 }
 void RfSetChannel(uint8_t chanNum)
 {
@@ -222,14 +224,7 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 	uint8_t pui8RxBuffer[TXBUFFERSIZE] =
 	{ 0 };
 
-	uint32_t ui32Status;
-	uint32_t ui32DelayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui64PeriodInUs;
-
-	ROM_TimerLoadSet(RF_TIMER, TIMER_A, ui32DelayPeriod);
-
-	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
-
-	ROM_TimerEnable(RF_TIMER, TIMER_A);
+	MCU_RF_ConfigureRfTimer(ui64PeriodInUs);
 
 	while(true)
 	{
@@ -249,10 +244,8 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 			}
 		}
 
-		ui32Status = ROM_TimerIntStatus(RF_TIMER, false);
-
-		if (ui32Status & TIMER_TIMA_TIMEOUT)
-				break;
+		if(MCU_RF_IsRfTimerExpired())
+			break;
 	}
 
 	va_end(argp);	// We're finished with the varargs now.
@@ -276,14 +269,7 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 	va_list argp;
 	va_start(argp, pfnHandler);	// Start the varargs processing.
 
-	uint32_t ui32Status;
-	uint32_t ui32DelayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui64PeriodInUs;
-
-	ROM_TimerLoadSet(RF_TIMER, TIMER_A, ui32DelayPeriod);
-
-	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
-
-	ROM_TimerEnable(RF_TIMER, TIMER_A);
+	MCU_RF_ConfigureRfTimer(ui64PeriodInUs);
 
 	while(true)
 	{
@@ -300,10 +286,8 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 			}
 		}
 
-		ui32Status = ROM_TimerIntStatus(RF_TIMER, false);
-
-		if (ui32Status & TIMER_TIMA_TIMEOUT)
-				break;
+		if(MCU_RF_IsRfTimerExpired())
+			break;
 	}
 
 	va_end(argp);	// We're finished with the varargs now.
@@ -316,7 +300,6 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 
 	return bReturn;
 }
-
 //----------------------- nRF24L01 library -----------------------------
 
 void RF24_init(const RF24_InitTypeDef* InitRf24)

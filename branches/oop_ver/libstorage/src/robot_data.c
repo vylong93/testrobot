@@ -32,30 +32,52 @@ void clearNeighborsTable(void)
 	g_NeighborsArray.ui8Counter = 0;
 }
 
-void addToNeighborsTable(uint32_t neighborId, uint16_t distance)
+void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
+{
+	uint32_t ui32SumDistance;
+	uint8_t i;
+	for(i = 0; i < g_NeighborsArray.ui8Counter; i++)
+	{
+		if(g_NeighborsArray.pNeighbors[i].ID == ui32NeighborId)
+		{
+			ui32SumDistance = g_NeighborsArray.pNeighbors[i].distance + ui16Distance;
+			g_NeighborsArray.pNeighbors[i].distance = ui32SumDistance / 2;
+			return;
+		}
+	}
+
+	// breakout if not found any match which ui32NeighborId:
+	addToNeighborsTable(ui32NeighborId, ui16Distance);
+}
+
+void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	if(g_NeighborsArray.ui8Counter < NEIGHBOR_TABLE_LENGTH)
 	{
-		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].ID = neighborId;
-		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].distance = distance;
+		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].ID = ui32NeighborId;
+		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].distance = ui16Distance;
 
 		g_NeighborsArray.ui8Counter = g_NeighborsArray.ui8Counter + 1;
 	}
 	else
 	{
-		uint8_t i;
-		uint8_t max_i = 0;
-		for(i = 1; i < NEIGHBOR_TABLE_LENGTH; i++)	// Search for the worth result
-		{
-			if(g_NeighborsArray.pNeighbors[max_i].distance < g_NeighborsArray.pNeighbors[i].distance)
-				max_i = i;
-		}
-		g_NeighborsArray.pNeighbors[max_i].ID = neighborId;
-		g_NeighborsArray.pNeighbors[max_i].distance = distance;
-
-		g_NeighborsArray.ui8Counter = NEIGHBOR_TABLE_LENGTH;
+		replaceTheWorstDistanceInNeighborsTable(ui32NeighborId, ui16Distance);
 	}
 }
+
+void replaceTheWorstDistanceInNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
+{
+	uint8_t i;
+	uint8_t worst_i = 0;
+	for(i = 1; i < g_NeighborsArray.ui8Counter; i++)	// Search for the worst (max) distance
+	{
+		if(g_NeighborsArray.pNeighbors[worst_i].distance < g_NeighborsArray.pNeighbors[i].distance)
+			worst_i = i;
+	}
+	g_NeighborsArray.pNeighbors[worst_i].ID = ui32NeighborId;
+	g_NeighborsArray.pNeighbors[worst_i].distance = ui16Distance;
+}
+
 
 void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
 {

@@ -18,7 +18,7 @@
 #include "libalgorithm/inc/TDOA.h"
 #include "libprotocol/inc/network.h"
 #include "libstorage/inc/robot_data.h"
-#include "librobot/inc/robot_timer_delay.h"
+#include "librobot/inc/robot_task_timer.h"
 #include "interrupt_definition.h"
 
 e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
@@ -182,7 +182,7 @@ void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 	{
 		if (MCU_RF_IsInterruptPinAsserted())
 		{
-			MCU_RF_ClearIntFlag();
+			MCU_RF_ClearIntFlag(); //TODO: must be filter the received command
 
 			reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_RESET_STATE_ONE);
 
@@ -199,9 +199,11 @@ void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 		float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
 		uint16_t ui16Distance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);	// Fixed-point <8.8>
 
+		addOverrideToNeighborsTable(ui32RequestRobotID, ui16Distance);
+
 		// random 1->100: delay unit (5ms)
-		uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 5000);
-		delay_us(ui32RandomUs + 1000);
+		uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
+		delay_us(ui32RandomUs + 2000);
 
 		responseDistanceToNeighbor(ui32RequestRobotID, ui16Distance);
 	}
@@ -282,7 +284,9 @@ void StateOne_MeasureDistance(void)
 
 	StateOne_MeasureDistance_ResetFlag();
 
-	delay_timer_ms_with_task(DELAY_MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_US, StateOne_MeasureDistance_MainTask, &g_bIsSuccessMeasuredDistances);
+	activeRobotTask(MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateOne_MeasureDistance_MainTask);
+
+	//TODO: check if Neighbors Table is NULL
 
 	turnOnLED(LED_ALL);
 
@@ -297,16 +301,11 @@ void StateOne_MeasureDistance_ResetFlag(void)
 
 bool StateOne_MeasureDistance_MainTask(va_list argp)
 {
-	// NOTE: This task must be call by delay_timer_ms_with_task() because the content below call to delay_timer_reset()
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
 
 	//  ARGUMENTS:
 	//		va_list argp
-	//			This list containt one argument in order:
-	//				1/ bool* pbisSuccessMeasureDistance
-
-	// Get the input arguments
-	bool* pbIsSuccessMeasuredDistances;
-	pbIsSuccessMeasuredDistances = va_arg(argp, bool*);
+	//			This list containt no argument.
 
 	turnOnLED(LED_BLUE);
 
@@ -314,23 +313,23 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 	uint32_t ui32LifeTimeInUsOfSubTask1;
 	do
 	{
-		ui32LifeTimeInUsOfSubTask1 = generateRandomFloatInRange(50000, 1000000); // 10ms to 1s
+		ui32LifeTimeInUsOfSubTask1 = generateRandomFloatInRange(100000, 1000000); // 100ms to 1000ms
 
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask1, StateOne_MeasureDistance_SubTask_DelayRandom_Handler);
 
 		if (isRfFlagAssert)		// if subtask 1 is forced to terminal then reset delay
-			delay_timer_reset();
+			resetRobotTaskTimer();
 	}
 	while (isRfFlagAssert);
 
 	// In here, robot timer delay is expired
-	if(*pbIsSuccessMeasuredDistances == false)
+	if(g_bIsSuccessMeasuredDistances == false)
 	{
-		delay_timer_reset();
+		resetRobotTaskTimer();
 
 	    if (tryToRequestLocalNeighborsForDistanceMeasurement())
 	    {
-			*pbIsSuccessMeasuredDistances = true;
+	    	g_bIsSuccessMeasuredDistances = true;
 
 			turnOffLED(LED_BLUE);
 		}
@@ -364,7 +363,7 @@ bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp)
 
 	turnOffLED(LED_RED);
 
-	return true; // Terminal SubTask 1 whether correct rf message or not
+	return true; // Terminal This subTask whether or not correct rf message is received
 }
 
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -374,7 +373,7 @@ void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageDa
 	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
 	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
 
-	addToNeighborsTable(ui32ResponseRobotId, ui16Distance);
+	addOverrideToNeighborsTable(ui32ResponseRobotId, ui16Distance);
 
 	turnOffLED(LED_GREEN);
 }

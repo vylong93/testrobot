@@ -5,14 +5,11 @@
  *      Author: VyLong
  */
 
-#include "librobot\inc\robot_speaker.h"
-#include "libcustom\inc\custom_delay.h"
-
-#include "librobot\inc\robot_timer_delay.h"
+#include "librobot/inc/robot_speaker.h"
 
 #include "pwm_definition.h"
 
-void initSpeaker()
+void initSpeaker(void)
 {
 	ROM_SysCtlPWMClockSet(PWM_CLOCK_SELECT);
 	ROM_SysCtlDelay(2);
@@ -42,18 +39,84 @@ void initSpeaker()
 	ROM_PWMGenConfigure(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, PWM_GEN_MODE_DOWN);
 	ROM_PWMGenPeriodSet(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN, pwmPeriod);
 	ROM_PWMPulseWidthSet(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT, pwmPeriod / 2);
+
+	//
+	// For persision delay purpose
+	//
+	initSpeakerTimerDelay();
 }
 
 void triggerSpeakerWithPreDelay(uint32_t ui32DelayUs)
 {
-	delay_timer_us(ui32DelayUs);	// DELAY_BEFORE_START_SPEAKER_US
+	delay_us_speaker_timer(ui32DelayUs);
 
 	ROM_PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, true);
 	ROM_PWMGenEnable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
 
-	delay_timer_us(SPEAKER_GO_OFF_PERIOD_US);
+	delay_us_speaker_timer(SPEAKER_GO_OFF_PERIOD_US);
 
 	ROM_PWMGenDisable(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN);
 	ROM_PWMSyncTimeBase(SPEAKER_PWM_BASE, SPEAKER_PWM_GEN_BIT);
 	ROM_PWMOutputState(SPEAKER_PWM_BASE, SPEAKER_PWM_OUT_BIT, false);
 }
+
+void initSpeakerTimerDelay(void)
+{
+	ROM_SysCtlPeripheralEnable(SPEAKER_TIMER_DELAY_CLOCK);
+	TimerClockSourceSet(SPEAKER_TIMER_DELAY_BASE, TIMER_CLOCK_SYSTEM);
+
+	ROM_TimerConfigure(SPEAKER_TIMER_DELAY_BASE, TIMER_CFG_ONE_SHOT);
+
+	ROM_TimerIntEnable(SPEAKER_TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerIntClear(SPEAKER_TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+void delay_us_speaker_timer(uint32_t ui32PeriodInUs)
+{
+	// NOTE: This function should only be used in robot_analog and this library.
+
+	//
+	// Skip for zero period
+	//
+	if (ui32PeriodInUs == 0)
+		return;
+
+	uint32_t ui32Status;
+	uint32_t ui32DelayCycles = (ROM_SysCtlClockGet() / 1000000) * ui32PeriodInUs;
+
+	//
+	// Reset timer counter
+	//
+	ROM_TimerLoadSet(SPEAKER_TIMER_DELAY_BASE, TIMER_A, ui32DelayCycles);
+
+	//
+	// Clear timer interrupt flag
+	//
+	ROM_TimerIntClear(SPEAKER_TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+
+	//
+	// Start timer
+	//
+	ROM_TimerEnable(SPEAKER_TIMER_DELAY_BASE, TIMER_A);
+
+	while(true)
+	{
+		//
+		// Get delay status
+		//
+		ui32Status = ROM_TimerIntStatus(SPEAKER_TIMER_DELAY_BASE, false);
+
+		//
+		// Check for delay timeout
+		//
+		if (ui32Status & TIMER_TIMA_TIMEOUT)
+			break;
+	}
+
+	//
+	// Clear timer interrupt flag
+	//
+	ROM_TimerIntClear(SPEAKER_TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+}
+

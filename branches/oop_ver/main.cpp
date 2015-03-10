@@ -4,23 +4,27 @@
 #include "libcustom/inc/custom_clock.h"
 #include "libcustom/inc/custom_led.h"
 #include "libcustom/inc/custom_delay.h"
-#include "libcustom/inc/custom_i2c.h"
 #include "libcustom/inc/custom_uart_debug.h"
 
 #include "librobot/inc/robot_lpm.h"
-#include "librobot/inc/robot_timer_delay.h"
+#include "librobot/inc/robot_task_timer.h"
 #include "librobot/inc/robot_speaker.h"
 #include "librobot/inc/robot_analog.h"
 #include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_eeprom.h"
-
-#include "librobot/inc/robot_imu.h"
 #include "librobot/inc/robot_communication.h"
-
 #include "librobot/inc/robot_process.h"
+
 #include "libstorage/inc/robot_data.h"
 
 //#define HAVE_IMU
+
+#ifdef HAVE_IMU
+#include "libcustom/inc/custom_i2c.h"
+#include "librobot/inc/robot_imu.h"
+#endif
+
+extern neighborsArray_t g_NeighborsArray;
 
 extern "C"
 {
@@ -32,48 +36,14 @@ extern float r;
 extern bool bIsRunPID;
 #endif
 
-void MCU_RF_IRQ_handler();
+void MCU_RF_IRQ_handler(void);
 }
+
+void initSystem(void);
 
 int main(void)
 {
-	initSysClock();
-
-	initUartDebug();
-
-	DEBUG_PRINTS("Current ClockSpeed: %d Hz\n", ROM_SysCtlClockGet());
-
-	initLowPowerMode();
-
-	initLeds();
-	DEBUG_PRINT("init LEDs: OK\n");
-
-	initRobotTimerDelay(); // For main proccess
-	DEBUG_PRINT("init Robot timer delay: OK\n");
-
-	initPeripheralsForAnalogFunction();
-	DEBUG_PRINT("init Peripherals for analog feature: OK\n");
-
-	initSpeaker();
-	DEBUG_PRINT("init Speaker: OK\n");
-
-	initMotors();
-	DEBUG_PRINT("init Motors: OK\n");
-
-	initEEPROM();
-	DEBUG_PRINT("init EEPROM: OK\n");
-
-	initDelay(); // For network layer
-	DEBUG_PRINT("init Delay: OK\n");
-
-	MCU_RF_InitTimerDelay(); // For RF layer
-	DEBUG_PRINT("init RF Timer Delay: OK\n");
-
-	initRfModule(true);
-	DEBUG_PRINT("init RF module: OK, in rx mode.\n");
-
-	initI2C();
-	DEBUG_PRINT("init I2C: OK\n");
+	initSystem();
 
 	initRobotProcess();
 
@@ -202,12 +172,52 @@ int main(void)
 
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
-				delay_ms(750);
+				ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000) * 750); // ~750ms
 			break;
 		}
 	}
 #endif
 
+}
+
+void initSystem(void)
+{
+	initSysClock();
+
+	initUartDebug();
+
+	DEBUG_PRINTS("Current ClockSpeed: %d Hz\n", ROM_SysCtlClockGet());
+
+	initLowPowerMode();
+
+	initDelay();
+	DEBUG_PRINT("init Delay: OK\n");
+
+	initLeds();
+	DEBUG_PRINT("init LEDs: OK\n");
+
+	initPeripheralsForAnalogFunction();
+	DEBUG_PRINT("init Peripherals for analog feature: OK\n");
+
+	initSpeaker();
+	DEBUG_PRINT("init Speaker: OK\n");
+
+	initMotors();
+	DEBUG_PRINT("init Motors: OK\n");
+
+	initEEPROM();
+	DEBUG_PRINT("init EEPROM: OK\n");
+
+	initRfModule(true);
+	DEBUG_PRINT("init RF module: OK, in rx mode.\n");
+
+	initRobotTaskTimer();
+	DEBUG_PRINT("init Robot task timer: OK\n");
+
+#ifdef HAVE_IMU
+	initI2C();
+	DEBUG_PRINT("init I2C: OK\n");
+#endif
 }
 
 void MCU_RF_IRQ_handler(void)
@@ -343,7 +353,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = VOTE_ORIGIN;
 //}
-//
+
 //void StateThree_VoteOrigin()
 //{
 //	if(g_ui32OriginID == g_ui32RobotID) // haven't update
@@ -409,7 +419,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = ROTATE_NETWORK;
 //}
-//
+
 //void StateFour_RequestRotateNetwork()
 //{
 //	uint8_t ui8RandomRfChannel;

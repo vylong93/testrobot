@@ -7,7 +7,7 @@
 
 #include "librobot/inc/robot_analog.h"
 #include "librobot/inc/robot_motor.h"
-#include "librobot/inc/robot_timer_delay.h"
+#include "librobot/inc/robot_speaker.h"
 #include "librobot/inc/robot_communication.h"
 #include "libcustom/inc/custom_led.h"
 #include "interrupt_definition.h"
@@ -235,7 +235,7 @@ void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs)
 	g_bIsSamplingMic0Done = false;
 	g_bIsSamplingMic1Done = false;
 
-	delay_timer_us(ui32DelayUs);	// DELAY_SAMPING_MICS_US
+	delay_us_speaker_timer(ui32DelayUs);
 
 	ROM_TimerEnable(ADC_TIMER, TIMER_A);
 }
