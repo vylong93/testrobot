@@ -50,7 +50,12 @@ bool EnhanceLinkedList<T>::add(T value)
 	// (2) allocate new Map
 	ppMap = new T*[Size + 1];
 	if(ppMap == NULL)
+	{
+		// restore old map
+		ppMap = ppOldMap;
+
 		return false;
+	}
 
 	// (3) copy old Map to new Map
 	int i;
@@ -79,6 +84,11 @@ template <class T>
 void EnhanceLinkedList<T>::remove(T value)
 {
 	int i;
+	int j;
+
+	// (0) keep previous Map
+	T** ppOldMap = ppMap;
+
 	for(i = 0; i < Size; i++)
 	{
 		if(*ppMap[i] == value)
@@ -87,11 +97,30 @@ void EnhanceLinkedList<T>::remove(T value)
 			delete ppMap[i];
 
 			// (2) shift up
-			int j;
 			for(j = i; j < (Size - 1); j++)
 				ppMap[j] = ppMap[j + 1];
 
-			// (3) update Size
+			// (2) allocate new Map
+			ppMap = new T*[Size - 1];
+			if(ppMap == NULL)
+			{
+				// restore old Map
+				ppMap = ppOldMap;
+
+				// update size
+				Size--;
+
+				return;
+			}
+
+			// (3) copy old Map to new Map
+			for(j = 0; j < (Size - 1); j++)
+				ppMap[j] = ppOldMap[j];
+
+			// (4) delete old Map
+			delete[] ppOldMap;
+
+			// (5) update size
 			Size--;
 
 			return;
@@ -183,8 +212,8 @@ EnhanceLinkedList<T>::~EnhanceLinkedList()
 //
 //	NeighborsTable.clearAll();
 //
-//	pDynamic = new uint8_t[100];
-//	for(i = 0; i < 100; i++)
+//	pDynamic = new uint8_t[200];
+//	for(i = 0; i < 200; i++)
 //		pDynamic[i] = 0xCC;
 //	delete[] pDynamic;
 
