@@ -15,15 +15,16 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "inc\hw_memmap.h"
-#include "inc\hw_types.h"
-#include "inc\hw_gpio.h"
-#include "driverlib\pin_map.h"
-#include "driverlib\sysctl.h"
-#include "driverlib\gpio.h"
-#include "driverlib\rom.h"
-#include "driverlib\pwm.h"
-#include "driverlib\timer.h"
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "inc/hw_gpio.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/rom.h"
+#include "driverlib/pwm.h"
+#include "driverlib/timer.h"
+#include "timers_definition.h"
 
 #define SPEAKER_GO_OFF_PERIOD_US		250 // unit in microsecond
 
@@ -41,8 +42,11 @@ extern "C"
 #define SPEAKER_PWM_OUT                 PWM_OUT_4
 #define SPEAKER_PWM_OUT_BIT             PWM_OUT_4_BIT
 
-void initSpeaker();
+void initSpeaker(void);
 void triggerSpeakerWithPreDelay(uint32_t ui32DelayUs);
+
+void initSpeakerTimerDelay(void);
+void delay_us_speaker_timer(uint32_t ui32PeriodInUs);
 
 #ifdef __cplusplus
 }

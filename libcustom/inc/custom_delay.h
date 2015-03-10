@@ -23,12 +23,6 @@ extern "C"
 #include "driverlib/sysctl.h"
 #include "timers_definition.h"
 
-typedef enum {
-	MILISECOND_DIV = 1000,
-	MICROSECOND_DIV = 1000000
-} delayunit_t;
-
-
 //*****************************************************************************
 //
 // Configure timer for custom delay
@@ -36,15 +30,14 @@ typedef enum {
 //*****************************************************************************
 void initDelay(void);
 
-void delay_unit(uint32_t period, delayunit_t unit);
-void delay1_unit(uint32_t period, delayunit_t unit);
-void delay2_unit(uint32_t period, delayunit_t unit);
+void delay_ms(uint32_t ui32PeriodInMs);
+void delay_us(uint32_t ui32PeriodInUs);
 
-void delay_ms(uint32_t period);
-void delay_us(uint32_t period);
+void delay_timerA_us(uint32_t ui32PeriodInUs);
+void delay_timerB_us(uint32_t ui32PeriodInUs);
 
-void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...);
-void delay2_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...);
+//void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...);
+//void delay2_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...);
 
 #ifdef __cplusplus
 }

@@ -37,39 +37,57 @@ void initDelay(void)
 }
 
 //-----------------------------------------------------------------------------
-//  void delay_unit(uint32_t period, delayunit_t unit)
+//  void delay_ms(uint32_t ui32PeriodInMs)
 //
 //  DESCRIPTION:
-//  delay with period [in unit]
+//  delay with period in milisecond unit
 //
 //  ARGUMENTS:
-//      uint32_t period
-//          Number of delay unit
-//      delayunit_t unit
-//          Unit delay could be MILISECOND_DIV for ms_delay
-//			or MICROSECOND_DIV for us_delay
+//      uint32_t ui32PeriodInMs
+//          Number of milisecond delay
 //-----------------------------------------------------------------------------
-void delay_unit(uint32_t period, delayunit_t unit)
+void delay_ms(uint32_t ui32PeriodInMs)
+{
+	delay_us(ui32PeriodInMs * 1000);
+}
+
+//-----------------------------------------------------------------------------
+//  void delay_us(uint32_t ui32PeriodInUs)
+//
+//  DESCRIPTION:
+//  delay with period in microsecond unit
+//
+//  ARGUMENTS:
+//      uint32_t ui32PeriodInUs
+//          Number of microsecond delay
+//-----------------------------------------------------------------------------
+void delay_us(uint32_t ui32PeriodInUs)
 {
 	if (!g_bIsTimer1Busy)
-	{
-		delay1_unit(period, unit);
-	}
+		delay_timerA_us(ui32PeriodInUs);
 	else if (!g_bIsTimer2Busy)
-	{
-		delay2_unit(period, unit);
-	}
+		delay_timerB_us(ui32PeriodInUs);
 	else
-	{
-		ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * (uint32_t)unit) * period);
-	}
+		ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000000) * ui32PeriodInUs);
 }
-void delay1_unit(uint32_t period, delayunit_t unit)
+
+//-----------------------------------------------------------------------------
+//  void delay_timerA_us(uint32_t ui32PeriodInUs)
+//
+//  DESCRIPTION:
+//  delay with period in microsecond unit using Timer A
+//
+//  ARGUMENTS:
+//      uint32_t ui32PeriodInUs
+//          Number of microsecond delay
+//-----------------------------------------------------------------------------
+void delay_timerA_us(uint32_t ui32PeriodInUs)
 {
-	if (period == 0)
+	if (ui32PeriodInUs == 0)
 		return;
+
 	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
+	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui32PeriodInUs;
 
 	//
 	// Reset timer counter
@@ -109,12 +127,24 @@ void delay1_unit(uint32_t period, delayunit_t unit)
 
 	g_bIsTimer1Busy = false;
 }
-void delay2_unit(uint32_t period, delayunit_t unit)
+
+//-----------------------------------------------------------------------------
+//  void delay_timerB_us(uint32_t ui32PeriodInUs)
+//
+//  DESCRIPTION:
+//  delay with period in microsecond unit using Timer B
+//
+//  ARGUMENTS:
+//      uint32_t ui32PeriodInUs
+//          Number of microsecond delay
+//-----------------------------------------------------------------------------
+void delay_timerB_us(uint32_t ui32PeriodInUs)
 {
-	if (period == 0)
+	if (ui32PeriodInUs == 0)
 		return;
+
 	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / (uint32_t)unit) * period;
+	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui32PeriodInUs;
 
 	ROM_TimerLoadSet(DELAY_TIMER_BASE_NON_INT, TIMER_B, delayPeriod);
 
@@ -138,37 +168,7 @@ void delay2_unit(uint32_t period, delayunit_t unit)
 }
 
 //-----------------------------------------------------------------------------
-//  void delay_ms(uint32_t period)
-//
-//  DESCRIPTION:
-//  delay with period [in ms]
-//
-//  ARGUMENTS:
-//      uint32_t period
-//          Number of milisecond delay
-//-----------------------------------------------------------------------------
-void delay_ms(uint32_t period)
-{
-	delay_unit(period, MILISECOND_DIV);
-}
-
-//-----------------------------------------------------------------------------
-//  void delay_us(uint32_t period)
-//
-//  DESCRIPTION:
-//  delay with period [in us]
-//
-//  ARGUMENTS:
-//      uint32_t period
-//          Number of microsecond delay
-//-----------------------------------------------------------------------------
-void delay_us(uint32_t period)
-{
-	delay_unit(period, MICROSECOND_DIV);
-}
-
-//-----------------------------------------------------------------------------
-//  void delay_ms(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, , va_list argp), ...)
+//  void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, , va_list argp), ...)
 //
 //  DESCRIPTION:
 //  delay with period [in ms]
@@ -216,108 +216,109 @@ void delay_us(uint32_t period)
 //			delay_ms_with_task(task1LifeTimeInMilisecond, task1, l_a, l_b, &l_c);
 //			//--After task call: l_a = 31, l_b = false; l_c = 300. Only l_c is changed
 //-----------------------------------------------------------------------------
-void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...)
-{
-	if (period == 0)
-		return;
-
-	va_list argp;
-
-    //
-    // Start the varargs processing.
-    //
-	va_start(argp, pfnTask);
-
-	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * period;
-
-	//
-	// Reset timer counter
-	//
-	ROM_TimerLoadSet(DELAY_TIMER_BASE_NON_INT, TIMER_A, delayPeriod);
-
-	//
-	// Clear timer interrupt flag
-	//
-	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMA_TIMEOUT);
-
-	//
-	// Start timer
-	//
-	ROM_TimerEnable(DELAY_TIMER_BASE_NON_INT, TIMER_A);
-
-	g_bIsTimer1Busy = true;
-
-	while(1)
-	{
-		//
-		// Get delay status
-		//
-		ui32Status = ROM_TimerIntStatus(DELAY_TIMER_BASE_NON_INT, false);
-
-		//
-		// Check for delay timeout
-		//
-		if (ui32Status & TIMER_TIMA_TIMEOUT)
-		{
-			break; // Delay expried
-		}
-		else
-		{
-			//
-			// Task call, if task return true then terminate this delay
-			//
-		    if((*pfnTask)(period, argp))
-		    	break;	// Delay terminal
-		}
-	}
-
-    //
-    // We're finished with the varargs now.
-    //
-	va_end(argp);
-
-	//
-	// Clear timer interrupt flag
-	//
-	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMA_TIMEOUT);
-
-	g_bIsTimer1Busy = false;
-}
-void delay2_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...)
-{
-	if (period == 0)
-		return;
-
-	va_list argp;
-
-	va_start(argp, pfnTask);
-
-	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * period;
-
-	ROM_TimerLoadSet(DELAY_TIMER_BASE_NON_INT, TIMER_B, delayPeriod);
-
-	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMB_TIMEOUT);
-
-	ROM_TimerEnable(DELAY_TIMER_BASE_NON_INT, TIMER_B);
-
-	g_bIsTimer2Busy = true;
-
-	while(1)
-	{
-		ui32Status = ROM_TimerIntStatus(DELAY_TIMER_BASE_NON_INT, false);
-
-		if (ui32Status & TIMER_TIMB_TIMEOUT)
-			break;
-
-	    if((*pfnTask)(argp))
-	    	break;
-	}
-
-	va_end(argp);
-
-	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMB_TIMEOUT);
-
-	g_bIsTimer2Busy = false;
-}
+//void delay_ms_with_task(uint32_t period, bool (*pfnTask)(uint32_t lifeTime, va_list argp), ...)
+//{
+//	if (period == 0)
+//		return;
+//
+//	va_list argp;
+//
+//    //
+//    // Start the varargs processing.
+//    //
+//	va_start(argp, pfnTask);
+//
+//	uint32_t ui32Status;
+//	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * period;
+//
+//	//
+//	// Reset timer counter
+//	//
+//	ROM_TimerLoadSet(DELAY_TIMER_BASE_NON_INT, TIMER_A, delayPeriod);
+//
+//	//
+//	// Clear timer interrupt flag
+//	//
+//	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMA_TIMEOUT);
+//
+//	//
+//	// Start timer
+//	//
+//	ROM_TimerEnable(DELAY_TIMER_BASE_NON_INT, TIMER_A);
+//
+//	g_bIsTimer1Busy = true;
+//
+//	while(1)
+//	{
+//		//
+//		// Get delay status
+//		//
+//		ui32Status = ROM_TimerIntStatus(DELAY_TIMER_BASE_NON_INT, false);
+//
+//		//
+//		// Check for delay timeout
+//		//
+//		if (ui32Status & TIMER_TIMA_TIMEOUT)
+//		{
+//			break; // Delay expried
+//		}
+//		else
+//		{
+//			//
+//			// Task call, if task return true then terminate this delay
+//			//
+//		    if((*pfnTask)(period, argp))
+//		    	break;	// Delay terminal
+//		}
+//	}
+//
+//    //
+//    // We're finished with the varargs now.
+//    //
+//	va_end(argp);
+//
+//	//
+//	// Clear timer interrupt flag
+//	//
+//	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMA_TIMEOUT);
+//
+//	g_bIsTimer1Busy = false;
+//}
+//
+//void delay2_ms_with_task(uint32_t period, bool (*pfnTask)(va_list argp), ...)
+//{
+//	if (period == 0)
+//		return;
+//
+//	va_list argp;
+//
+//	va_start(argp, pfnTask);
+//
+//	uint32_t ui32Status;
+//	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * period;
+//
+//	ROM_TimerLoadSet(DELAY_TIMER_BASE_NON_INT, TIMER_B, delayPeriod);
+//
+//	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMB_TIMEOUT);
+//
+//	ROM_TimerEnable(DELAY_TIMER_BASE_NON_INT, TIMER_B);
+//
+//	g_bIsTimer2Busy = true;
+//
+//	while(1)
+//	{
+//		ui32Status = ROM_TimerIntStatus(DELAY_TIMER_BASE_NON_INT, false);
+//
+//		if (ui32Status & TIMER_TIMB_TIMEOUT)
+//			break;
+//
+//	    if((*pfnTask)(argp))
+//	    	break;
+//	}
+//
+//	va_end(argp);
+//
+//	ROM_TimerIntClear(DELAY_TIMER_BASE_NON_INT, TIMER_TIMB_TIMEOUT);
+//
+//	g_bIsTimer2Busy = false;
+//}

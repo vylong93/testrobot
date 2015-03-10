@@ -54,7 +54,7 @@ void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t
 void handleSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 
-#define DELAY_MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_US		3000000	// 3s
+#define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);

@@ -17,10 +17,6 @@
 
 #include "libalgorithm/inc/TDOA.h"
 
-//#define Robot_TX_DELAY
-#define Robot_TX
-//#define Robot_RX
-
 //------------------------ Message Decoder ------------------------
 void RobotResponseIntHandler(void)
 {
@@ -338,17 +334,8 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:
-#ifdef Robot_TX_DELAY
-		triggerSamplingMicSignalsWithPreDelay(0);	// DELAY_SAMPING_MICS_US
-		triggerSpeakerWithPreDelay(60 + 1000);	 	// DELAY_BEFORE_START_SPEAKER_US
-#endif
-#ifdef Robot_TX
-		triggerSamplingMicSignalsWithPreDelay(0);	// DELAY_SAMPING_MICS_US
-		triggerSpeakerWithPreDelay(60);				// DELAY_BEFORE_START_SPEAKER_US
-#endif
-#ifdef Robot_RX
 		triggerSamplingMicSignalsWithPreDelay(0);
-#endif
+		triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
 		break;
 
 	case HOST_COMMAND_CHANGE_MOTORS_SPEED:
