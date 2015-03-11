@@ -6,11 +6,14 @@
  */
 
 #include "libstorage/inc/robot_data.h"
+#include "libstorage/inc/EnhanceLinkedList.h"
+#include "libstorage/inc/RobotMeas.h"
+
 #include "libprotocol/inc/network.h"
 
-neighborsArray_t g_NeighborsArray;
+EnhanceLinkedList<RobotMeas> g_NeighborsTable;
 
-//oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBOR_TABLE_LENGTH];
+//oneHopMeas_t OneHopNeighborsTable[ONEHOP_NEIGHBORS_TABLE_LENGTH];
 //location_t locs[LOCATIONS_TABLE_LENGTH];
 
 void initLinkedList(void)
@@ -20,28 +23,17 @@ void initLinkedList(void)
 
 void clearNeighborsTable(void)
 {
-	//
-	// Clear neighbors table
-	//
-	uint8_t i;
-	for(i = 0; i < NEIGHBOR_TABLE_LENGTH; i++)
-	{
-		g_NeighborsArray.pNeighbors[i].ID = 0;
-		g_NeighborsArray.pNeighbors[i].distance = 0;
-	}
-	g_NeighborsArray.ui8Counter = 0;
+	g_NeighborsTable.clearAll();
 }
 
 void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
-	uint32_t ui32SumDistance;
-	uint8_t i;
-	for(i = 0; i < g_NeighborsArray.ui8Counter; i++)
+	int i;
+	for(i = 0; i < g_NeighborsTable.Count; i++)
 	{
-		if(g_NeighborsArray.pNeighbors[i].ID == ui32NeighborId)
+		if(g_NeighborsTable[i].ID == ui32NeighborId)
 		{
-			ui32SumDistance = g_NeighborsArray.pNeighbors[i].distance + ui16Distance;
-			g_NeighborsArray.pNeighbors[i].distance = ui32SumDistance / 2;
+			g_NeighborsTable[i].Distance = (g_NeighborsTable[i].Distance + ui16Distance) >> 1;
 			return;
 		}
 	}
@@ -52,43 +44,46 @@ void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 
 void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
-	if(g_NeighborsArray.ui8Counter < NEIGHBOR_TABLE_LENGTH)
-	{
-		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].ID = ui32NeighborId;
-		g_NeighborsArray.pNeighbors[g_NeighborsArray.ui8Counter].distance = ui16Distance;
+	RobotMeas robotNeighbor(ui32NeighborId, ui16Distance);
 
-		g_NeighborsArray.ui8Counter = g_NeighborsArray.ui8Counter + 1;
+	if(g_NeighborsTable.Count < NEIGHBORS_TABLE_LENGTH)
+	{
+		g_NeighborsTable.add(robotNeighbor);
 	}
 	else
 	{
-		replaceTheWorstDistanceInNeighborsTable(ui32NeighborId, ui16Distance);
+		/* replaceTheFarthestNeighborInNeighborsTable(ui32NeighborId, ui16Distance); */
+
+		int i, worst_i = 0;
+		for(i = 1; i < g_NeighborsTable.Count; i++)	// Search for the worst (max) distance
+		{
+			if(g_NeighborsTable[worst_i].Distance < g_NeighborsTable[i].Distance)
+				worst_i = i;
+		}
+
+		g_NeighborsTable[worst_i] = robotNeighbor;
 	}
 }
-
-void replaceTheWorstDistanceInNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
-{
-	uint8_t i;
-	uint8_t worst_i = 0;
-	for(i = 1; i < g_NeighborsArray.ui8Counter; i++)	// Search for the worst (max) distance
-	{
-		if(g_NeighborsArray.pNeighbors[worst_i].distance < g_NeighborsArray.pNeighbors[i].distance)
-			worst_i = i;
-	}
-	g_NeighborsArray.pNeighbors[worst_i].ID = ui32NeighborId;
-	g_NeighborsArray.pNeighbors[worst_i].distance = ui16Distance;
-}
-
 
 void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
 {
+	int pointer = 0;
 	uint32_t i;
-	uint8_t ui8NeighborsPointer = 0;
-	for(i = 0; i < ui32TotalLength; i += 6)
+	for(i = 0; i < ui32TotalLength; )
 	{
-		parse32bitTo4Bytes(&pui8Buffer[i], g_NeighborsArray.pNeighbors[ui8NeighborsPointer].ID);
-		pui8Buffer[i + 4] = (uint8_t)(g_NeighborsArray.pNeighbors[ui8NeighborsPointer].distance >> 8);
-		pui8Buffer[i + 5] = (uint8_t)g_NeighborsArray.pNeighbors[ui8NeighborsPointer].distance;
-		ui8NeighborsPointer++;
+		if(pointer < g_NeighborsTable.Count)
+		{
+			parse32bitTo4Bytes(&pui8Buffer[i], g_NeighborsTable[pointer].ID);
+			pui8Buffer[i + 4] = (uint8_t)(g_NeighborsTable[pointer].Distance >> 8);
+			pui8Buffer[i + 5] = (uint8_t)(g_NeighborsTable[pointer].Distance);
+
+			pointer++;
+			i += SIZE_OF_ROBOT_MEAS;
+		}
+		else
+		{
+			pui8Buffer[i++] = 0;
+		}
 	}
 }
 

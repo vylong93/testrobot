@@ -846,7 +846,7 @@ void testPIDController(uint8_t* pui8Data)
 // ======================= Debug Tab ===============================
 void sendNeighborsTableToHost(void)
 {
-	uint32_t ui32Length = NEIGHBOR_TABLE_LENGTH * 6;
+	uint32_t ui32Length = NEIGHBORS_TABLE_LENGTH * SIZE_OF_ROBOT_MEAS;
 	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32Length);
 	if(pui8DataBuffer == 0)
 		return;

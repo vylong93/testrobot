@@ -17,21 +17,23 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define NEIGHBOR_TABLE_LENGTH 			10
-#define ONEHOP_NEIGHBOR_TABLE_LENGTH 	NEIGHBOR_TABLE_LENGTH
-#define LOCATIONS_TABLE_LENGTH			NEIGHBOR_TABLE_LENGTH
+#define SIZE_OF_ROBOT_MEAS				6
 
-typedef struct tagRobotMeas
-{
-	uint32_t ID;
-	uint16_t distance; // <8.8>
-} robotMeas_t;
+#define NEIGHBORS_TABLE_LENGTH 			10
+#define ONEHOP_NEIGHBORS_TABLE_LENGTH 	NEIGHBORS_TABLE_LENGTH
+#define LOCATIONS_TABLE_LENGTH			NEIGHBORS_TABLE_LENGTH
 
-typedef struct tagNeighborsTable
-{
-	robotMeas_t pNeighbors[NEIGHBOR_TABLE_LENGTH];
-	uint8_t ui8Counter;
-} neighborsArray_t;
+//typedef struct tagRobotMeas
+//{
+//	uint32_t ID;
+//	uint16_t distance; // <8.8>
+//} robotMeas_t;
+//
+//typedef struct tagNeighborsTable
+//{
+//	robotMeas_t pNeighbors[NEIGHBOR_TABLE_LENGTH];
+//	uint8_t ui8Counter;
+//} neighborsArray_t;
 
 //typedef struct tagOneHopMeas
 //{
@@ -50,10 +52,10 @@ typedef struct tagNeighborsTable
 //} location_t;
 
 void initLinkedList(void);
+
 void clearNeighborsTable(void);
 void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
-void replaceTheWorstDistanceInNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 #ifdef __cplusplus

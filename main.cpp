@@ -26,8 +26,6 @@
 #include "librobot/inc/robot_imu.h"
 #endif
 
-extern neighborsArray_t g_NeighborsArray;
-
 extern "C"
 {
 #ifdef HAVE_IMU
