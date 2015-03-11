@@ -16,19 +16,19 @@ class RobotMeas
 {
 public:
 	uint32_t ID;
-	uint16_t distance;
+	uint16_t Distance;
 
 	// Constructor
-    RobotMeas(uint32_t id, uint16_t dis = 0) { ID = id; distance = dis; }
+    RobotMeas(uint32_t id, uint16_t dis = 0) { ID = id; Distance = dis; }
 
     // Copy Constructor
-    RobotMeas(const RobotMeas &rhs) {ID = rhs.ID; distance = rhs.distance; }
+    RobotMeas(const RobotMeas &rhs) {ID = rhs.ID; Distance = rhs.Distance; }
 
     // Destructor
     ~RobotMeas() {};
 
     // Operators
-    RobotMeas& operator=(const RobotMeas &rhs) { ID = rhs.ID,  distance = rhs.distance; return *this; }
+    RobotMeas& operator=(const RobotMeas &rhs) { ID = rhs.ID,  Distance = rhs.Distance; return *this; }
     bool operator == (const RobotMeas &rhs) const { return ID == rhs.ID; }
     bool operator != (const RobotMeas &rhs) const { return ID != rhs.ID; }
 };

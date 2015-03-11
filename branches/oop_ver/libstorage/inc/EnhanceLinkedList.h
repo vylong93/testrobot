@@ -18,24 +18,27 @@ class EnhanceLinkedList
 {
 private:
 	T** ppMap;	// An pointer array store the element's pointer
-    int Size;	// Indicate current element in the list
+//	int Count;	// Indicate current element in the list
 
 public:
-   //Constructor
-   EnhanceLinkedList() { ppMap = NULL; Size = 0; }
+    int Count;	// Indicate current element in the list
 
-   // Destructor
+   /* Constructor */
+   EnhanceLinkedList() { ppMap = NULL; Count = 0; }
+
+   /* Destructor */
    ~EnhanceLinkedList();
 
-   // Operators
+   /* Operators */
    T &operator [](unsigned int i) { return *ppMap[i]; }
    const T &operator [](unsigned int i) const {	return *ppMap[i]; }
 
-   // Behavivours
+   /* Behavivours */
+//   int getLength() { return Count; }
+   T& ElementAt(unsigned int i) { if (i < Count) return *ppMap[i]; else return NULL; }
    bool add(T value);
    void remove(T value);
    void clearAll();
-   T& ElementAt(unsigned int i) { if (i < Size) return *ppMap[i]; else return NULL; }
 };
 
 //*********************************************
@@ -48,7 +51,7 @@ bool EnhanceLinkedList<T>::add(T value)
 	T** ppOldMap = ppMap;
 
 	// (2) allocate new Map
-	ppMap = new T*[Size + 1];
+	ppMap = new T*[Count + 1];
 	if(ppMap == NULL)
 	{
 		// restore old map
@@ -59,19 +62,19 @@ bool EnhanceLinkedList<T>::add(T value)
 
 	// (3) copy old Map to new Map
 	int i;
-	for(i = 0; i < Size; i++)
+	for(i = 0; i < Count; i++)
 		ppMap[i] = ppOldMap[i];
 
 	// (4) delete old Map
 	delete[] ppOldMap;
 
 	// (5) add new value to the map
-	ppMap[Size] = new T(value);
-	if(ppMap[Size] == NULL)
+	ppMap[Count] = new T(value);
+	if(ppMap[Count] == NULL)
 		return false;
 
 	// (6) update Size
-	Size++;
+	Count++;
 
 	return true;
 }
@@ -89,7 +92,7 @@ void EnhanceLinkedList<T>::remove(T value)
 	// (0) keep previous Map
 	T** ppOldMap = ppMap;
 
-	for(i = 0; i < Size; i++)
+	for(i = 0; i < Count; i++)
 	{
 		if(*ppMap[i] == value)
 		{
@@ -97,31 +100,31 @@ void EnhanceLinkedList<T>::remove(T value)
 			delete ppMap[i];
 
 			// (2) shift up
-			for(j = i; j < (Size - 1); j++)
+			for(j = i; j < (Count - 1); j++)
 				ppMap[j] = ppMap[j + 1];
 
 			// (2) allocate new Map
-			ppMap = new T*[Size - 1];
+			ppMap = new T*[Count - 1];
 			if(ppMap == NULL)
 			{
 				// restore old Map
 				ppMap = ppOldMap;
 
 				// update size
-				Size--;
+				Count--;
 
 				return;
 			}
 
 			// (3) copy old Map to new Map
-			for(j = 0; j < (Size - 1); j++)
+			for(j = 0; j < (Count - 1); j++)
 				ppMap[j] = ppOldMap[j];
 
 			// (4) delete old Map
 			delete[] ppOldMap;
 
 			// (5) update size
-			Size--;
+			Count--;
 
 			return;
 		}
@@ -136,7 +139,7 @@ template <class T>
 void EnhanceLinkedList<T>::clearAll()
 {
 	int i;
-	for(i = 0; i < Size; i++)
+	for(i = 0; i < Count; i++)
 	{
 		delete ppMap[i];
 		ppMap[i] = NULL;
@@ -144,7 +147,7 @@ void EnhanceLinkedList<T>::clearAll()
 	delete[] ppMap;
 	ppMap = NULL;
 
-	Size = 0;
+	Count = 0;
 }
 
 //******************************************************
@@ -157,7 +160,7 @@ EnhanceLinkedList<T>::~EnhanceLinkedList()
 }
 
 
-//  /* Test case */
+//	/* Test case */
 //
 //	int i;
 //	uint8_t* pDynamic = 0;
@@ -170,19 +173,19 @@ EnhanceLinkedList<T>::~EnhanceLinkedList()
 //	EnhanceLinkedList<RobotMeas> NeighborsTable;
 //	RobotMeas robot(0, 0);
 //
-//	robot.ID = 0x11111111; robot.distance = 0xF11F;
+//	robot.ID = 0x11111111; robot.Distance = 0xF11F;
 //	NeighborsTable.add(robot); // add Robot 1
 //
-//	robot.ID = 0x22222222; robot.distance = 0xF22F;
+//	robot.ID = 0x22222222; robot.Distance = 0xF22F;
 //	NeighborsTable.add(robot); // add Robot 2
 //
-//	robot.ID = 0x33333333; robot.distance = 0xF33F;
+//	robot.ID = 0x33333333; robot.Distance = 0xF33F;
 //	NeighborsTable.add(robot); // add Robot 3
 //
-//	robot.ID = 0x44444444; robot.distance = 0xF44F;
+//	robot.ID = 0x44444444; robot.Distance = 0xF44F;
 //	NeighborsTable.add(robot); // add Robot 4
 //
-//	robot.ID = 0x55555555; robot.distance = 0xF55F;
+//	robot.ID = 0x55555555; robot.Distance = 0xF55F;
 //	NeighborsTable.add(robot); // add Robot 5
 //
 //	robot.ID = 0x44444444;
@@ -191,13 +194,13 @@ EnhanceLinkedList<T>::~EnhanceLinkedList()
 //	robot.ID = 0x33333333;
 //	NeighborsTable.remove(robot); // remove robot 3
 //
-//	robot.ID = 0x66666666; robot.distance = 0xF66F;
+//	robot.ID = 0x66666666; robot.Distance = 0xF66F;
 //	NeighborsTable.add(robot); // add Robot 6
 //
-//	robot.ID = 0x77777777; robot.distance = 0xF77F;
+//	robot.ID = 0x77777777; robot.Distance = 0xF77F;
 //	NeighborsTable.add(robot); // add Robot 7
 //
-//	robot.ID = 0x88888888; robot.distance = 0xF88F;
+//	robot.ID = 0x88888888; robot.Distance = 0xF88F;
 //	NeighborsTable.add(robot); // add Robot 8
 //
 //	RobotMeas robot_select(0);
@@ -216,5 +219,4 @@ EnhanceLinkedList<T>::~EnhanceLinkedList()
 //	for(i = 0; i < 200; i++)
 //		pDynamic[i] = 0xCC;
 //	delete[] pDynamic;
-
 #endif /* ENHANCELINKEDLIST_H_ */
