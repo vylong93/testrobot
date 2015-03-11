@@ -54,6 +54,8 @@ extern "C"
 void initLinkedList(void);
 
 void clearNeighborsTable(void);
+int getCurrentNeighborsNumber(void);
+
 void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);

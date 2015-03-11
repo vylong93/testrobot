@@ -170,6 +170,10 @@ int main(void)
 				StateOne_MeasureDistance();
 			break;
 
+			case ROBOT_STATE_EXCHANGE_TABLE:
+				StateTwo_ExchangeTable();
+			break;
+
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
 				ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000) * 750); // ~750ms

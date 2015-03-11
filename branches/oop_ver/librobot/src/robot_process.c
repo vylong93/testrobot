@@ -122,8 +122,8 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
 }
 
-//========= State 1 - Measure Distances ================================
 
+//========= State 1 - Measure Distances ================================
 bool g_bIsSuccessMeasuredDistances;
 
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
@@ -199,7 +199,10 @@ void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 		float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
 		uint16_t ui16Distance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);	// Fixed-point <8.8>
 
-		addOverrideToNeighborsTable(ui32RequestRobotID, ui16Distance);
+		if(getRobotState() == ROBOT_STATE_MEASURE_DISTANCE)
+		{
+			addOverrideToNeighborsTable(ui32RequestRobotID, ui16Distance);
+		}
 
 		// random 1->100: delay unit (5ms)
 		uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
@@ -282,15 +285,19 @@ void StateOne_MeasureDistance(void)
 	   }
 	*/
 
-	StateOne_MeasureDistance_ResetFlag();
+	turnOffLED(LED_ALL);
 
-	activeRobotTask(MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateOne_MeasureDistance_MainTask);
+	do
+	{
+		StateOne_MeasureDistance_ResetFlag();
 
-	//TODO: check if Neighbors Table is NULL
+		activeRobotTask(MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateOne_MeasureDistance_MainTask);
+	}
+	while(getCurrentNeighborsNumber() == 0);
 
 	turnOnLED(LED_ALL);
 
-	setRobotState(ROBOT_STATE_IDLE);	//TODO: switch to next state
+	setRobotState(ROBOT_STATE_EXCHANGE_TABLE);
 }
 
 void StateOne_MeasureDistance_ResetFlag(void)
@@ -378,7 +385,21 @@ void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageDa
 	turnOffLED(LED_GREEN);
 }
 
-//========= Calibration Tab ================================
+
+//========= State 2 - Exchange Table ===================================
+void StateTwo_ExchangeTable(void)
+{
+	/* Pseudo-Code
+
+
+	   turnOffLED(LED_BLUE);
+	 */
+
+	setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state
+}
+
+
+//========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Test: Rf Receiver\n");
@@ -813,7 +834,6 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 8);
 }
 
-
 /* Test PID Controller only */
 float kP = 1;
 float kI = 0;
@@ -842,6 +862,7 @@ void testPIDController(uint8_t* pui8Data)
 		bIsRunPID = false;
 }
 //-------------------------------
+
 
 // ======================= Debug Tab ===============================
 void sendNeighborsTableToHost(void)

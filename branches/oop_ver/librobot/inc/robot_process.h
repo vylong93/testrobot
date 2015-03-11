@@ -21,8 +21,8 @@ extern "C"
 typedef enum tag_RobotState
 {
 	ROBOT_STATE_IDLE = 0,
-	ROBOT_STATE_MEASURE_DISTANCE,
-	ROBOT_STATE_EXCHANGE_TABLE,
+	ROBOT_STATE_MEASURE_DISTANCE,	// State One
+	ROBOT_STATE_EXCHANGE_TABLE,		// State Two
 	ROBOT_STATE_VOTE_ORIGIN,
 	ROBOT_STATE_ROTATE_NETWORK,
 	ROBOT_STATE_REDUCE_ERROR,
@@ -54,6 +54,7 @@ void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t
 void handleSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 
+//========= State 1 - Measure Distances ================================
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 
 void StateOne_MeasureDistance(void);
@@ -62,7 +63,10 @@ bool StateOne_MeasureDistance_MainTask(va_list argp);
 bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp);
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
-//========= Calibration Tab ================================
+//========= State 2 - Exchange Table ===================================
+void StateTwo_ExchangeTable(void);
+
+//========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
 void testRfTransmister(uint8_t* pui8Data);
