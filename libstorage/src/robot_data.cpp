@@ -26,6 +26,11 @@ void clearNeighborsTable(void)
 	g_NeighborsTable.clearAll();
 }
 
+int getCurrentNeighborsNumber(void)
+{
+	return g_NeighborsTable.Count;
+}
+
 void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	int i;
