@@ -49,13 +49,16 @@ e_RobotResponseState getRobotResponseState(void);
 uint8_t* getRequestMessageDataPointer(void);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
+
+void handleNeighborResponseSamplingCollision(void);
+
+//========= State 1 - Measure Distances ================================
+#define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
+
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
 void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope);
 void handleSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
-
-//========= State 1 - Measure Distances ================================
-#define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);

@@ -87,7 +87,7 @@ typedef struct tag_MessageHeader
 #define ROBOT_RESPONSE_TO_HOST_OK 				0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT				0xB0
 #define ROBOT_RESPONSE_DISTANCE_RESULT			0xB1
-#define ROBOT_RESPONSE_RESET_STATE_ONE			0xB2
+#define ROBOT_RESPONSE_SAMPLING_COLLISION		0xB2
 //----------------------------------------------------
 #define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS	0xA0
 #define ROBOT_REQUEST_SAMPLING_MICS				0xA1

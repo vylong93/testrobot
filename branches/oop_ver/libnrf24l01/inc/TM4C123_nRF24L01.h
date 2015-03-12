@@ -59,7 +59,9 @@ void MCU_RF_InitTimerDelay(void);
 void MCU_RF_ConfigureRfTimer(uint64_t ui64PeriodInUs);
 bool MCU_RF_IsRfTimerExpired(void);
 
-bool MCU_RF_GetInterruptState(void);
+void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage);
+void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState);
+
 void MCU_RF_EnableInterrupt(void);
 void MCU_RF_DisableInterrupt(void);
 bool MCU_RF_IsInterruptPinAsserted(void);

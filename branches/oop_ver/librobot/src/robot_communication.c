@@ -422,8 +422,8 @@ void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32
 		StateOne_MeasureDistance_UpdateNeighborsTableHandler(pui8MessageData, ui32DataSize);
 		break;
 
-	case ROBOT_RESPONSE_RESET_STATE_ONE:
-		StateOne_MeasureDistance_ResetFlag();
+	case ROBOT_RESPONSE_SAMPLING_COLLISION:
+		handleNeighborResponseSamplingCollision();
 		break;
 
 	default:

@@ -23,8 +23,8 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	uint8_t puiTempBuffer[RF24_BUFFER_SIZE];
 
-	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
-	MCU_RF_DisableInterrupt();
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
 
 	RF24_TX_activate();
 
@@ -53,10 +53,7 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	RF24_clearIrqFlag(RF24_IRQ_MASK);
 
-	MCU_RF_ClearIntFlag();
-	MCU_RF_ClearPending();
-	if (bCurrentInterruptStage)
-		MCU_RF_EnableInterrupt();	// recover last interrupt state
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 
 	RfFlushTxFifo();
 
@@ -213,8 +210,8 @@ void RfWaitUs(uint32_t periodUs)
 bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 		bool (*pfnDecodePacket)(uint8_t* pRxBuff, va_list argp), ...)
 {
-	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
-	MCU_RF_DisableInterrupt();
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
 
 	bool bReturn = false;
 
@@ -250,10 +247,7 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 
 	va_end(argp);	// We're finished with the varargs now.
 
-	MCU_RF_ClearIntFlag();
-	MCU_RF_ClearPending();
-	if (bCurrentInterruptStage)
-		MCU_RF_EnableInterrupt();	// recover last interrupt state
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 
 	return bReturn;
 }
@@ -261,8 +255,8 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 			bool (*pfnHandler)(va_list argp), ...)
 {
-	bool bCurrentInterruptStage = MCU_RF_GetInterruptState();
-	MCU_RF_DisableInterrupt();
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
 
 	bool bReturn = false;
 
@@ -292,11 +286,7 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 
 	va_end(argp);	// We're finished with the varargs now.
 
-	// Because previous action may have assert interrupt flag
-    MCU_RF_ClearIntFlag();
-    MCU_RF_ClearPending();
-	if (bCurrentInterruptStage)
-		MCU_RF_EnableInterrupt();	// recover last interrupt state
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 
 	return bReturn;
 }
