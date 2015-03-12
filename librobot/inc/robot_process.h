@@ -36,7 +36,9 @@ typedef enum tag_RobotResponseState
 	ROBOT_RESPONSE_STATE_CALIBRATE_SAMPLING_MICS,
 	ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER,
 	ROBOT_RESPONSE_STATE_SAMPLING_BATTERY,
-	ROBOT_RESPONSE_STATE_SAMPLING_MICS
+	ROBOT_RESPONSE_STATE_SAMPLING_MICS,
+	ROBOT_RESPONSE_STATE_NEIGHBORS_TABLE_AVAILABLE,
+	ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE
 } e_RobotResponseState;
 
 void initRobotProcess(void);
@@ -54,11 +56,8 @@ void handleNeighborResponseSamplingCollision(void);
 
 //========= State 1 - Measure Distances ================================
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
-
-bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
-void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope);
-void handleSamplingMicsRequest(uint8_t* pui8RequestData);
-bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
+#define EXCHANGE_TABLE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
+#define EXCHANGE_TABLE_STATE_SUBTASK2_LIFE_TIME_IN_MS		100		// 100ms
 
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);
@@ -66,8 +65,24 @@ bool StateOne_MeasureDistance_MainTask(va_list argp);
 bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp);
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
+bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
+void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope);
+void handleSamplingMicsRequest(uint8_t* pui8RequestData);
+bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
+
+
 //========= State 2 - Exchange Table ===================================
 void StateTwo_ExchangeTable(void);
+void StateTwo_ExchangeTable_ResetFlag(void);
+bool StateTwo_ExchangeTable_MainTask(va_list argp);
+bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp);
+void StateTwo_ExchangeTable_NeighborsTableAvailableHandler(uint8_t* pui8RequestData);
+bool StateTwo_ExchangeTable_SubTask2_WaitForNeighborResponseTable(va_list argp);
+void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData);
+void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
+void broadcastNeighborsTableAvailableCommandToLocalNeighbors(void);
+void sendRequestNeighborsTableCommandToNeighor(uint32_t ui32NeighborId);
 
 //========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data);
