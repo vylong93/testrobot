@@ -47,19 +47,17 @@ void TDOA_initFilters()
 	arm_fir_init_f32(&Filter, FILTER_ORDER, FilterCoeffs, pState, BLOCK_SIZE);
 }
 
+bool TDOA_isGoodQualityMeasurement(float fMaxA, float fMaxB)
+{
+	return ((fMaxA > GOOD_QUALITY_THRESHOLD) && (fMaxB > GOOD_QUALITY_THRESHOLD));
+}
+
 uint16_t TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnvelopeB, float fIntercept, float fSlope)
 {
 	//NOTE: output is Fixed-Point <8.8>
 
-	//TODO: (fPeakA + fPeakB) / 2 or cal disA, disB first
-
-	/* Attempt 1: cost many floating-point operator and sqrt
-	 * cal disA, disB and response (disA + disB) / 2
-	 */
 	float fDistanceA = ((fPeakEnvelopeA - fIntercept) / fSlope) + OFFSET_DISTANCE_IN_CM;
 	float fDistanceB = ((fPeakEnvelopeB - fIntercept) / fSlope) + OFFSET_DISTANCE_IN_CM;
-//	float fDistanceA = (fPeakEnvelopeA - fIntercept) / fSlope;
-//	float fDistanceB = (fPeakEnvelopeB - fIntercept) / fSlope;
 
 	float fSquareDistance = (((fDistanceA * fDistanceA
 								+ fDistanceB * fDistanceB) / 2.0)
@@ -67,15 +65,11 @@ uint16_t TDOA_calculateDistanceFromTwoPeaks(float fPeakEnvelopeA, float fPeakEnv
 								* 65536.0; // * 256^2
 
 	fSquareDistance = sqrtf(fSquareDistance);
-//	fSquareDistance = sqrtf(fSquareDistance) + OFFSET_DISTANCE_IN_CM * 256;
 
-	return (uint16_t)(fSquareDistance + 0.5);
-
-	/* Attempt 2: fast response
-	 * fPeak = (fPeakA + fPeakB) / 2, cal dis from fPeak and response
-	 */
-//	float fPeak = (fPeakEnvelopeA + fPeakEnvelopeB) / 2.0f;
-//	return ((fPeak - g_f32Intercept) / g_f32Slope);
+	if(fSquareDistance < MAXIMUM_DISTANCE)
+		return (uint16_t)(fSquareDistance + 0.5);
+	else
+		return 0;
 }
 
 void TDOA_process(uint16_t* pui16ADCResult, float* pfPeakEnvelope, float* pfMaxEnvelope)
