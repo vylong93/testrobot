@@ -9,6 +9,7 @@
 #define NETWORK_CPP_
 
 #include "libprotocol/inc/network.h"
+#include "data_manipulation.h"
 
 static uint32_t g_ui32SelfAddress = 0;
 static uint8_t g_ui8LastTxPID = 0;

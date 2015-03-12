@@ -16,8 +16,6 @@
 #include "librobot/inc/robot_process.h"
 
 #include "libstorage/inc/robot_data.h"
-#include "libstorage/inc/EnhanceLinkedList.h"
-#include "libstorage/inc/RobotMeas.h"
 
 //#define HAVE_IMU
 

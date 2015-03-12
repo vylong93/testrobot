@@ -17,30 +17,13 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define SIZE_OF_ROBOT_ID				4
 #define SIZE_OF_ROBOT_MEAS				6
 
 #define NEIGHBORS_TABLE_LENGTH 			10
 #define ONEHOP_NEIGHBORS_TABLE_LENGTH 	NEIGHBORS_TABLE_LENGTH
 #define LOCATIONS_TABLE_LENGTH			NEIGHBORS_TABLE_LENGTH
 
-//typedef struct tagRobotMeas
-//{
-//	uint32_t ID;
-//	uint16_t distance; // <8.8>
-//} robotMeas_t;
-//
-//typedef struct tagNeighborsTable
-//{
-//	robotMeas_t pNeighbors[NEIGHBOR_TABLE_LENGTH];
-//	uint8_t ui8Counter;
-//} neighborsArray_t;
-
-//typedef struct tagOneHopMeas
-//{
-//	uint32_t firstHopID;
-//	robotMeas_t neighbors[NEIGHBOR_TABLE_LENGTH];
-//} oneHopMeas_t;
-//
 //typedef struct tagVector {
 //	float x;
 //	float y;
@@ -53,12 +36,20 @@ extern "C"
 
 void initLinkedList(void);
 
+// ====== Neighbors Table manipulation methods =====================================
 void clearNeighborsTable(void);
 int getCurrentNeighborsNumber(void);
 
 void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
+bool isNeighborsTableContainRobot(uint32_t ui32RobotId);
 void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
+void constructNeighborsTableFromByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
+
+// ====== One Hop Neighbors Table manipulation methods =============================
+void clearOneHopNeighborsTable(void);
+int getCurrentOneHopNeighborsNumber(void);
+void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte);
 
 #ifdef __cplusplus
 }

@@ -83,15 +83,18 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_START_LOCALIZATION			0x17
 #define HOST_COMMAND_READ_NEIGHBORS_TABLE		0x18
 
-//----------------------------------------------------
-#define ROBOT_RESPONSE_TO_HOST_OK 				0x0A
-#define ROBOT_RESPONSE_TDOA_RESULT				0xB0
-#define ROBOT_RESPONSE_DISTANCE_RESULT			0xB1
-#define ROBOT_RESPONSE_SAMPLING_COLLISION		0xB2
-//----------------------------------------------------
-#define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS	0xA0
-#define ROBOT_REQUEST_SAMPLING_MICS				0xA1
-//----------------------------------------------------
+//------------------------------------------------------
+#define ROBOT_RESPONSE_TO_HOST_OK 					0x0A
+#define ROBOT_RESPONSE_TDOA_RESULT					0xB0
+#define ROBOT_RESPONSE_DISTANCE_RESULT				0xB1
+#define ROBOT_RESPONSE_SAMPLING_COLLISION			0xB2
+#define ROBOT_RESPONSE_NEIGHBORS_TABLE				0xB3
+//------------------------------------------------------
+#define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS		0xA0
+#define ROBOT_REQUEST_SAMPLING_MICS					0xA1
+#define ROBOT_BROADCAST_NEIGHBORS_TABLE_AVAILABLE	0xA2
+#define ROBOT_REQUEST_NEIGHBORS_TABLE				0xA3
+//------------------------------------------------------
 
 void RobotResponseIntHandler(void);
 void decodeMessage(uint8_t* pui8Message, uint32_t ui32MessSize);
@@ -144,7 +147,6 @@ void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_
 #define PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF	0xBD
 #define PC_SEND_ROTATE_CORRECTION_ANGLE_SAME	0xBE
 
-#define ROBOT_REQUEST_NEIGHBORS_TABLE 			0xD1
 #define ROBOT_RESPONSE_HELLO_NEIGHBOR			0xD2
 #define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 		0xD3
 #define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN		0xD4

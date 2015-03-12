@@ -82,19 +82,19 @@ extern "C"
 
 #define RF_CHECKSUM_PREOFFSET	0x0000	// This value, should be zero, is add to the sum result before generate checksum
 
-//*****************************************************************************
-// Convert 4 bytes of an array to a 32-bit value
-// @param x: The converted byte array
-// @return : a 32-bit value.
-//*****************************************************************************
-#define construct4Byte(x)	((*x << 24) | (*(x+1) << 16) |	\
-							(*(x+2) << 8) | *(x+3))
-
-
-#define parse32bitTo4Bytes(x, y)	{*(x) = y >> 24; \
-									 *(x + 1) = y >> 16; \
-									 *(x + 2) = y >> 8; \
-									 *(x + 3) = y;}
+////*****************************************************************************
+//// Convert 4 bytes of an array to a 32-bit value
+//// @param x: The converted byte array
+//// @return : a 32-bit value.
+////*****************************************************************************
+//#define construct4Byte(x)	((*x << 24) | (*(x+1) << 16) |	\
+//							(*(x+2) << 8) | *(x+3))
+//
+//
+//#define parse32bitTo4Bytes(x, y)	{*(x) = y >> 24; \
+//									 *(x + 1) = y >> 16; \
+//									 *(x + 2) = y >> 8; \
+//									 *(x + 3) = y;}
 
 #define PACKET_LIFETIME				15		// Packet retransmit times for Tx failed...
 #define ACK_TIMEOUT_USEC			1500	// Waiting for ACK response period in mircosecond
