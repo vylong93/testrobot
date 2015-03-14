@@ -59,19 +59,19 @@ void MCU_RF_InitTimerDelay(void);
 void MCU_RF_ConfigureRfTimer(uint64_t ui64PeriodInUs);
 bool MCU_RF_IsRfTimerExpired(void);
 
-void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage);
-void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState);
+inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage);
+inline void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState);
 
 void MCU_RF_EnableInterrupt(void);
 void MCU_RF_DisableInterrupt(void);
 bool MCU_RF_IsInterruptPinAsserted(void);
 void MCU_RF_ClearIntFlag(void);
-void MCU_RF_ClearPending(void);
+inline void MCU_RF_ClearPending(void);
 
-void MCU_RF_SetCSN();	// Pull the RF24_CSN pin to logic high
-void MCU_RF_ClearCSN();	// Pull the RF24_CSN pin to logic low
-void MCU_RF_SetCE();	// Pull the RF24_CE pin to logic high
-void MCU_RF_ClearCE();	// Pull the RF24_CE pin to logic high
+inline void MCU_RF_SetCSN();	// Pull the RF24_CSN pin to logic high
+inline void MCU_RF_ClearCSN();	// Pull the RF24_CSN pin to logic low
+inline void MCU_RF_SetCE();	// Pull the RF24_CE pin to logic high
+inline void MCU_RF_ClearCE();	// Pull the RF24_CE pin to logic high
 char MCU_RF_SendAndGetData (uint32_t inData);	// Send and get data through the RF24_SPI
 
 // Return the current state of the CE pin.

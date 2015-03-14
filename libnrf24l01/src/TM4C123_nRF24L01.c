@@ -144,13 +144,13 @@ bool MCU_RF_IsRfTimerExpired(void)
 }
 
 
-void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
+inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
 {
 	*pbCurrentInterruptStateStorage = g_bIsIntEnable;
 	MCU_RF_DisableInterrupt();
 }
 
-void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState)
+inline void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState)
 {
     MCU_RF_ClearIntFlag();
     MCU_RF_ClearPending();
@@ -181,29 +181,28 @@ void MCU_RF_ClearIntFlag(void)
 	GPIOIntClear(RF24_INT_PORT, RF24_INT_Pin);
 }
 
-void MCU_RF_ClearPending(void)
+inline void MCU_RF_ClearPending(void)
 {
 	ROM_IntPendClear(RF24_INT);
 }
 
-
-void MCU_RF_SetCSN()
+inline void MCU_RF_SetCSN()
 {
   ROM_GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, RF24_CSN);
 }
 
-void MCU_RF_ClearCSN()
+inline void MCU_RF_ClearCSN()
 {
   ROM_GPIOPinWrite(RF24_SPI_PORT, RF24_CSN, 0);
 }
 
-void MCU_RF_SetCE()
+inline void MCU_RF_SetCE()
 {
   ROM_GPIOPinWrite(RF24_INT_PORT, RF24_CE, RF24_CE);
   CEState = 1;
 }
 
-void MCU_RF_ClearCE()
+inline void MCU_RF_ClearCE()
 {
   ROM_GPIOPinWrite(RF24_INT_PORT, RF24_CE, 0);
   CEState = 0;

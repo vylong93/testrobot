@@ -398,6 +398,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		sendNeighborsTableToHost();
 		break;
 
+	case HOST_COMMAND_READ_ONEHOP_NEIGHBORS_TABLE:
+		sendOneHopNeighborsTableToHost();
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;

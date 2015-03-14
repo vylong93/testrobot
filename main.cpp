@@ -549,7 +549,7 @@ void MCU_RF_IRQ_handler(void)
 //	turnOffLED(LED_ALL);
 //	g_eProcessState = REDUCE_ERROR;
 //}
-//
+
 //void StateFive_ReduceCoordinatesError()
 //{
 //	int8_t i;
@@ -794,7 +794,7 @@ void MCU_RF_IRQ_handler(void)
 //	//g_eProcessState = LOCOMOTION;
 //	g_eProcessState = IDLE;
 //}
-//
+
 //void StateSix_Locomotion()
 //{
 //	vector2_t vectZero;
@@ -916,7 +916,7 @@ void MCU_RF_IRQ_handler(void)
 //
 //	g_eProcessState = IDLE;
 //}
-//
+
 //void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 //{
 //	float const RESOLUTION = 18; // in cm

@@ -20,6 +20,8 @@ extern "C"
 #define SIZE_OF_ROBOT_ID				4
 #define SIZE_OF_ROBOT_MEAS				6
 
+#define MAXIMUM_SIZE_OF_ONEHOP_MEAS		64	// (4 +  NEIGHBORS_TABLE_LENGTH * SIZE_OF_ROBOT_MEAS)
+
 #define NEIGHBORS_TABLE_LENGTH 			10
 #define ONEHOP_NEIGHBORS_TABLE_LENGTH 	NEIGHBORS_TABLE_LENGTH
 #define LOCATIONS_TABLE_LENGTH			NEIGHBORS_TABLE_LENGTH
@@ -50,6 +52,8 @@ void constructNeighborsTableFromByteBuffer(uint8_t* pui8Buffer, uint32_t ui32Tot
 void clearOneHopNeighborsTable(void);
 int getCurrentOneHopNeighborsNumber(void);
 void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte);
+bool isOneHopNeighborsTableContainRobot(uint32_t ui32RobotId);
+void fillOneHopNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 #ifdef __cplusplus
 }

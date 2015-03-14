@@ -120,8 +120,9 @@ void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer
 	if((ui32TableSizeInByte % SIZE_OF_ROBOT_MEAS) != 0)
 		return;
 
+	OneHopMeas oneHopMeas;
 	EnhanceLinkedList<RobotMeas>* pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
-	RobotMeas neighbor(0, 0);
+	RobotMeas neighbor(0);
 
 	int i;
 	for(i = 0; i < ui32TableSizeInByte; i++)
@@ -132,6 +133,65 @@ void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer
 		i += SIZE_OF_ROBOT_MEAS;
 	}
 
-	OneHopMeas OneHopMeas(ui32NeighborId, pNeighborsTable);
-	g_OneHopNeighborsTable.add(OneHopMeas);
+	oneHopMeas.firstHopID = ui32NeighborId;
+	oneHopMeas.pNeighborsTable = pNeighborsTable;
+	g_OneHopNeighborsTable.add(oneHopMeas);
+
+	delete pNeighborsTable;
+}
+
+bool isOneHopNeighborsTableContainRobot(uint32_t ui32RobotId)
+{
+	int i;
+	for(i = 0; i < g_OneHopNeighborsTable.Count; i++)
+	{
+		if (g_OneHopNeighborsTable[i].firstHopID == ui32RobotId)
+			return true;
+	}
+	return false;
+}
+
+void fillOneHopNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
+{
+	if((ui32TotalLength % MAXIMUM_SIZE_OF_ONEHOP_MEAS) != 0)
+		return;
+
+	int neighborPointer;
+	int oneHopNeighborPointer = 0;
+
+	uint32_t i;
+	for(i = 0; i < ui32TotalLength; )
+	{
+		if(oneHopNeighborPointer < g_OneHopNeighborsTable.Count)
+		{
+			parse32bitTo4Bytes(&pui8Buffer[i], g_OneHopNeighborsTable[oneHopNeighborPointer].firstHopID);
+			i += 4;
+
+			for(neighborPointer = 0; neighborPointer < NEIGHBORS_TABLE_LENGTH; neighborPointer++)
+			{
+				if(neighborPointer < g_OneHopNeighborsTable[oneHopNeighborPointer].pNeighborsTable->Count)
+				{
+					parse32bitTo4Bytes(&pui8Buffer[i], g_OneHopNeighborsTable[oneHopNeighborPointer].pNeighborsTable->ElementAt(neighborPointer).ID);
+					i += 4;
+
+					parse16bitTo2Bytes(&pui8Buffer[i], g_OneHopNeighborsTable[oneHopNeighborPointer].pNeighborsTable->ElementAt(neighborPointer).Distance);
+					i += 2;
+				}
+				else
+				{
+					parse32bitTo4Bytes(&pui8Buffer[i], 0);
+					i += 4;
+
+					parse16bitTo2Bytes(&pui8Buffer[i], 0);
+					i += 2;
+				}
+			}
+
+			oneHopNeighborPointer++;
+		}
+		else
+		{
+			pui8Buffer[i++] = 0;
+		}
+	}
 }
