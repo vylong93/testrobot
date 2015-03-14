@@ -469,76 +469,80 @@ void StateFour_RequestRotateNetwork()
 	// waiting request and rotate
 	while(!g_bIsNetworkRotated);
 
-	g_ui8ReTransmitCounter = 0; // disable software trigger retransmit
-
-	tableSizeInByte = sizeof(location_t) * g_ui8LocsCounter;
-
-	i = 0;
-	while (i < g_ui8LocsCounter)
+	// Debug Only
+	if (g_ui32RobotID == g_ui32OriginID)
 	{
-		generateRandomByte();
-		while (g_ui8RandomNumber == 0)
-			;
-		g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
+		g_ui8ReTransmitCounter = 0; // disable software trigger retransmit
 
-		ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
+		tableSizeInByte = sizeof(location_t) * g_ui8LocsCounter;
 
-		delayTimerB(g_ui8RandomNumber + 1000, true);
-
-		neighborID = locs[i].ID;
-
-		if (neighborID == g_ui32RotationHopID || neighborID == g_ui32RobotID)
+		i = 0;
+		while (i < g_ui8LocsCounter)
 		{
-			i++;
-			continue;
-		}
+			generateRandomByte();
+			while (g_ui8RandomNumber == 0)
+				;
+			g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
 
-		// send rotate network command and locs size
-		RF24_TX_buffer[0] = ROBOT_REQUEST_ROTATE_NETWORK;
+			ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
 
-		RF24_TX_buffer[1] = g_ui32RobotID >> 24;
-		RF24_TX_buffer[2] = g_ui32RobotID >> 16;
-		RF24_TX_buffer[3] = g_ui32RobotID >> 8;
-		RF24_TX_buffer[4] = g_ui32RobotID;
+			delayTimerB(g_ui8RandomNumber + 1000, true);
 
-		RF24_TX_buffer[5] = tableSizeInByte >> 24;
-		RF24_TX_buffer[6] = tableSizeInByte >> 16;
-		RF24_TX_buffer[7] = tableSizeInByte >> 8;
-		RF24_TX_buffer[8] = tableSizeInByte;
+			neighborID = locs[i].ID;
 
-		tempValue = (int8_t)(g_vector.x * 65536.0 + 0.5);
-		RF24_TX_buffer[9] = tempValue >> 24;
-		RF24_TX_buffer[10] = tempValue >> 16;
-		RF24_TX_buffer[11] = tempValue >> 8;
-		RF24_TX_buffer[12] = tempValue;
+			if (neighborID == g_ui32RotationHopID || neighborID == g_ui32RobotID)
+			{
+				i++;
+				continue;
+			}
 
-		tempValue = (int8_t)(g_vector.y * 65536.0 + 0.5);
-		RF24_TX_buffer[13] = tempValue >> 24;
-		RF24_TX_buffer[14] = tempValue >> 16;
-		RF24_TX_buffer[15] = tempValue >> 8;
-		RF24_TX_buffer[16] = tempValue;
+			// send rotate network command and locs size
+			RF24_TX_buffer[0] = ROBOT_REQUEST_ROTATE_NETWORK;
 
-		RF24_TX_buffer[17] = ui8RandomRfChannel;
+			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
+			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
+			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
+			RF24_TX_buffer[4] = g_ui32RobotID;
 
-		if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 18))
-		{
-			turnOffLED(LED_RED);
+			RF24_TX_buffer[5] = tableSizeInByte >> 24;
+			RF24_TX_buffer[6] = tableSizeInByte >> 16;
+			RF24_TX_buffer[7] = tableSizeInByte >> 8;
+			RF24_TX_buffer[8] = tableSizeInByte;
 
-			RF24_setChannel(ui8RandomRfChannel);
-			RF24_TX_flush();
-			RF24_clearIrqFlag(RF24_IRQ_MASK);
-			RF24_RX_activate();
+			tempValue = (int8_t)(g_vector.x * 65536.0 + 0.5);
+			RF24_TX_buffer[9] = tempValue >> 24;
+			RF24_TX_buffer[10] = tempValue >> 16;
+			RF24_TX_buffer[11] = tempValue >> 8;
+			RF24_TX_buffer[12] = tempValue;
 
-			SysCtlDelay(3000); // delay 150us
-			sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
-			i++;
+			tempValue = (int8_t)(g_vector.y * 65536.0 + 0.5);
+			RF24_TX_buffer[13] = tempValue >> 24;
+			RF24_TX_buffer[14] = tempValue >> 16;
+			RF24_TX_buffer[15] = tempValue >> 8;
+			RF24_TX_buffer[16] = tempValue;
 
-			RF24_setChannel(0);
-			RF24_TX_flush();
-			RF24_clearIrqFlag(RF24_IRQ_MASK);
-			RF24_RX_activate();
+			RF24_TX_buffer[17] = ui8RandomRfChannel;
 
-			turnOnLED(LED_RED);
+			if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 18))
+			{
+				turnOffLED(LED_RED);
+
+				RF24_setChannel(ui8RandomRfChannel);
+				RF24_TX_flush();
+				RF24_clearIrqFlag(RF24_IRQ_MASK);
+				RF24_RX_activate();
+
+				SysCtlDelay(3000); // delay 150us
+				sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
+				i++;
+
+				RF24_setChannel(0);
+				RF24_TX_flush();
+				RF24_clearIrqFlag(RF24_IRQ_MASK);
+				RF24_RX_activate();
+
+				turnOnLED(LED_RED);
+			}
 		}
 	}
 	// Coordinates rotated!!!
@@ -807,10 +811,13 @@ void StateSix_Locomotion()
 	vector2_t vectOne;
 	vector2_t vectDiff;
 
-	float fAngleOffer = 0.2094395102; // ~12 degree
+//	float fAngleOffer = 0.2094395102; // ~12 degree
 	float fRotateAngle = MATH_PI_DIV_2; // ~90 degree
-	float fThetaOne;
-	float fThetaTwo;
+//	float fThetaOne;
+//	float fThetaTwo;
+
+	float alphaP;
+	float alphaQ;
 
 	uint16_t ui16RandomValue;
 
@@ -878,28 +885,42 @@ void StateSix_Locomotion()
 
 	notifyNewVectorToNeigbors();
 
-	vectDiff.x = vectOne.x - vectZero.x;
-	vectDiff.y = vectOne.y - vectZero.y;
-	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
+//	vectDiff.x = vectOne.x - vectZero.x;
+//	vectDiff.y = vectOne.y - vectZero.y;
+//	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
+//
+//	vectDiff.x = g_vector.x - vectOne.x;
+//	vectDiff.y = g_vector.y - vectOne.y;
+//	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
 
 	vectDiff.x = g_vector.x - vectOne.x;
 	vectDiff.y = g_vector.y - vectOne.y;
-	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
+	g_fRobotOrientedAngle = calculateRobotAngleWithXAxis(vectDiff);
 
-	g_fRobotOrientedAngle = fThetaTwo;
+//	if (fRotateAngle < 0)
+//		fRotateAngle = fThetaOne - fRotateAngle;
+//	else
+//		fRotateAngle += fThetaOne;
+//
+//	while(fRotateAngle > MATH_PI_MUL_2)
+//		fRotateAngle -= MATH_PI_MUL_2;
 
-	if (fRotateAngle < 0)
-		fRotateAngle = fThetaOne - fRotateAngle;
-	else
-		fRotateAngle += fThetaOne;
+	// one - zero = P
+	vectDiff.x = vectOne.x - vectZero.x;
+	vectDiff.y = vectOne.y - vectZero.y;
+	alphaP = calculateRobotAngleWithXAxis(vectDiff);
 
-	while(fRotateAngle > MATH_PI_MUL_2)
-		fRotateAngle -= MATH_PI_MUL_2;
+	// g_vector - zero = Q
+	vectDiff.x = g_vector.x - vectZero.x;
+	vectDiff.y = g_vector.y - vectZero.y;
+	alphaQ = calculateRobotAngleWithXAxis(vectDiff);
 
-	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
-		g_bIsCounterClockwiseOriented = true; // SAME
-	else
+//	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
+	if (((alphaP > alphaQ) && ((alphaP - alphaQ) < MATH_PI))
+			|| ((alphaQ - alphaP) > MATH_PI))
 		g_bIsCounterClockwiseOriented = false; // DIFFERENT
+	else
+		g_bIsCounterClockwiseOriented = true; // SAME
 
 	turnOnLED(LED_GREEN);
 
@@ -1462,6 +1483,16 @@ inline void RF24_IntHandler()
 							rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
 						else
 							rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+						g_fRobotOrientedAngle = 0;
+						break;
+
+					case PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF:
+						rotateClockwiseWithAngle(g_fRobotOrientedAngle);
+						g_fRobotOrientedAngle = 0;
+						break;
+
+					case PC_SEND_ROTATE_CORRECTION_ANGLE_SAME:
+						rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
 						g_fRobotOrientedAngle = 0;
 						break;
 

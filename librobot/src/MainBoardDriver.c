@@ -178,9 +178,35 @@ float vsqrtf(float op1)
 	if (op1 <= 0.f)
 		return 0.f;
 
-	float result;
-	__ASM
-	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+	float result = 0;
+
+	//asm volatile ("vsqrt.f32 result, op1 \n\t");
+	result = sqrtf(op1);
+
+//	  temp = stack_pointer[task_id];
+//	  asm volatile ("mov.w temp, r1 \n\t");
+
+//	__ASM
+//	volatile ("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+//
+//	  asm volatile ( "pop r15 \n\t" \
+//	                 "pop r14 \n\t" \
+//	                 "pop r13 \n\t" \
+//	                 "pop r12 \n\t" \
+//	                 "pop r11 \n\t" \
+//	                 "pop r10 \n\t" \
+//	                 "pop r9  \n\t" \
+//	                 "pop r8  \n\t" \
+//	                 "pop r7  \n\t" \
+//	                 "pop r6  \n\t" \
+//	                 "pop r5  \n\t" \
+//	                 "pop r4  \n\t" \
+//	                 "reti    \n\t" \
+//	               );
+
+//    __asm("    rev     r0, r0\n"
+//          "    bx      lr\n"); // need this to make sure r0 is returned
+
 	return (result);
 }
 
