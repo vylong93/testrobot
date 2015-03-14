@@ -40,10 +40,6 @@ void RobotResponseIntHandler(void)
 			handleSamplingMicsRequest(pui8RequestData);
 			break;
 
-		case ROBOT_RESPONSE_STATE_NEIGHBORS_TABLE_AVAILABLE:
-			StateTwo_ExchangeTable_NeighborsTableAvailableHandler(pui8RequestData);
-			break;
-
 		case ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE:
 			StateTwo_ExchangeTable_TransmitNeighborsTableHandler(pui8RequestData);
 			break;
@@ -419,10 +415,6 @@ void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_
 	case ROBOT_REQUEST_SAMPLING_MICS:
 		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_MICS, pui8MessageData, ui32DataSize);
 		break;
-
-	case ROBOT_BROADCAST_NEIGHBORS_TABLE_AVAILABLE:
-		triggerResponseState(ROBOT_RESPONSE_STATE_NEIGHBORS_TABLE_AVAILABLE, pui8MessageData, ui32DataSize);
-	break;
 
 	case ROBOT_REQUEST_NEIGHBORS_TABLE:
 		triggerResponseState(ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE, pui8MessageData, ui32DataSize);

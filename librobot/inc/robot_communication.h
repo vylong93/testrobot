@@ -93,8 +93,7 @@ typedef struct tag_MessageHeader
 //------------------------------------------------------
 #define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS		0xA0
 #define ROBOT_REQUEST_SAMPLING_MICS					0xA1
-#define ROBOT_BROADCAST_NEIGHBORS_TABLE_AVAILABLE	0xA2
-#define ROBOT_REQUEST_NEIGHBORS_TABLE				0xA3
+#define ROBOT_REQUEST_NEIGHBORS_TABLE				0xA2
 //------------------------------------------------------
 
 void RobotResponseIntHandler(void);

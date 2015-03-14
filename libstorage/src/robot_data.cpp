@@ -17,21 +17,21 @@ EnhanceLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 
 void initLinkedList(void)
 {
-	clearNeighborsTable();
-	clearOneHopNeighborsTable();
+	NeighborsTable_clear();
+	OneHopNeighborsTable_clear();
 }
 
-void clearNeighborsTable(void)
+void NeighborsTable_clear(void)
 {
 	g_NeighborsTable.clearAll();
 }
 
-int getCurrentNeighborsNumber(void)
+int NeighborsTable_getSize(void)
 {
 	return g_NeighborsTable.Count;
 }
 
-void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
+void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	int i;
 	for(i = 0; i < g_NeighborsTable.Count; i++)
@@ -44,10 +44,10 @@ void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	}
 
 	// breakout if not found any match which ui32NeighborId:
-	addToNeighborsTable(ui32NeighborId, ui16Distance);
+	NeighborsTable_add(ui32NeighborId, ui16Distance);
 }
 
-void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
+void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	RobotMeas robotNeighbor(ui32NeighborId, ui16Distance);
 
@@ -70,7 +70,7 @@ void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	}
 }
 
-bool isNeighborsTableContainRobot(uint32_t ui32RobotId)
+bool NeighborsTable_isContainRobot(uint32_t ui32RobotId)
 {
 	int i;
 	for(i = 0; i < g_NeighborsTable.Count; i++)
@@ -81,7 +81,12 @@ bool isNeighborsTableContainRobot(uint32_t ui32RobotId)
 	return false;
 }
 
-void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
+uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index)
+{
+	return g_NeighborsTable[ui32Index].ID;
+}
+
+void NeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
 {
 	if((ui32TotalLength % SIZE_OF_ROBOT_MEAS) != 0)
 		return;
@@ -105,42 +110,40 @@ void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLengt
 	}
 }
 
-void clearOneHopNeighborsTable(void)
+void OneHopNeighborsTable_clear(void)
 {
 	g_OneHopNeighborsTable.clearAll();
 }
 
-int getCurrentOneHopNeighborsNumber(void)
+int OneHopNeighborsTable_getSize(void)
 {
 	return g_OneHopNeighborsTable.Count;
 }
 
-void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte)
+void OneHopNeighborsTable_add(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte)
 {
 	if((ui32TableSizeInByte % SIZE_OF_ROBOT_MEAS) != 0)
 		return;
 
 	OneHopMeas oneHopMeas;
-	EnhanceLinkedList<RobotMeas>* pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
+	EnhanceLinkedList<RobotMeas> NeighborsTable;
 	RobotMeas neighbor(0);
 
 	int i;
-	for(i = 0; i < ui32TableSizeInByte; i++)
+	for(i = 0; i < ui32TableSizeInByte; )
 	{
 		neighbor.ID = construct4Byte(&pui8TableBuffer[i]);
 		neighbor.Distance = construct2Byte(&pui8TableBuffer[i + 4]);
-		pNeighborsTable->add(neighbor);
+		NeighborsTable.add(neighbor);
 		i += SIZE_OF_ROBOT_MEAS;
 	}
 
 	oneHopMeas.firstHopID = ui32NeighborId;
-	oneHopMeas.pNeighborsTable = pNeighborsTable;
+	oneHopMeas.pNeighborsTable = &NeighborsTable;
 	g_OneHopNeighborsTable.add(oneHopMeas);
-
-	delete pNeighborsTable;
 }
 
-bool isOneHopNeighborsTableContainRobot(uint32_t ui32RobotId)
+bool OneHopNeighborsTable_isContainRobot(uint32_t ui32RobotId)
 {
 	int i;
 	for(i = 0; i < g_OneHopNeighborsTable.Count; i++)
@@ -151,7 +154,7 @@ bool isOneHopNeighborsTableContainRobot(uint32_t ui32RobotId)
 	return false;
 }
 
-void fillOneHopNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
+void OneHopNeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
 {
 	if((ui32TotalLength % MAXIMUM_SIZE_OF_ONEHOP_MEAS) != 0)
 		return;

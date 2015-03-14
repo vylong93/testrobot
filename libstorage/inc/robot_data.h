@@ -39,21 +39,22 @@ extern "C"
 void initLinkedList(void);
 
 // ====== Neighbors Table manipulation methods =====================================
-void clearNeighborsTable(void);
-int getCurrentNeighborsNumber(void);
+int NeighborsTable_getSize(void);
+void NeighborsTable_clear(void);
 
-void addOverrideToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
-void addToNeighborsTable(uint32_t ui32NeighborId, uint16_t ui16Distance);
-bool isNeighborsTableContainRobot(uint32_t ui32RobotId);
-void fillNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
-void constructNeighborsTableFromByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
+void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance);
+void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance);
+bool NeighborsTable_isContainRobot(uint32_t ui32RobotId);
+uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index);
+void NeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 // ====== One Hop Neighbors Table manipulation methods =============================
-void clearOneHopNeighborsTable(void);
-int getCurrentOneHopNeighborsNumber(void);
-void addToOneHopNeighborsTable(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte);
-bool isOneHopNeighborsTableContainRobot(uint32_t ui32RobotId);
-void fillOneHopNeighborsTableToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
+void OneHopNeighborsTable_clear(void);
+int OneHopNeighborsTable_getSize(void);
+
+void OneHopNeighborsTable_add(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte);
+bool OneHopNeighborsTable_isContainRobot(uint32_t ui32RobotId);
+void OneHopNeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 #ifdef __cplusplus
 }

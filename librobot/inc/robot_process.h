@@ -37,7 +37,6 @@ typedef enum tag_RobotResponseState
 	ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER,
 	ROBOT_RESPONSE_STATE_SAMPLING_BATTERY,
 	ROBOT_RESPONSE_STATE_SAMPLING_MICS,
-	ROBOT_RESPONSE_STATE_NEIGHBORS_TABLE_AVAILABLE,
 	ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE
 } e_RobotResponseState;
 
@@ -52,12 +51,17 @@ uint8_t* getRequestMessageDataPointer(void);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
 
+void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 
 //========= State 1 - Measure Distances ================================
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
+#define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
+#define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
+
 #define EXCHANGE_TABLE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
-#define EXCHANGE_TABLE_STATE_SUBTASK2_LIFE_TIME_IN_MS		100		// 100ms
+#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
+#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
 
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);
@@ -76,12 +80,9 @@ void StateTwo_ExchangeTable(void);
 void StateTwo_ExchangeTable_ResetFlag(void);
 bool StateTwo_ExchangeTable_MainTask(va_list argp);
 bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp);
-bool StateTwo_ExchangeTable_SubTask2_WaitForNeighborResponseTable(va_list argp);
-void StateTwo_ExchangeTable_NeighborsTableAvailableHandler(uint8_t* pui8RequestData);
 void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData);
 void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
-void broadcastNeighborsTableAvailableCommandToLocalNeighbors(void);
 void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId);
 
 //========= Calibration Tab ============================================

@@ -22,10 +22,10 @@
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
-e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
-e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
+static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
+static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
-uint8_t* g_pui8RequestData;
+static uint8_t* g_pui8RequestData;
 
 void initRobotProcess(void)
 {
@@ -123,6 +123,23 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
 }
 
+void handleCommonSubTaskDelayRandomState(void)
+{
+	uint32_t ui32MessageSize;
+	uint8_t* pui8RxBuffer = 0;
+
+	turnOnLED(LED_RED);
+
+	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+	{
+		decodeMessage(pui8RxBuffer, ui32MessageSize);
+	}
+
+	Network_deleteBuffer(pui8RxBuffer);
+
+	turnOffLED(LED_RED);
+}
+
 void handleNeighborResponseSamplingCollision(void)
 {
 	switch (getRobotState())
@@ -137,7 +154,7 @@ void handleNeighborResponseSamplingCollision(void)
 }
 
 //========= State 1 - Measure Distances ================================
-bool g_bIsSuccessMeasuredDistances;
+static bool g_bIsSuccessMeasuredDistances;
 
 void StateOne_MeasureDistance(void)
 {
@@ -198,14 +215,14 @@ void StateOne_MeasureDistance(void)
 
 		activeRobotTask(MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateOne_MeasureDistance_MainTask);
 	}
-	while(getCurrentNeighborsNumber() == 0);
+	while(NeighborsTable_getSize() == 0);
 
 	setRobotState(ROBOT_STATE_EXCHANGE_TABLE);
 }
 
 void StateOne_MeasureDistance_ResetFlag(void)
 {
-	clearNeighborsTable();
+	NeighborsTable_clear();
 	g_bIsSuccessMeasuredDistances = false;
 }
 
@@ -220,12 +237,13 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 	turnOnLED(LED_BLUE);
 
 	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask1;
+	uint32_t ui32LifeTimeInUsOfSubTask;
 	do
 	{
-		ui32LifeTimeInUsOfSubTask1 = generateRandomFloatInRange(100000, 1000000); // 100ms to 1000ms
+		 // 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask1, StateOne_MeasureDistance_SubTask_DelayRandom_Handler);
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateOne_MeasureDistance_SubTask_DelayRandom_Handler);
 
 		if (isRfFlagAssert)		// if subtask 1 is forced to terminal then reset delay
 			resetRobotTaskTimer();
@@ -258,22 +276,27 @@ bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp)
 	//		va_list argp
 	//			This list containt no argument
 
-	uint32_t ui32MessageSize;
-	uint8_t* pui8RxBuffer = 0;
+	// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
+	handleCommonSubTaskDelayRandomState();
 
-	turnOnLED(LED_RED);
+	return true; // Terminal the subTask after handle
 
-	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-	{
-		// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
-		decodeMessage(pui8RxBuffer, ui32MessageSize);
-	}
-
-	Network_deleteBuffer(pui8RxBuffer);
-
-	turnOffLED(LED_RED);
-
-	return true; // Terminal This subTask whether or not correct rf message is received
+//	uint32_t ui32MessageSize;
+//	uint8_t* pui8RxBuffer = 0;
+//
+//	turnOnLED(LED_RED);
+//
+//	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+//	{
+//		// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
+//		decodeMessage(pui8RxBuffer, ui32MessageSize);
+//	}
+//
+//	Network_deleteBuffer(pui8RxBuffer);
+//
+//	turnOffLED(LED_RED);
+//
+//	return true; // Terminal This subTask whether or not correct rf message is received
 }
 
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -286,7 +309,7 @@ void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageDa
 
 	// Filtered the invalid results measurement
 	if (ui16Distance > 0 && ui16Distance < MAXIMUM_DISTANCE)
-		addOverrideToNeighborsTable(ui32ResponseRobotId, ui16Distance);
+		NeighborsTable_addOverride(ui32ResponseRobotId, ui16Distance);
 
 	turnOffLED(LED_GREEN);
 }
@@ -381,7 +404,7 @@ void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 				// NOTE: Only add override to neighbors table when at the first state
 				if(getRobotState() == ROBOT_STATE_MEASURE_DISTANCE)
 				{
-					addOverrideToNeighborsTable(ui32RequestRobotID, ui16Distance);
+					NeighborsTable_addOverride(ui32RequestRobotID, ui16Distance);
 				}
 
 				// random 1->100: delay unit (1ms)
@@ -415,7 +438,7 @@ bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
 
 
 //========= State 2 - Exchange Table ===================================
-bool g_bIsNewLocationsTableAvailable;
+static bool g_bIsNewLocationsTableAvailable;
 
 void StateTwo_ExchangeTable(void)
 {
@@ -542,17 +565,23 @@ void StateTwo_ExchangeTable(void)
 
 	StateTwo_ExchangeTable_ResetFlag();
 
-	activeRobotTask(EXCHANGE_TABLE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateTwo_ExchangeTable_MainTask);
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-	if (g_bIsNewLocationsTableAvailable)
-		setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state
-	else
-		setRobotState(ROBOT_STATE_MEASURE_DISTANCE);
+	do
+	{
+		activeRobotTask(EXCHANGE_TABLE_STATE_MAINTASK_LIFE_TIME_IN_MS, StateTwo_ExchangeTable_MainTask);
+	}
+	while(!g_bIsNewLocationsTableAvailable);
+
+	setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state
 }
 
 void StateTwo_ExchangeTable_ResetFlag(void)
 {
-	clearOneHopNeighborsTable();
+	OneHopNeighborsTable_clear();
 	g_bIsNewLocationsTableAvailable = false;
 }
 
@@ -567,31 +596,49 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	turnOnLED(LED_GREEN);
 
 	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask1;
+	uint32_t ui32LifeTimeInUsOfSubTask;
 
-	ui32LifeTimeInUsOfSubTask1 = generateRandomFloatInRange(500000, 2000000); // 500ms to 2000ms
-
-	isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask1, StateTwo_ExchangeTable_SubTask_DelayRandom_Handler);
-
-	if((getCurrentOneHopNeighborsNumber() > 1) && (g_bIsNewLocationsTableAvailable == false))
+	do
 	{
-		//TODO: calculate new Locs Table()
-		//{
-		//	Tri_addLocation(g_ui32RobotID, 0, 0);
-		//	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
-		//}
+		// 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-		g_bIsNewLocationsTableAvailable = true;
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateTwo_ExchangeTable_SubTask_DelayRandom_Handler);
 
-		resetRobotTaskTimer();
-		// NOTE: shouldn't break the TASK, wait for task expired to keep synchronous state
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
 	}
-	// else { Do nothing! Not enough data to calculate Locations Table }
+	while(isRfFlagAssert);
 
-	if (!isRfFlagAssert)
+	// Now, robot timer delay random is expired
+	if(!g_bIsNewLocationsTableAvailable)
 	{
-		broadcastNeighborsTableAvailableCommandToLocalNeighbors();
-		resetRobotTaskTimer();
+		if((OneHopNeighborsTable_getSize() == NeighborsTable_getSize()))
+		{
+			//TODO: calculate new Locs Table()
+			//{
+			//	Tri_addLocation(g_ui32RobotID, 0, 0);
+			//	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
+			//}
+
+			g_bIsNewLocationsTableAvailable = true;
+			// NOTE: shouldn't break the TASK, wait for task expired to keep synchronous state
+		}
+		else
+		{
+			uint32_t ui32TargetId;
+			int i = NeighborsTable_getSize() - OneHopNeighborsTable_getSize();
+			for(; i > 0 ; i--)
+			{
+				ui32TargetId = NeighborsTable_getIdAtIndex(i - 1);
+				if(!OneHopNeighborsTable_isContainRobot(ui32TargetId))
+				{
+					sendRequestNeighborsTableCommandToNeighbor(ui32TargetId);
+					break;
+				}
+			}
+			// NOTE: shouldn't calculate the Locs Table in here due to asynchronous
+		}
 	}
 
 	return false; // continue the main TASK
@@ -605,34 +652,11 @@ bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp)
 	//		va_list argp
 	//			This list containt no argument
 
-	uint32_t ui32MessageSize;
-	uint8_t* pui8RxBuffer = 0;
+	// Valid commands in this state: ROBOT_REQUEST_NEIGHBORS_TABLE and ROBOT_RESPONSE_NEIGHBORS_TABLE
+	handleCommonSubTaskDelayRandomState();
 
-	turnOnLED(LED_RED);
+	return true; // Terminal the subTask after handle
 
-	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-	{
-		// Valid commands in this state: ROBOT_BROADCAST_NEIGHBORS_TABLE_AVAILABLE and ROBOT_REQUEST_NEIGHBORS_TABLE
-		decodeMessage(pui8RxBuffer, ui32MessageSize);
-	}
-
-	Network_deleteBuffer(pui8RxBuffer);
-
-	turnOffLED(LED_RED);
-
-	return true; // alway return true to keep loop at the first state of TASK()
-}
-
-bool StateTwo_ExchangeTable_SubTask2_WaitForNeighborResponseTable(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-//	bool bReturn = false;
-//
 //	uint32_t ui32MessageSize;
 //	uint8_t* pui8RxBuffer = 0;
 //
@@ -640,61 +664,15 @@ bool StateTwo_ExchangeTable_SubTask2_WaitForNeighborResponseTable(va_list argp)
 //
 //	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
 //	{
-//		if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_RESPONSE &&
-//				((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_RESPONSE_NEIGHBORS_TABLE)
-//		{
-//			decodeMessage(pui8RxBuffer, ui32MessageSize);
-//			bReturn = true; 	// Terminal this SubTask
-//		}
-//		else
-//		{
-//			bReturn = false; 	// continue loop at this task until expired
-//		}
+//		// Valid commands in this state: ROBOT_REQUEST_NEIGHBORS_TABLE and ROBOT_RESPONSE_NEIGHBORS_TABLE
+//		decodeMessage(pui8RxBuffer, ui32MessageSize);
 //	}
 //
 //	Network_deleteBuffer(pui8RxBuffer);
 //
 //	turnOffLED(LED_RED);
 //
-//	return bReturn;
-
-	uint32_t ui32MessageSize;
-	uint8_t* pui8RxBuffer = 0;
-
-	turnOnLED(LED_RED);
-
-	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-	{
-		// Valid commands in this state: ROBOT_RESPONSE_NEIGHBORS_TABLE
-		decodeMessage(pui8RxBuffer, ui32MessageSize);
-	}
-
-	Network_deleteBuffer(pui8RxBuffer);
-
-	turnOffLED(LED_RED);
-
-	return true; // alway return true to keep loop at the first state of TASK()
-}
-
-void StateTwo_ExchangeTable_NeighborsTableAvailableHandler(uint8_t* pui8RequestData)
-{
-	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
-
-	if(isNeighborsTableContainRobot(ui32RequestRobotID))
-	{
-		if(isOneHopNeighborsTableContainRobot(ui32RequestRobotID) == false)
-		{
-			// random 1->100: delay unit (1ms)
-			uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
-			delay_us(ui32RandomUs);
-
-			sendRequestNeighborsTableCommandToNeighbor(ui32RequestRobotID);
-
-			RfTryToCaptureRfSignal(EXCHANGE_TABLE_STATE_SUBTASK2_LIFE_TIME_IN_MS, StateTwo_ExchangeTable_SubTask2_WaitForNeighborResponseTable);
-
-			resetRobotTaskTimer();
-		}
-	}
+//	return true; // alway return true to keep loop at the first state of TASK()
 }
 
 void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData)
@@ -702,18 +680,16 @@ void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestDa
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 	uint32_t ui32SelfID = Network_getSelfAddress();
 
-	uint32_t ui32TotalLength = SIZE_OF_ROBOT_ID + getCurrentNeighborsNumber() * SIZE_OF_ROBOT_MEAS;
+	uint32_t ui32TotalLength = SIZE_OF_ROBOT_ID + NeighborsTable_getSize() * SIZE_OF_ROBOT_MEAS;
 	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32TotalLength);
 	if(pui8DataBuffer == 0)
 		return;
 
 	parse32bitTo4Bytes(pui8DataBuffer, ui32SelfID);
 
-	fillNeighborsTableToByteBuffer(&pui8DataBuffer[SIZE_OF_ROBOT_ID], ui32TotalLength - SIZE_OF_ROBOT_ID);
+	NeighborsTable_fillContentToByteBuffer(&pui8DataBuffer[SIZE_OF_ROBOT_ID], ui32TotalLength - SIZE_OF_ROBOT_ID);
 
 	responseMessageToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_NEIGHBORS_TABLE, pui8DataBuffer, ui32TotalLength);
-
-	resetRobotTaskTimer();
 
 	free(pui8DataBuffer);
 }
@@ -724,21 +700,10 @@ void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8Messa
 
 	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
 
-	addToOneHopNeighborsTable(ui32ResponseRobotId, &pui8MessageData[SIZE_OF_ROBOT_ID], ui32DataSize - SIZE_OF_ROBOT_ID);
-
-	g_bIsNewLocationsTableAvailable = false;
+	if(!OneHopNeighborsTable_isContainRobot(ui32ResponseRobotId))
+		OneHopNeighborsTable_add(ui32ResponseRobotId, &pui8MessageData[SIZE_OF_ROBOT_ID], ui32DataSize - SIZE_OF_ROBOT_ID);
 
 	turnOffLED(LED_BLUE);
-}
-
-void broadcastNeighborsTableAvailableCommandToLocalNeighbors(void)
-{
-	uint32_t ui32SelfId = Network_getSelfAddress();
-	uint8_t pui8MessageData[4];	// <4-byte SelfId>
-
-	parse32bitTo4Bytes(pui8MessageData, ui32SelfId);
-
-	broadcastToLocalNeighbors(ROBOT_BROADCAST_NEIGHBORS_TABLE_AVAILABLE, pui8MessageData, 4);
 }
 
 void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId)
@@ -1222,7 +1187,7 @@ void sendNeighborsTableToHost(void)
 //	if(pui8DataBuffer == 0)
 //		return;
 
-	fillNeighborsTableToByteBuffer(pui8DataBuffer, 60);
+	NeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 60);
 
 	sendDataToHost(pui8DataBuffer, 60);
 }
@@ -1236,7 +1201,7 @@ void sendOneHopNeighborsTableToHost(void)
 //	if(pui8DataBuffer == 0)
 //		return;
 
-	fillOneHopNeighborsTableToByteBuffer(pui8DataBuffer, 640);
+	OneHopNeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 640);
 
 	sendDataToHost(pui8DataBuffer, 640);
 }
