@@ -6,19 +6,21 @@
  */
 
 #include "libstorage/inc/robot_data.h"
+#include "libstorage/inc/CustomLinkedList.h"
+#include "libstorage/inc/RobotMeas.h"
 #include "libstorage/inc/OneHopMeas.h"
-
+#include "libstorage/inc/RobotLocation.h"
 #include "data_manipulation.h"
 
-EnhanceLinkedList<RobotMeas> g_NeighborsTable;
-EnhanceLinkedList<OneHopMeas> g_OneHopNeighborsTable;
-
-//location_t locs[LOCATIONS_TABLE_LENGTH];
+CustomLinkedList<RobotMeas> g_NeighborsTable;
+CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
+CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
 void initLinkedList(void)
 {
 	NeighborsTable_clear();
 	OneHopNeighborsTable_clear();
+	RobotLocationsTable_clear();
 }
 
 void NeighborsTable_clear(void)
@@ -126,10 +128,10 @@ void OneHopNeighborsTable_add(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer,
 		return;
 
 	OneHopMeas oneHopMeas;
-	EnhanceLinkedList<RobotMeas> NeighborsTable;
+	CustomLinkedList<RobotMeas> NeighborsTable;
 	RobotMeas neighbor(0);
 
-	int i;
+	uint32_t i;
 	for(i = 0; i < ui32TableSizeInByte; )
 	{
 		neighbor.ID = construct4Byte(&pui8TableBuffer[i]);
@@ -152,6 +154,11 @@ bool OneHopNeighborsTable_isContainRobot(uint32_t ui32RobotId)
 			return true;
 	}
 	return false;
+}
+
+uint32_t OneHopNeighborsTable_getFirstHopIdAtIndex(uint32_t ui32Index)
+{
+	return g_OneHopNeighborsTable[ui32Index].firstHopID;
 }
 
 void OneHopNeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
@@ -191,6 +198,65 @@ void OneHopNeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t 
 			}
 
 			oneHopNeighborPointer++;
+		}
+		else
+		{
+			pui8Buffer[i++] = 0;
+		}
+	}
+}
+
+void RobotLocationsTable_clear(void)
+{
+	g_RobotLocationsTable.clearAll();
+}
+
+int RobotLocationsTable_getSize(void)
+{
+	return g_RobotLocationsTable.Count;
+}
+
+void RobotLocationsTable_add(uint32_t id, float x, float y)
+{
+	RobotLocation robotLocation(id, x, y);
+
+	g_RobotLocationsTable.add(robotLocation);
+}
+
+bool RobotLocationTabls_isContainRobot(uint32_t ui32RobotId)
+{
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		if (g_RobotLocationsTable[i].ID == ui32RobotId)
+			return true;
+	}
+	return false;
+}
+
+void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
+{
+	if((ui32TotalLength % SIZE_OF_ROBOT_LOCATION) != 0)
+		return;
+
+	int32_t i32FixedPoint16_16;
+
+	int pointer = 0;
+	uint32_t i;
+	for(i = 0; i < ui32TotalLength; )
+	{
+		if(pointer < g_RobotLocationsTable.Count)
+		{
+			parse32bitTo4Bytes(&pui8Buffer[i], g_RobotLocationsTable[pointer].ID);
+
+			i32FixedPoint16_16 = (int32_t)(g_RobotLocationsTable[pointer].x * 65536);
+			parse32bitTo4Bytes(&pui8Buffer[i + 4], i32FixedPoint16_16);
+
+			i32FixedPoint16_16 = (int32_t)(g_RobotLocationsTable[pointer].y * 65536);
+			parse32bitTo4Bytes(&pui8Buffer[i + 8], i32FixedPoint16_16);
+
+			pointer++;
+			i += SIZE_OF_ROBOT_LOCATION;
 		}
 		else
 		{

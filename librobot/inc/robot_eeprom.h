@@ -48,6 +48,11 @@ bool getTDOAParameterInEEPROM(float* pfIntercept, float* pfSlope);
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data);
 uint32_t readWordFormEEPROM(uint32_t ui32WordIndex);
 
+float EEPROM_calSin(float x);
+float EEPROM_calCos(float x);
+float EEPROM_calASin(float x);
+float EEPROM_calACos(float x);
+
 void programEEPROM(bool bIsUpdate);
 
 #ifdef __cplusplus

@@ -22,6 +22,8 @@
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
+extern bool Tri_tryToCalculateRobotLocationsTable(void);
+
 static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
 static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
@@ -615,13 +617,16 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	{
 		if((OneHopNeighborsTable_getSize() == NeighborsTable_getSize()))
 		{
-			//TODO: calculate new Locs Table()
-			//{
-			//	Tri_addLocation(g_ui32RobotID, 0, 0);
-			//	Tri_findLocs(NeighborsTable, OneHopNeighborsTable);
-			//}
+			RobotLocationsTable_add(Network_getSelfAddress(), 0, 0);
 
-			g_bIsNewLocationsTableAvailable = true;
+			if(Tri_tryToCalculateRobotLocationsTable())
+			{
+				g_bIsNewLocationsTableAvailable = true;
+			}
+			else
+			{
+				RobotLocationsTable_clear();
+			}
 			// NOTE: shouldn't break the TASK, wait for task expired to keep synchronous state
 		}
 		else
@@ -1182,11 +1187,6 @@ void sendNeighborsTableToHost(void)
 {
 	uint8_t pui8DataBuffer[60] = {0};
 
-//	uint32_t ui32Length = NEIGHBORS_TABLE_LENGTH * SIZE_OF_ROBOT_MEAS;
-//	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32Length);
-//	if(pui8DataBuffer == 0)
-//		return;
-
 	NeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 60);
 
 	sendDataToHost(pui8DataBuffer, 60);
@@ -1196,12 +1196,23 @@ void sendOneHopNeighborsTableToHost(void)
 {
 	uint8_t pui8DataBuffer[640] = {0};
 
-//	uint32_t ui32Length = ONEHOP_NEIGHBORS_TABLE_LENGTH * MAXIMUM_SIZE_OF_ONEHOP_MEAS;
-//	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32Length);
-//	if(pui8DataBuffer == 0)
-//		return;
-
 	OneHopNeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 640);
 
 	sendDataToHost(pui8DataBuffer, 640);
+}
+
+void sendRobotLocationsTableToHost(void)
+{
+//	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * 120);
+	uint8_t pui8DataBuffer[120] = {0};
+
+	turnOnLED(LED_ALL);
+
+	RobotLocationsTable_fillContentToByteBuffer(pui8DataBuffer, 120);
+
+	sendDataToHost(pui8DataBuffer, 120);
+
+	turnOffLED(LED_ALL);
+
+//	free(pui8DataBuffer);
 }

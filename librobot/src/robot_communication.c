@@ -387,6 +387,7 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		break;
 
 	case HOST_COMMAND_START_LOCALIZATION:
+		initLinkedList();
 		setRobotState(ROBOT_STATE_MEASURE_DISTANCE);
 		break;
 
@@ -396,6 +397,10 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 
 	case HOST_COMMAND_READ_ONEHOP_NEIGHBORS_TABLE:
 		sendOneHopNeighborsTableToHost();
+		break;
+
+	case HOST_COMMAND_READ_LOCATIONS_TABLE:
+		sendRobotLocationsTableToHost();
 		break;
 
 	default:

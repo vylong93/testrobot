@@ -12,17 +12,17 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "libstorage/inc/EnhanceLinkedList.h"
+#include "libstorage/inc/CustomLinkedList.h"
 #include "libstorage/inc/RobotMeas.h"
 
 class OneHopMeas
 {
 public:
 	uint32_t firstHopID;
-	EnhanceLinkedList<RobotMeas>* pNeighborsTable;
+	CustomLinkedList<RobotMeas>* pNeighborsTable;
 
 	// Constructor
-	OneHopMeas(uint32_t firsthopid = 0, EnhanceLinkedList<RobotMeas>* pTable = NULL);
+	OneHopMeas(uint32_t firsthopid = 0, CustomLinkedList<RobotMeas>* pTable = NULL);
 
     // Copy Constructor
 	OneHopMeas(const OneHopMeas &rhs);
@@ -35,33 +35,6 @@ public:
     bool operator != (const OneHopMeas &rhs) const { return firstHopID != rhs.firstHopID; }
 };
 
-OneHopMeas::OneHopMeas(const OneHopMeas &rhs)
-{
-	firstHopID = rhs.firstHopID;
-	pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
-	int i;
-	for(i = 0; i < rhs.pNeighborsTable->Count; i++)
-	{
-		RobotMeas value = rhs.pNeighborsTable->ElementAt(i);
-		pNeighborsTable->add(value);
-	}
-}
-
-OneHopMeas::OneHopMeas(uint32_t firsthopid, EnhanceLinkedList<RobotMeas>* pTable)
-{
-	firstHopID = firsthopid;
-	pNeighborsTable = pTable;
-}
-
-OneHopMeas::~OneHopMeas()
-{
-	if(pNeighborsTable != NULL)
-	{
-		pNeighborsTable->clearAll();
-		delete pNeighborsTable;
-	}
-};
-
 ///* Test case 2 */
 //int i;
 //uint8_t* pDynamic = 0;
@@ -72,12 +45,12 @@ OneHopMeas::~OneHopMeas()
 //delete[] pDynamic;
 //
 //RobotMeas robot(0, 0);
-//EnhanceLinkedList<RobotMeas>* pNeighborsTable;
+//CustomLinkedList<RobotMeas>* pNeighborsTable;
 //OneHopMeas oneHopMeas;
-//EnhanceLinkedList<OneHopMeas> OneHopNeighborsTable;
+//CustomLinkedList<OneHopMeas> OneHopNeighborsTable;
 //
 //// Node 1
-//pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
+//pNeighborsTable = new CustomLinkedList<RobotMeas>();
 //robot.ID = 0x11111111; robot.Distance = 0xF11F;
 //pNeighborsTable->add(robot); // add Robot 1
 //
@@ -96,7 +69,7 @@ OneHopMeas::~OneHopMeas()
 //delete pNeighborsTable;
 //
 //// Node 2
-//pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
+//pNeighborsTable = new CustomLinkedList<RobotMeas>();
 //robot.ID = 0x55555555; robot.Distance = 0xF55F;
 //pNeighborsTable->add(robot); // add Robot 5
 //
@@ -115,7 +88,7 @@ OneHopMeas::~OneHopMeas()
 //delete pNeighborsTable;
 //
 //// Node 3
-//pNeighborsTable = new EnhanceLinkedList<RobotMeas>();
+//pNeighborsTable = new CustomLinkedList<RobotMeas>();
 //robot.ID = 0x99999999; robot.Distance = 0xF99F;
 //pNeighborsTable->add(robot); // add Robot 9
 //

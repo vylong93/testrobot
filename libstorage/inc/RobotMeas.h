@@ -19,7 +19,7 @@ public:
 	uint16_t Distance;
 
 	// Constructor
-    RobotMeas(uint32_t id, uint16_t dis = 0) { ID = id; Distance = dis; }
+    RobotMeas(uint32_t id = 0, uint16_t dis = 0) { ID = id; Distance = dis; }
 
     // Copy Constructor
     RobotMeas(const RobotMeas &rhs) {ID = rhs.ID; Distance = rhs.Distance; }

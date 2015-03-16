@@ -1,34 +1,37 @@
 /*
- * EnhanceLinkedList.h
+ * CustomLinkedList.h
  *
- *  Created on: Mar 10, 2015
+ *  Created on: Mar 14, 2015
  *      Author: VyLong
  */
 
-#ifndef ENHANCELINKEDLIST_H_
-#define ENHANCELINKEDLIST_H_
+#ifndef CUSTOMLINKEDLIST_H_
+#define CUSTOMLINKEDLIST_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define MAXIMUM_ELEMENT_SIZE	10
+
 // Use of templates.
 template <class T>
-class EnhanceLinkedList
+class CustomLinkedList
 {
 private:
-	T** ppMap;	// An pointer array store the element's pointer
+	T	*ppMap[MAXIMUM_ELEMENT_SIZE];	// An pointer array store the element's pointer
 
 public:
     int Count;	// Indicate current element in the list
 
    /* Constructor */
-   EnhanceLinkedList() { ppMap = NULL; Count = 0; }
+    CustomLinkedList();
 
    /* Destructor */
-   ~EnhanceLinkedList();
+   ~CustomLinkedList();
 
    /* Operators */
+   //CustomLinkedList& operator=(const CustomLinkedList &rhs) { ppMap = rhs.ppMap,  Count = rhs.Count; return *this; }
    T &operator [](unsigned int i) { return *ppMap[i]; }
    const T &operator [](unsigned int i) const {	return *ppMap[i]; }
 
@@ -40,41 +43,37 @@ public:
    int isContain(T value);
 };
 
+//*****************************************************
+// Constructor allocates the memory used by the list. *
+//*****************************************************
+template <class T>
+CustomLinkedList<T>::CustomLinkedList()
+{
+	int i;
+	for(i = 0; i < MAXIMUM_ELEMENT_SIZE; i++)
+	{
+		ppMap[i] = NULL;
+	}
+	Count = 0;
+}
+
 //*********************************************
 // Adds a new element to the end of the list. *
 //*********************************************
 template <class T>
-bool EnhanceLinkedList<T>::add(T value)
+bool CustomLinkedList<T>::add(T value)
 {
-	// (1) keep previous Map
-	T** ppOldMap = ppMap;
-
-	// (2) allocate new Map
-	ppMap = new T*[Count + 1];
-	if(ppMap == NULL)
-	{
-		// restore old map
-		ppMap = ppOldMap;
-
+	// (1) check for OverFlow
+	if(Count >= MAXIMUM_ELEMENT_SIZE)
 		return false;
-	}
 
-	// (3) copy old Map to new Map
-	int i;
-	for(i = 0; i < Count; i++)
-		ppMap[i] = ppOldMap[i];
-
-	// (4) delete old Map
-	delete[] ppOldMap;
-
-	// (5) add new value to the map
+	// (2) add new value to the map
 	ppMap[Count] = new T(value);
 	if(ppMap[Count] == NULL)
 		return false;
 
-	// (6) update Size
+	// (3) update Size
 	Count++;
-
 	return true;
 }
 
@@ -83,14 +82,9 @@ bool EnhanceLinkedList<T>::add(T value)
 // does not assume that the list is sorted.     *
 //***********************************************
 template <class T>
-void EnhanceLinkedList<T>::remove(T value)
+void CustomLinkedList<T>::remove(T value)
 {
-	int i;
-	int j;
-
-	// (0) keep previous Map
-	T** ppOldMap = ppMap;
-
+	int i, j;
 	for(i = 0; i < Count; i++)
 	{
 		if(*ppMap[i] == value)
@@ -102,30 +96,13 @@ void EnhanceLinkedList<T>::remove(T value)
 			for(j = i; j < (Count - 1); j++)
 				ppMap[j] = ppMap[j + 1];
 
-			// (2) allocate new Map
-			ppMap = new T*[Count - 1];
-			if(ppMap == NULL)
-			{
-				// restore old Map
-				ppMap = ppOldMap;
-
-				// update size
-				Count--;
-
-				return;
-			}
-
-			// (3) copy old Map to new Map
-			for(j = 0; j < (Count - 1); j++)
-				ppMap[j] = ppOldMap[j];
-
-			// (4) delete old Map
-			delete[] ppOldMap;
-
-			// (5) update size
+			// (3) update size
 			Count--;
 
-			return;
+			// (4) clear the duplicate pointer at the end
+			ppMap[Count] = NULL;
+
+			break;
 		}
 	}
 }
@@ -135,18 +112,16 @@ void EnhanceLinkedList<T>::remove(T value)
 // does not assume that the list is sorted.       *
 //*************************************************
 template <class T>
-void EnhanceLinkedList<T>::clearAll()
+void CustomLinkedList<T>::clearAll()
 {
 	int i;
 	for(i = 0; i < Count; i++)
 	{
-		delete ppMap[i];
-		ppMap[i] = NULL;
-	}
-	if(ppMap != NULL)
-	{
-		delete[] ppMap;
-		ppMap = NULL;
+		if(ppMap[i] != NULL)
+		{
+			delete ppMap[i];
+			ppMap[i] = NULL;
+		}
 	}
 	Count = 0;
 }
@@ -155,15 +130,13 @@ void EnhanceLinkedList<T>::clearAll()
 // check if the element existed in the list. *
 //********************************************
 template <class T>
-int EnhanceLinkedList<T>::isContain(T value)
+int CustomLinkedList<T>::isContain(T value)
 {
 	int i;
 	for(i = 0; i < Count; i++)
 	{
 		if(*ppMap[i] == value)
-		{
 			return i;
-		}
 	}
 	return (-1);
 }
@@ -172,10 +145,10 @@ int EnhanceLinkedList<T>::isContain(T value)
 // Destructor deallocates the memory used by the list. *
 //******************************************************
 template <class T>
-EnhanceLinkedList<T>::~EnhanceLinkedList()
+CustomLinkedList<T>::~CustomLinkedList()
 {
 	this->clearAll();
 }
 
 
-#endif /* ENHANCELINKEDLIST_H_ */
+#endif /* CUSTOMLINKEDLIST_H_ */

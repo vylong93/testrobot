@@ -17,6 +17,11 @@
 
 #include "libstorage/inc/robot_data.h"
 
+#include "libalgorithm/inc/Trilateration.h"
+#include "libmath/inc/custom_math.h"
+#include <math.h>
+
+
 //#define HAVE_IMU
 
 #ifdef HAVE_IMU
@@ -46,6 +51,90 @@ int main(void)
 	initRobotProcess();
 
 	turnOffLED(LED_ALL);
+
+//	uint8_t* pDynamic = new uint8_t[800];
+//	int i;
+//	for(i = 0; i < 800; i++)
+//		pDynamic[i] = 0xFF;
+//	delete[] pDynamic;
+
+//	NeighborsTable_clear();
+//	OneHopNeighborsTable_clear();
+//	RobotLocationsTable_clear();
+//	initDataOfRobot1();
+//	RobotLocationsTable_add(Network_getSelfAddress(), 0, 0);
+//	Tri_tryToCalculateRobotLocationsTable();
+
+//	NeighborsTable_clear();
+//	OneHopNeighborsTable_clear();
+//	RobotLocationsTable_clear();
+//
+//	pDynamic = new uint8_t[800];
+//	for(i = 0; i < 800; i++)
+//		pDynamic[i] = 0xFF;
+//	delete[] pDynamic;
+
+////	float angleInRadian = 0.6457718232f; // 37 degree
+////	float sinAngleInRadian = 0.6018150231f;
+////	float cosAngleInRadian = 0.798635524f;
+//
+//	float angleInRadian = 2.14675498f; // 123 degree
+//	float sinAngleInRadian = 0.8386705679f;
+//	float cosAngleInRadian = -0.544639035f;
+//
+//	float sin_soft;
+//	float sin_hard;
+//	float asin_soft;
+//	float asin_hard;
+//	float cos_soft;
+//	float cos_hard;
+//	float acos_soft;
+//	float acos_hard;
+//
+//	uint32_t t0, t1, t2, t3, t4, t5, t6, t7, t8;
+//	float t_sin_soft;
+//	float t_sin_hard;
+//	float t_asin_soft;
+//	float t_asin_hard;
+//	float t_cos_soft;
+//	float t_cos_hard;
+//	float t_acos_soft;
+//	float t_acos_hard;
+//
+//	uint32_t ClockSpeed = ROM_SysCtlClockGet();
+//	ROM_TimerLoadSet(TASK_TIMER_BASE, TIMER_A, ClockSpeed);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//	ROM_TimerEnable(TASK_TIMER_BASE, TIMER_A);
+//
+//	t0 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	sin_hard = sinf(angleInRadian);
+//	t1 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	sin_soft = EEPROM_calSin(angleInRadian);
+//	t2 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	asin_hard = asinf(sinAngleInRadian);
+//	t3 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	asin_soft = EEPROM_calASin(sinAngleInRadian);
+//	t4 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	cos_hard = cosf(angleInRadian);
+//	t5 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	cos_soft = EEPROM_calCos(angleInRadian);
+//	t6 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	acos_hard = acosf(cosAngleInRadian);
+//	t7 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	acos_soft = EEPROM_calACos(cosAngleInRadian);
+//	t8 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//
+//	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//
+//	t_sin_hard = (t0 - t1) / (ClockSpeed * 1.0f);
+//	t_sin_soft = (t1 - t2) / (ClockSpeed * 1.0f);
+//	t_asin_hard = (t2 - t3) / (ClockSpeed * 1.0f);
+//	t_asin_soft = (t3 - t4) / (ClockSpeed * 1.0f);
+//	t_cos_hard = (t4 - t5) / (ClockSpeed * 1.0f);
+//	t_cos_soft = (t5 - t6) / (ClockSpeed * 1.0f);
+//	t_acos_hard = (t6 - t7) / (ClockSpeed * 1.0f);
+//	t_acos_soft = (t7 - t8) / (ClockSpeed * 1.0f);
 
 #ifdef HAVE_IMU
 	InvMPU mpu6050;
@@ -151,7 +240,7 @@ int main(void)
 
 			configureMotors(m1_Left, m2_Right);
 
-			DEBUG_PRINTF("u = %d, %d %d \n", (int32_t)(u * 63356 + 0.5f),
+			DEBUG_PRINTS3("u = %d, %d %d \n", (int32_t)(u * 63356 + 0.5f),
 										  (int32_t)(m1_Left.eDirection),
 										  (int32_t)(m1_Left.ui8Speed));
 
@@ -254,7 +343,6 @@ void MCU_RF_IRQ_handler(void)
 	if(getCpuMode() != CPU_MODE_RUN)
 		returnToSleep();
 }
-
 
 //void StateTwo_ExchangeTableAndCalculateLocsTable()
 //{
