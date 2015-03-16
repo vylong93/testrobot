@@ -225,6 +225,8 @@ void StateOne_MeasureDistance(void)
 void StateOne_MeasureDistance_ResetFlag(void)
 {
 	NeighborsTable_clear();
+	OneHopNeighborsTable_clear();
+	RobotLocationsTable_clear();
 	g_bIsSuccessMeasuredDistances = false;
 }
 
