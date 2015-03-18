@@ -108,6 +108,7 @@ void testPIDController(uint8_t* pui8Data);
 void sendNeighborsTableToHost(void);
 void sendOneHopNeighborsTableToHost(void);
 void sendRobotLocationsTableToHost(void);
+void selfCorrectLocationsTable(void);
 
 #ifdef __cplusplus
 }

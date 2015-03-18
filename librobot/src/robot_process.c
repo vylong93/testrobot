@@ -23,6 +23,7 @@
 #include "data_manipulation.h"
 
 extern bool Tri_tryToCalculateRobotLocationsTable(void);
+extern void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID);
 
 static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
 static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
@@ -580,7 +581,7 @@ void StateTwo_ExchangeTable(void)
 	}
 	while(!g_bIsNewLocationsTableAvailable);
 
-	setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state
+	setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state: VOTE_ORIGIN
 }
 
 void StateTwo_ExchangeTable_ResetFlag(void)
@@ -1217,4 +1218,9 @@ void sendRobotLocationsTableToHost(void)
 	turnOffLED(LED_ALL);
 
 //	free(pui8DataBuffer);
+}
+
+void selfCorrectLocationsTable(void)
+{
+	GradientDescentMulti_correctLocationsTable(Network_getSelfAddress());
 }

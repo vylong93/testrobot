@@ -6,6 +6,15 @@
  */
 
 #include "libmath/inc/custom_math.h"
+#include <math.h>
+
+float absFloatNumber(float x)
+{
+	if (x > 0)
+		return x;
+	else
+		return (-x);
+}
 
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c)
 {

@@ -16,7 +16,6 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <math.h>
 
 #define MATH_PI_MUL_2			6.283185307
 #define MATH_PI_MUL_3_DIV_2	    4.71238898
@@ -34,6 +33,8 @@ extern "C"
 
 //#define ANGLE_MIN_IN_RAD	0.1745329252 // ~ 10 degree
 //#define COSINE_ANGLE_MIN	0.9999953604 // cos(ANGLE_MIN_IN_RAD)
+
+float absFloatNumber(float x);
 
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c);
 bool isTriangle(uint32_t a, uint32_t b, uint32_t c);

@@ -4,128 +4,126 @@
  *  Created on: Sep 6, 2014
  *      Author: MasterE
  */
-
-#include "libalgorithm/inc/Trilateration.h"
 #include "libcustom/inc/custom_uart_debug.h"
-
-#include "libprotocol/inc/network.h"
+#include "libalgorithm/inc/Trilateration.h"
+#include "libalgorithm/inc/GradientDescentNode.h"
 #include "libstorage/inc/robot_data.h"
-
+#include "libprotocol/inc/network.h"
 #include "libstorage/inc/CustomLinkedList.h"
 #include "libstorage/inc/RobotLocation.h"
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/RobotMeas.h"
-
 #include "libmath/inc/Vector2.h"
 #include "libmath/inc/custom_math.h"
+#include "librobot/inc/robot_analog.h"
+#include <math.h>
 
 extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
-void initDataOfRobot1(void)
+void initDataOfRobot3(void)
 {
-//	Robot Locations Table 0xbead01]: Count = 5
-//	___Robot [0xbead01] (0.0000cm;	0.0000cm)
-//	___Robot [0xbead05] (20.4219cm;	0.0000cm)
-//	___Robot [0xbead03] (20.5795cm;	20.6205cm)
-//	___Robot [0xbead08] (16.4993cm;	-19.6116cm)
-//	___Robot [0xbead04] (31.7628cm;	-18.6782cm)
+	//	Robot Locations Table 0xbead01]: Count = 5
+	//	___Robot [0xbead01] (0.0000cm;	0.0000cm)
+	//	___Robot [0xbead05] (20.4219cm;	0.0000cm)
+	//	___Robot [0xbead03] (20.5795cm;	20.6205cm)
+	//	___Robot [0xbead08] (16.4993cm;	-19.6116cm)
+	//	___Robot [0xbead04] (31.7628cm;	-18.6782cm)
 
-//	Neighbors Table of Robot [0x00BEAD01]:
-//	Robot [0xBEAD05] :: 20.4219 cm
-//	Robot [0xBEAD08] :: 25.6328 cm
-//	Robot [0xBEAD04] :: 36.8477 cm
-//	Robot [0xBEAD03] :: 29.1367 cm
-//
-//	One Hop Neighbors Table of Robot [0x00BEAD01]:
-//	first Hop ID = 0xBEAD03:
-//	Robot [0xBEAD05] :: 20.6211 cm
-//	Robot [0xBEAD04] :: 34.4531 cm
-//	Robot [0xBEAD01] :: 27.6289 cm
-//	Robot [0xBEAD08] :: 37.9336 cm
-//
-//	first Hop ID = 0xBEAD04:
-//	Robot [0xBEAD05] :: 21.8516 cm
-//	Robot [0xBEAD08] :: 23.3711 cm
-//	Robot [0xBEAD03] :: 34.4531 cm
-//	Robot [0xBEAD01] :: 36.8477 cm
-//
-//	first Hop ID = 0xBEAD08:
-//	Robot [0xBEAD05] :: 20 cm
-//	Robot [0xBEAD01] :: 25.6328 cm
-//	Robot [0xBEAD04] :: 23.3711 cm
-//	Robot [0xBEAD03] :: 37.9336 cm
-//
-//	first Hop ID = 0xBEAD05:
-//	Robot [0xBEAD03] :: 20.6211 cm
-//	Robot [0xBEAD01] :: 20.4219 cm
-//	Robot [0xBEAD08] :: 20 cm
-//	Robot [0xBEAD04] :: 21.8516 cm
+	//	Neighbors Table of Robot [0xBEAD03]:
+	//	Robot [0xBEAD05] :: 19.4492 cm
+	//	Robot [0xBEAD08] :: 27.6055 cm
+	//	Robot [0xBEAD01] :: 16.7422 cm
+	//	Robot [0xBEAD04] :: 17.7695 cm
 
-	DEBUG_PRINT("init Data of Robot[1].........\n");
+	//	One Hop Neighbors Table of Robot [0x00BEAD03]:
+	//	first Hop ID = 0xBEAD04:
+	//	Robot [0xBEAD03] :: 17.7695 cm
+	//	Robot [0xBEAD01] :: 17.457 cm
+	//	Robot [0xBEAD05] :: 31.0547 cm
+	//	Robot [0xBEAD08] :: 19.4023 cm
+	//
+	//	first Hop ID = 0xBEAD01:
+	//	Robot [0xBEAD03] :: 16.7422 cm
+	//	Robot [0xBEAD05] :: 17.3672 cm
+	//	Robot [0xBEAD08] :: 16.625 cm
+	//	Robot [0xBEAD04] :: 17.457 cm
+	//
+	//	first Hop ID = 0xBEAD08:
+	//	Robot [0xBEAD03] :: 27.6055 cm
+	//	Robot [0xBEAD01] :: 16.625 cm
+	//	Robot [0xBEAD04] :: 19.4023 cm
+	//	Robot [0xBEAD05] :: 29.3555 cm
+	//
+	//	first Hop ID = 0xBEAD05:
+	//	Robot [0xBEAD03] :: 19.4492 cm
+	//	Robot [0xBEAD01] :: 17.3672 cm
+	//	Robot [0xBEAD04] :: 31.0547 cm
+	//	Robot [0xBEAD08] :: 29.3555 cm
 
-	Network_setSelfAddress(0xbead01);
+	Network_setSelfAddress(0xBEAD03);
+	DEBUG_PRINTS("init Data of Robot[0x%06x].........\n", Network_getSelfAddress());
 
 	// (1) Fill Neighbors Table
-	NeighborsTable_add(0xBEAD05, (uint16_t)(20.4219f * 256));
-	NeighborsTable_add(0xBEAD08, (uint16_t)(25.6328f * 256));
-	NeighborsTable_add(0xBEAD04, (uint16_t)(36.8477f * 256));
-	NeighborsTable_add(0xBEAD03, (uint16_t)(29.1367f * 256));
+	NeighborsTable_add(0xBEAD05, (uint16_t)(19.4492f * 256));
+	NeighborsTable_add(0xBEAD08, (uint16_t)(27.6055f * 256));
+	NeighborsTable_add(0xBEAD01, (uint16_t)(16.7422f * 256));
+	NeighborsTable_add(0xBEAD04, (uint16_t)(17.7695f * 256));
 
 	// (2) Fill OneHopNeighbors Table
 	RobotMeas robot(0, 0);
 	CustomLinkedList<RobotMeas> NeighborsTable;
 	OneHopMeas oneHopMeas;
 
-	oneHopMeas.firstHopID = 0xBEAD03;
+	oneHopMeas.firstHopID = 0xBEAD04;
 	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(20.6211f * 256);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(17.7695f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(34.4531f * 256);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(17.457f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(27.6289f * 256);
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(31.0547f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(37.9336f * 256);
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(19.4023f * 256);
 	NeighborsTable.add(robot);
 	oneHopMeas.pNeighborsTable = &NeighborsTable;
 	g_OneHopNeighborsTable.add(oneHopMeas);
 
-	oneHopMeas.firstHopID = 0xBEAD04;
+	oneHopMeas.firstHopID = 0xBEAD01;
 	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(21.8516f * 256);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(16.7422f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(23.3711f * 256);
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(17.3672f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(34.4531f * 256);
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(16.625f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(36.8477f * 256);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(17.457f * 256);
 	NeighborsTable.add(robot);
 	oneHopMeas.pNeighborsTable = &NeighborsTable;
 	g_OneHopNeighborsTable.add(oneHopMeas);
 
 	oneHopMeas.firstHopID = 0xBEAD08;
 	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(20.0f * 256);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(27.6055f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(25.6328f * 256);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(16.625f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(23.3711f * 256);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(19.4023f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(37.9336f * 256);
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(29.3555f * 256);
 	NeighborsTable.add(robot);
 	oneHopMeas.pNeighborsTable = &NeighborsTable;
 	g_OneHopNeighborsTable.add(oneHopMeas);
 
 	oneHopMeas.firstHopID = 0xBEAD05;
 	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(20.6211f * 256);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(19.4492f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(20.4219f * 256);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(17.3672f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(20.0f * 256);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(31.0547f * 256);
 	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(21.8516f * 256);
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(29.3555f * 256);
 	NeighborsTable.add(robot);
 	oneHopMeas.pNeighborsTable = &NeighborsTable;
 	g_OneHopNeighborsTable.add(oneHopMeas);
@@ -135,15 +133,14 @@ void initDataOfRobot1(void)
 	DEBUG_PRINT("------------initialize Data OK\n");
 
 	DEBUG_PRINT("Robots' position in real world\n");
-	DEBUG_PRINT("       [3]         [4]\n");
-	DEBUG_PRINT("             [5]\n");
-	DEBUG_PRINT("       [1]         [8]\n");
+	DEBUG_PRINT("          [3]   [4]\n");
+	DEBUG_PRINT("                      \n");
+	DEBUG_PRINT("       [5]   [1]   [8]\n");
 	DEBUG_PRINT("------------------------------\n");
 }
 
 bool Tri_tryToCalculateRobotLocationsTable(void)
-{ //void Tri_findLocs(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable)
-
+{
 	/* Pseudo code
 	 	(0) Verify Neighbors Table and OneHopNeighborTable to have the same distance
 		(1) try to find two best neighbors as X, Y role
@@ -156,6 +153,7 @@ bool Tri_tryToCalculateRobotLocationsTable(void)
 
 	DEBUG_PRINT("Entering Tri_tryToCalculateRobotLocationsTable........\n");
 
+	uint32_t ui32RobotOsId = Network_getSelfAddress();
 	uint32_t ui32RobotXsId;
 	uint32_t ui32RobotYsId;
 	uint16_t ui16EdgeOX;
@@ -173,15 +171,12 @@ bool Tri_tryToCalculateRobotLocationsTable(void)
 
 	Tri_calculateXYLocations(ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
 
-	Tri_findAllPointsFromFirstTwoPoints(Network_getSelfAddress(), ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
+	Tri_findAllPointsFromFirstTwoPoints(ui32RobotOsId, ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
 
-	if(g_RobotLocationsTable.Count >= g_NeighborsTable.Count)
-	{
-		DEBUG_PRINT("........Returning TRUE from Tri_tryToCalculateRobotLocationsTable\n");
-		return true;
-	}
+	if(g_RobotLocationsTable.Count < g_NeighborsTable.Count)
+		Tri_findAllPossibleRemainPoints();
 
-	Tri_findAllPossibleRemainPoints();
+//	GradientDescentMulti_correctLocationsTable(ui32RobotOsId);
 
 	DEBUG_PRINT("........Returning TRUE from Tri_tryToCalculateRobotLocationsTable\n");
 	return true;
@@ -297,10 +292,7 @@ void Tri_calculateXYLocations(uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, ui
 }
 
 void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, uint16_t ui16EdgeOX, uint16_t ui16EdgeOY, uint16_t ui16EdgeXY)
-{//void Tri_findAllPointsFromFirstTwoPoints(robotMeas_t* pNeighborsTable,
- //		oneHopMeas_t* pOneHopTable, robotMeas_t robotX, robotMeas_t robotY,
- //		float edgeXY)
-
+{
 	/* Pseudo code
 		LOOP through Neighbors Table to pick a Robot Z
 			IF Robot Z already have locations THEN
@@ -339,11 +331,12 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 	int neighborsIndexsX;
 	int neighborsIndexsY;
 	RobotLocation locOfRobotZ(0, NULL);
-	//CustomLinkedList<RobotMeas> NullNeighborsTable;
-	//OneHopMeas oneHopMeasOfRobotZ(0, &NullNeighborsTable);
-	OneHopMeas oneHopMeasOfRobotZ(0, 0);
 	RobotMeas robotMeas;
 	Vector2<float> vectorZ;
+	GradientDescentNode correctLocationAlgorithm;
+
+	float fEdgeOZ, fEdgeXZ, fEdgeYZ;
+	float fAlphaZ;
 
 	int i;
 	for(i = 0; i < g_NeighborsTable.Count; i++)
@@ -351,15 +344,12 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 		ui32RobotZsId = g_NeighborsTable[i].ID;
 		DEBUG_PRINTS("Pick Robot Z from O neighbors = [0x%06x]\n", ui32RobotZsId);
 
-		locOfRobotZ.ID = ui32RobotZsId;
-		if (g_RobotLocationsTable.isContain(locOfRobotZ) >= 0)
+		if(RobotLocationTable_isContainRobot(ui32RobotZsId))
 			continue;
 
-		oneHopMeasOfRobotZ.firstHopID = ui32RobotZsId;
-		oneHopIndexsZ =	g_OneHopNeighborsTable.isContain(oneHopMeasOfRobotZ);
+		oneHopIndexsZ = OneHopNeighborsTable_getIndexOfRobot(ui32RobotZsId);
 		if (oneHopIndexsZ < 0)	// This condition never wrong due to State 1 has cover this
 			continue;
-		//oneHopMeasOfRobotZ.pNeighborsTable = g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable;
 
 		robotMeas.ID = ui32RobotOsId;
 		neighborsIndexsO = g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->isContain(robotMeas);
@@ -376,30 +366,94 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 		if (neighborsIndexsY < 0)
 			continue;
 
-		vectorZ = Tri_trilaterateFromSixEdgeAndAngleOffset(
-				ui16EdgeOY, ui16EdgeOX,
+		// Old Attempt:
+//		vectorZ = Tri_trilaterateFromSixEdgeAndAngleOffset(
+//				ui16EdgeOY, ui16EdgeOX,
+//				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsO).Distance,
+//				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsY).Distance,
+//				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsX).Distance,
+//				ui16EdgeXY, 0);
+//		if (vectorZ.x == 0 && vectorZ.y == 0)
+//			continue;
+
+		// New Attempt:
+		if(Tri_calculateAlphaFromSixEdge(&fAlphaZ, ui16EdgeOY, ui16EdgeOX,
 				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsO).Distance,
 				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsY).Distance,
 				g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsX).Distance,
-				ui16EdgeXY, 0);
-
-		if (vectorZ.x == 0 && vectorZ.y == 0)
+				ui16EdgeXY) == false)
 			continue;
 
-		locOfRobotZ.x = vectorZ.x;
-		locOfRobotZ.y = vectorZ.y;
+		fEdgeOZ = g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsO).Distance / 256.0f;
+		fEdgeXZ = g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsX).Distance / 256.0f;
+		fEdgeYZ = g_OneHopNeighborsTable[oneHopIndexsZ].pNeighborsTable->ElementAt(neighborsIndexsY).Distance / 256.0f;
+
+		vectorZ = Tri_chooseTheBestVectorFromThreePoints(fAlphaZ, ui32RobotOsId, ui32RobotXsId, ui32RobotYsId, fEdgeOZ, fEdgeXZ, fEdgeYZ);
+		if (vectorZ == NULL)
+			continue;
+
+
+		locOfRobotZ.ID = ui32RobotZsId;
+		locOfRobotZ.vector = vectorZ;
+
+//		// Each
+//		correctLocationAlgorithm.init(&locOfRobotZ);
+//		while(!correctLocationAlgorithm.isGradientSearchStop)
+//		{
+//			correctLocationAlgorithm.run();
+//			DEBUG_PRINT("Robot:0x%06x (%2.4f; %2.4f)\n", locOfRobotZ.ID, locOfRobotZ.vector.x, locOfRobotZ.vector.y);
+//		}
 
 		g_RobotLocationsTable.add(locOfRobotZ);
-		DEBUG_PRINTS3("Add Robot Z[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotZ.ID, locOfRobotZ.x, locOfRobotZ.y);
+		DEBUG_PRINTS3("Add Robot Z[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotZ.ID, locOfRobotZ.vector.x, locOfRobotZ.vector.y);
 	}
 
 	DEBUG_PRINT("........Returning from Tri_findAllPointsFromFirstTwoPoints\n");
 }
 
-void Tri_findAllPossibleRemainPoints()
-{//void Tri_findAllPossibleRemainPoints(robotMeas_t* pNeighborsTable,
- //		oneHopMeas_t* pOneHopTable)
+void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID)
+{
+	DEBUG_PRINT("Entering GradientDescentMulti_correctLocationsTable........\n");
 
+	bool isGradienttSearchContinue = true;
+	GradientDescentNode* pTarget = NULL;
+	CustomLinkedList<GradientDescentNode> listCorrectLocationAlgorithm;
+
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		if(g_RobotLocationsTable[i].ID == ui32OriginalID)
+			continue;
+		pTarget = new GradientDescentNode;
+		pTarget->init(&g_RobotLocationsTable[i]);
+		listCorrectLocationAlgorithm.add(*pTarget);
+	}
+
+	// active Gradient descent to calculate new position
+	while(isGradienttSearchContinue)
+	{
+		isGradienttSearchContinue = false;
+
+		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
+		{
+			listCorrectLocationAlgorithm[i].run();
+		}
+
+		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
+		{
+			if(listCorrectLocationAlgorithm[i].isGradientSearchStop == false)
+			{
+				isGradienttSearchContinue = true;
+				break;
+			}
+		}
+	}
+
+	DEBUG_PRINT("........Returning from GradientDescentMulti_correctLocationsTable\n");
+}
+
+void Tri_findAllPossibleRemainPoints()
+{
 	/* Pseudo code
 	   START LOOP
 	   	   pick robot K in Neighbors Table
@@ -423,8 +477,6 @@ void Tri_findAllPossibleRemainPoints()
 	   	   END
 	   END
 	 */
-
-	DEBUG_PRINT("Entering Tri_findAllPossibleRemainPoints........\n");
 
 	uint32_t ui32RobotKsId;
 	uint32_t ui32RobotPsId;
@@ -457,7 +509,7 @@ void Tri_findAllPossibleRemainPoints()
 		if (oneHopIndexsK < 0)	// This condition never wrong due to State 1 has cover this
 			continue;
 
-	   	//TODO: doi vi tri O, X, Y, K cho nhau
+	   	//TODO: doi vi tri O, X, Y, Z cho nhau
 		//Tri_tryToFindTwoLocatedNeighbors(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable, &ui16EdgePK, ui16EdgeQK);
 		bool bIsFoundP = false;
 		bool bIsFoundQ = false;
@@ -469,7 +521,7 @@ void Tri_findAllPossibleRemainPoints()
 				if (j >= g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->Count)
 					break;
 
-				if(RobotLocationTabls_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
+				if(RobotLocationTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
 				{
 					ui32RobotPsId = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID;
 					ui16EdgePK = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).Distance;
@@ -483,7 +535,7 @@ void Tri_findAllPossibleRemainPoints()
 				if (j >= g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->Count)
 					break;
 
-				if(RobotLocationTabls_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
+				if(RobotLocationTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
 				{
 					ui32RobotQsId = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID;
 					ui16EdgeQK = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).Distance;
@@ -538,17 +590,16 @@ void Tri_findAllPossibleRemainPoints()
 		if (vectorK.x == 0 && vectorK.y == 0)
 			continue;
 
-		locOfRobotK.x = vectorK.x;
-		locOfRobotK.y = vectorK.y;
+//		locOfRobotK.x = vectorK.x;
+//		locOfRobotK.y = vectorK.y;
+		locOfRobotK.vector = vectorK;
 
 		g_RobotLocationsTable.add(locOfRobotK);
-		DEBUG_PRINTS3("Add Robot Z[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotK.ID, locOfRobotK.x, locOfRobotK.y);
+		DEBUG_PRINTS3("Add Robot Z[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotK.ID, locOfRobotK.vector.x, locOfRobotK.vector.y);
 
 		// (3) reset loop counter
 		i = 0;
 	}
-
-	DEBUG_PRINT("........Returning from Tri_findAllPossibleRemainPoints\n");
 }
 
 bool Tri_tryToGetEdgesOfThreeRobotOPQ(uint32_t ui32RobotPsId, uint32_t ui32RobotQsId, uint16_t *pui16EdgeOP, uint16_t *pui16EdgeOQ, uint16_t *pui16EdgePQ)
@@ -610,16 +661,100 @@ bool Tri_tryToFindAngleInLocalCoordination(float fEdgeR, uint32_t ui32RobotId, f
 	{
 		if (g_RobotLocationsTable[i].ID == ui32RobotId)
 		{
-			fCosAlpha = g_RobotLocationsTable[i].x / fEdgeR;
+			fCosAlpha = g_RobotLocationsTable[i].vector.x / fEdgeR;
 			*pfAlpha = acosf(fCosAlpha);
 
-			if (g_RobotLocationsTable[i].y < 0)
+			if (g_RobotLocationsTable[i].vector.y < 0)
 				*pfAlpha = MATH_PI_MUL_2 - *pfAlpha;
 
 			return true;
 		}
 	}
 	return false;
+}
+
+bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,
+		uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ)
+{
+	DEBUG_PRINT("Entering Tri_calculateAlphaFromSixEdgeAndAngleOffset........\n");
+
+	if (!isTriangle(ui16EdgeIP, ui16EdgeIJ, ui16EdgePJ))
+		return false;
+
+	if (!isTriangle(ui16EdgeIQ, ui16EdgeIJ, ui16EdgeQJ))
+		return false;
+
+	if (!isTriangle(ui16EdgeIP, ui16EdgeIQ, ui16EdgePQ))
+		return false;
+
+	float fEdgeIP = ui16EdgeIP / 256.0f;
+	float fEdgeIJ = ui16EdgeIJ / 256.0f;
+	float fEdgePJ = ui16EdgePJ / 256.0f;
+
+	*pfAlphaPIJ = acosf(findCosAngleUseCosineRuleForTriangle(fEdgeIP, fEdgeIJ, fEdgePJ));
+
+	DEBUG_PRINT("........Returning from Tri_calculateAlphaFromSixEdge\n");
+
+	return true;
+}
+
+Vector2<float> Tri_chooseTheBestVectorFromThreePoints(float fAlphaZ, uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
+{
+	int indexO, indexX, indexY;
+
+	Vector2<float> vectorZNegSigned;
+	Vector2<float> vectorZPosSigned;
+
+	float errorNegSigned = 0;
+	float errorPosSigned = 0;
+
+	indexO = RobotLocationTable_getIndexOfRobot(ui32RobotOsId);
+	if(indexO < 0)	return NULL;
+
+	indexX = RobotLocationTable_getIndexOfRobot(ui32RobotXsId);
+	if(indexX < 0)	return NULL;
+
+	indexY = RobotLocationTable_getIndexOfRobot(ui32RobotYsId);
+	if(indexY < 0)	return NULL;
+
+	vectorZPosSigned.x = fEdgeOZ * cosf(fAlphaZ);
+	vectorZPosSigned.y = fEdgeOZ * sinf(fAlphaZ);
+
+	vectorZNegSigned.x = fEdgeOZ * cosf(-fAlphaZ);
+	vectorZNegSigned.y = fEdgeOZ * sinf(-fAlphaZ);
+
+	errorPosSigned = Tri_calculateErrorOfVectorZ(vectorZPosSigned,
+												g_RobotLocationsTable[indexO].vector,
+												g_RobotLocationsTable[indexX].vector,
+												g_RobotLocationsTable[indexY].vector,
+												fEdgeOZ, fEdgeXZ, fEdgeYZ);
+
+	errorNegSigned = Tri_calculateErrorOfVectorZ(vectorZNegSigned,
+												g_RobotLocationsTable[indexO].vector,
+												g_RobotLocationsTable[indexX].vector,
+												g_RobotLocationsTable[indexY].vector,
+												fEdgeOZ, fEdgeXZ, fEdgeYZ);
+
+	if(errorPosSigned < errorNegSigned)
+		return vectorZPosSigned;
+	else
+		return vectorZNegSigned;
+}
+float Tri_calculateErrorOfVectorZ(Vector2<float> vectZ, Vector2<float> vectO, Vector2<float> vectX, Vector2<float> vectY, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
+{
+	Vector2<float> vectOZ = vectO - vectZ;
+	Vector2<float> vectXZ = vectX - vectZ;
+	Vector2<float> vectYZ = vectY - vectZ;
+
+	float errorOZ = vectOZ.getMagnitude() - fEdgeOZ;
+	float errorXZ = vectXZ.getMagnitude() - fEdgeXZ;
+	float errorYZ = vectYZ.getMagnitude() - fEdgeYZ;
+
+	errorOZ = absFloatNumber(errorOZ);
+	errorXZ = absFloatNumber(errorXZ);
+	errorYZ = absFloatNumber(errorYZ);
+
+	return (errorOZ + errorXZ + errorYZ);
 }
 
 Vector2<float> Tri_trilaterateFromSixEdgeAndAngleOffset(uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,

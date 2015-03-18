@@ -30,10 +30,13 @@ public:
 	~Vector2() {};
 
     // Operators
+	Vector2<T>& operator=(const T value) { x = value; y = value; return *this; };
 	Vector2<T>& operator=(const Vector2<T> &rhs) { x = rhs.x,  y = rhs.y; return *this; }
     bool operator == (const Vector2<T> &rhs) const { return ((x == rhs.x) && (y == rhs.y)); }
     bool operator != (const Vector2<T> &rhs) const { return ((x != rhs.x) || (y != rhs.y)); }
     Vector2<T> operator+(const Vector2<T>& v1);
+    Vector2<T> operator-(const Vector2<T>& v1);
+    Vector2<T> operator*(const T scale);
 
     // Methods
     float getMagnitude();
@@ -52,6 +55,30 @@ Vector2<T> Vector2<T>::operator+(const Vector2<T>& v1)
 	result.y = v1.y + this->y;
 	return result;
 };
+
+//********************
+// Subtract operator *
+//********************
+template <typename T>
+Vector2<T> Vector2<T>::operator-(const Vector2<T>& v1)
+{
+	Vector2<T> result;
+	result.x = (this->x) - v1.x;
+	result.y = (this->y) - v1.y;
+	return result;
+};
+
+//*****************
+// Scale operator *
+//*****************
+template <typename T>
+Vector2<T> Vector2<T>::operator*(const T scale)
+{
+	Vector2<T> result;
+	result.x = (this->x) * scale;
+	result.y = (this->y) * scale;
+	return result;
+}
 
 //*******************************
 // Get Magnitude of the Vector. *

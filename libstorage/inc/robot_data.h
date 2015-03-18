@@ -26,7 +26,7 @@ extern "C"
 #define NEIGHBORS_TABLE_LENGTH 			10
 #define ONEHOP_NEIGHBORS_TABLE_LENGTH 	NEIGHBORS_TABLE_LENGTH
 #define LOCATIONS_TABLE_LENGTH			NEIGHBORS_TABLE_LENGTH
-#define ROBOT_LOCATIONS_TABLE_LENGTH	NEIGHBORS_TABLE_LENGTH
+
 
 //typedef struct tagVector {
 //	float x;
@@ -48,6 +48,7 @@ void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance);
 bool NeighborsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index);
+uint16_t NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID);
 void NeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 // ====== One Hop Neighbors Table manipulation methods =============================
@@ -57,13 +58,16 @@ int OneHopNeighborsTable_getSize(void);
 void OneHopNeighborsTable_add(uint32_t ui32NeighborId, uint8_t* pui8TableBuffer, uint32_t ui32TableSizeInByte);
 bool OneHopNeighborsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t OneHopNeighborsTable_getFirstHopIdAtIndex(uint32_t ui32Index);
+int OneHopNeighborsTable_getIndexOfRobot(uint32_t ui32RobotID);
 void OneHopNeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 // ====== Robot Locations Table manipulation methods =============================
 void RobotLocationsTable_clear(void);
 int RobotLocationsTable_getSize(void);
 void RobotLocationsTable_add(uint32_t id, float x, float y);
-bool RobotLocationTabls_isContainRobot(uint32_t ui32RobotId);
+void RobotLocationsTable_remove(uint32_t id);
+int RobotLocationTable_getIndexOfRobot(uint32_t ui32RobotID);
+bool RobotLocationTable_isContainRobot(uint32_t ui32RobotId);
 void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 #ifdef __cplusplus

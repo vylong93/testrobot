@@ -402,6 +402,9 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		sendRobotLocationsTableToHost();
 		break;
 
+	case HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE:
+		selfCorrectLocationsTable();
+		break;
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;

@@ -84,6 +84,7 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_READ_NEIGHBORS_TABLE			0x18
 #define HOST_COMMAND_READ_ONEHOP_NEIGHBORS_TABLE	0x19
 #define HOST_COMMAND_READ_LOCATIONS_TABLE			0x1A
+#define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE	0x1B
 
 //------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 					0x0A
