@@ -85,6 +85,7 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_READ_ONEHOP_NEIGHBORS_TABLE	0x19
 #define HOST_COMMAND_READ_LOCATIONS_TABLE			0x1A
 #define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE	0x1B
+#define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE_EXCEPT_ROTATION_HOP 	0x1C
 
 //------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 					0x0A
@@ -92,10 +93,15 @@ typedef struct tag_MessageHeader
 #define ROBOT_RESPONSE_DISTANCE_RESULT				0xB1
 #define ROBOT_RESPONSE_SAMPLING_COLLISION			0xB2
 #define ROBOT_RESPONSE_NEIGHBORS_TABLE				0xB3
+#define ROBOT_RESPONSE_COORDINATES_ROTATED			0xB4
+#define ROBOT_RESPONSE_LOCATIONS_TABLE				0xB5
 //------------------------------------------------------
 #define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS		0xA0
 #define ROBOT_REQUEST_SAMPLING_MICS					0xA1
 #define ROBOT_REQUEST_NEIGHBORS_TABLE				0xA2
+#define ROBOT_REQUEST_VOTE_THE_ORIGIN				0xA3
+#define ROBOT_REQUEST_ROTATE_COORDINATES			0xA4
+#define ROBOT_REQUEST_READ_LOCATIONS_TABLE			0xA5
 //------------------------------------------------------
 
 void RobotResponseIntHandler(void);
@@ -112,7 +118,7 @@ bool sendDataToHost(uint8_t* pui8Data, uint32_t ui32DataLength);
 
 void broadcastToLocalNeighbors(uint8_t ui8Command, uint8_t* pui8MessageData, uint8_t ui32DataSize);
 
-void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void broadcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command, uint8_t* pui8MessageData, uint32_t ui32DataSize);
 void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize);
 
 bool responseMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
@@ -129,53 +135,45 @@ bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui3
 void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_t ui8Command, uint8_t* pui8Data, uint32_t ui32DataSize);
 
 //=============================================================================
-#define PC_SEND_READ_NEIGHBORS_TABLE	0xA6
-#define PC_SEND_READ_ONEHOP_TABLE		0xA7
-#define PC_SEND_READ_LOCS_TABLE			0xA8
-
-#define PC_SEND_READ_VECTOR				0xB1
-#define PC_SEND_LOCAL_LOOP_STOP			0xB2
-#define PC_SEND_SET_STEPSIZE			0xB3
-#define PC_SEND_SET_STOP_CONDITION_ONE	0xB4
-#define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
-#define PC_SEND_ROTATE_CLOCKWISE		0xB6
-#define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
-#define PC_SEND_FORWARD_PERIOD			0xB8
-#define PC_SEND_FORWARD_DISTANCE		0xB9
-#define PC_SEND_SET_ROBOT_STATE			0xBA
-#define PC_SEND_ROTATE_CORRECTION_ANGLE	0xBB
-#define PC_SEND_READ_CORRECTION_ANGLE	0xBC
-
-#define PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF	0xBD
-#define PC_SEND_ROTATE_CORRECTION_ANGLE_SAME	0xBE
-
-#define ROBOT_RESPONSE_HELLO_NEIGHBOR			0xD2
-#define ROBOT_RESPONSE_NOT_YOUR_NEIGHBOR 		0xD3
-#define ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN		0xD4
-#define ROBOT_REQUEST_ROTATE_NETWORK			0xD5
-#define ROBOT_REQUEST_MY_VECTOR					0xD6
-#define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
-#define ROBOT_RESPONSE_MY_VECTOR				0xD8
-#define ROBOT_RESPONSE_MY_VECTOR_NOT_FOUND 		0xD9
-#define ROBOT_REQUEST_VECTOR_AND_FLAG			0xDA
-#define ROBOT_RESPONSE_VECTOR_AND_FLAG			0xDB
-#define ROBOT_RESPONSE_PLEASE_WAIT				0xDC
-#define ROBOT_RESPONSE_UNACTIVE					0xDD
-#define ROBOT_REQUEST_VECTOR					0xDE
-#define ROBOT_RESPONSE_VECTOR					0xDF
-
-#define ROBOT_REQUEST_TO_RUN				0x90
-#define ROBOT_REQUEST_UPDATE_VECTOR			0x93
-#define ROBOT_ALLOW_MOVE_TO_T_SHAPE			0x94
-#define ROBOT_REPONSE_MOVE_COMPLETED		0x95
-
-// Format <SMART_PHONE_COMMAND><SP_SEND_...>
-#define SMART_PHONE_COMMAND				0xF0
-#define SP_SEND_STOP_TWO_MOTOR			0xF1
-#define SP_SEND_FORWAR					0xF2
-#define SP_SEND_SPIN_CLOCKWISE			0xF3
-#define SP_SEND_SPIN_COUNTERCLOCKWISE	0xF4
-#define SP_SEND_RESERVED				0xF5
+//#define PC_SEND_READ_VECTOR				0xB1
+//#define PC_SEND_LOCAL_LOOP_STOP			0xB2
+//#define PC_SEND_SET_STEPSIZE			0xB3
+//#define PC_SEND_SET_STOP_CONDITION_ONE	0xB4
+//#define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
+//#define PC_SEND_ROTATE_CLOCKWISE		0xB6
+//#define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
+//#define PC_SEND_FORWARD_PERIOD			0xB8
+//#define PC_SEND_FORWARD_DISTANCE		0xB9
+//#define PC_SEND_SET_ROBOT_STATE			0xBA
+//#define PC_SEND_ROTATE_CORRECTION_ANGLE	0xBB
+//#define PC_SEND_READ_CORRECTION_ANGLE	0xBC
+//
+//#define PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF	0xBD
+//#define PC_SEND_ROTATE_CORRECTION_ANGLE_SAME	0xBE
+//
+//#define ROBOT_REQUEST_MY_VECTOR					0xD6
+//#define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
+//#define ROBOT_RESPONSE_MY_VECTOR				0xD8
+//#define ROBOT_RESPONSE_MY_VECTOR_NOT_FOUND 		0xD9
+//#define ROBOT_REQUEST_VECTOR_AND_FLAG			0xDA
+//#define ROBOT_RESPONSE_VECTOR_AND_FLAG			0xDB
+//#define ROBOT_RESPONSE_PLEASE_WAIT				0xDC
+//#define ROBOT_RESPONSE_UNACTIVE					0xDD
+//#define ROBOT_REQUEST_VECTOR					0xDE
+//#define ROBOT_RESPONSE_VECTOR					0xDF
+//
+//#define ROBOT_REQUEST_TO_RUN				0x90
+//#define ROBOT_REQUEST_UPDATE_VECTOR			0x93
+//#define ROBOT_ALLOW_MOVE_TO_T_SHAPE			0x94
+//#define ROBOT_REPONSE_MOVE_COMPLETED		0x95
+//
+//// Format <SMART_PHONE_COMMAND><SP_SEND_...>
+//#define SMART_PHONE_COMMAND				0xF0
+//#define SP_SEND_STOP_TWO_MOTOR			0xF1
+//#define SP_SEND_FORWAR					0xF2
+//#define SP_SEND_SPIN_CLOCKWISE			0xF3
+//#define SP_SEND_SPIN_COUNTERCLOCKWISE	0xF4
+//#define SP_SEND_RESERVED				0xF5
 
 #ifdef __cplusplus
 }

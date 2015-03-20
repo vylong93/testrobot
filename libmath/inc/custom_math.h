@@ -16,6 +16,7 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "arm_math.h"
 
 #define MATH_PI_MUL_2			6.283185307
 #define MATH_PI_MUL_3_DIV_2	    4.71238898

@@ -8,7 +8,7 @@
 #ifndef TRILATERATION_H_
 #define TRILATERATION_H_
 
-
+#include "libstorage/inc/CustomLinkedList.h"
 #include "libstorage/inc/RobotLocation.h"
 #include "libmath/inc/Vector2.h"
 
@@ -21,23 +21,15 @@ extern "C"
 #include <stdbool.h>
 #include <stdlib.h>
 
-void initDataOfRobot3(void);
+void initData(uint8_t* pui8MessageData);
 
-// (1) void Tri_clearLocs(location_t locsTable[], uint8_t *length);
-// ----> replace by void RobotLocationsTable_clear(void);
+bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
 
-// (2) void Tri_addLocation(uint32_t ID, float x, float y);
-// ----> replace by void RobotLocationsTable_add(uint32_t ID, float x, float y);
-
-// (OK) void Tri_findLocs(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable);
-bool Tri_tryToCalculateRobotLocationsTable(void);
-
-// (OK) uint16_t Tri_tryToFindTwoXYNeighbors(oneHopMeas_t* pOneHopTable, robotMeas_t* pRobotX, robotMeas_t* pRobotY, robotMeas_t* pNeighborTable);
-bool Tri_tryToFindTwoBestXYNeighbors(uint32_t* pui32RobotXsId, uint32_t* pui32RobotYsId, uint16_t* pui16EdgeOX, uint16_t* pui16EdgeOY, uint16_t* pui16EdgeXY);
+bool Tri_tryToFindTwoBestXYNeighbors(uint32_t ui32RobotOsId, uint32_t* pui32RobotXsId, uint32_t* pui32RobotYsId, uint16_t* pui16EdgeOX, uint16_t* pui16EdgeOY, uint16_t* pui16EdgeXY);
 void Tri_calculateXYLocations(uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, uint16_t ui16EdgeOX, uint16_t ui16EdgeOY, uint16_t ui16EdgeXY);
 
 void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, uint16_t ui16EdgeOX, uint16_t ui16EdgeOY, uint16_t ui16EdgeXY);
-void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID);
+void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
 
 void Tri_findAllPossibleRemainPoints();
 
@@ -46,20 +38,7 @@ bool Tri_tryToFindAngleInLocalCoordination(float fEdgeR, uint32_t ui32RobotId, f
 bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,
 		uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ);
 
-//void Tri_getDistanceFromRobotToMe(robotMeas_t* pRobot, robotMeas_t* pNeighborsTable);
-//void Tri_calculateAverageDistance(robotMeas_t pNeighborsTable[], robotMeas_t* pRobotX, robotMeas_t* pRobotY);
-//
-//void Tri_findAllPointsFromFirstTwoPoints(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable, robotMeas_t robotX, robotMeas_t robotY, float edgeXY);
-//void Tri_findAllPossibleRemainPoints(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable);
-//
-//bool Tri_tryToFindTwoLocatedNeighbors(oneHopMeas_t* pOneHopTable, uint32_t robotK_ID, robotMeas_t* pRobotP, robotMeas_t* pRobotQ);
-//
-//bool Tri_isLocationsTableContain(uint32_t robotID);
-//float Tri_findAngleInLocalCoordination(float edgeR, uint32_t rID);
-//
-//void Tri_getThreeEdgeFormOriginal(robotMeas_t* pNeighborsTable, oneHopMeas_t* pOneHopTable, float* edgeOP, float* edgeOQ, float* edgePQ, uint32_t oID, uint32_t pID, uint32_t qID);
-//uint16_t Tri_tryToGetNeighborsDistance(robotMeas_t* pNeighborsTable, uint32_t checkingID);
-//uint16_t Tri_tryToGetDistance(oneHopMeas_t* pOneHopTable, uint32_t firstHopID, uint32_t checkingID);
+bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHopID, float fRotationHopXvalue, float fRotationHopYvalue, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
 
 #ifdef __cplusplus
 }
@@ -70,5 +49,10 @@ float Tri_calculateErrorOfVectorZ(Vector2<float> vectZ, Vector2<float> vectO, Ve
 
 Vector2<float> Tri_trilaterateFromSixEdgeAndAngleOffset(uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ, uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ, float fAngleOffset);
 int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta);
+
+bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID, uint32_t ui32SelfID, uint32_t ui32RotationHopID);
+bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopID, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring);
+float Tri_getRobotAngleFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable);
+Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<float> vectRotationHop, CustomLinkedList<RobotLocation>* pOriLocsTable);
 
 #endif /* TRILATERATION_H_ */

@@ -37,11 +37,19 @@ void RobotResponseIntHandler(void)
 			break;
 
 		case ROBOT_RESPONSE_STATE_SAMPLING_MICS:
-			handleSamplingMicsRequest(pui8RequestData);
+			StateOne_MeasureDistance_SamplingMicsHandler(pui8RequestData);
 			break;
 
 		case ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE:
 			StateTwo_ExchangeTable_TransmitNeighborsTableHandler(pui8RequestData);
+			break;
+
+		case ROBOT_RESPONSE_STATE_ROTATE_COORDINATES:
+			StateFour_RotateCoordinates_RotateCoordinatesHandler(pui8RequestData);
+			break;
+
+		case ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE:
+			StateFour_RotateCoordinates_ReadLocationsTableHandler(pui8RequestData);
 			break;
 
 		default:	// ROBOT_RESPONSE_STATE_NONE
@@ -405,6 +413,11 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 	case HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE:
 		selfCorrectLocationsTable();
 		break;
+
+	case HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE_EXCEPT_ROTATION_HOP:
+		selfCorrectLocationsTableExceptRotationHopID();
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;
@@ -425,6 +438,18 @@ void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_
 
 	case ROBOT_REQUEST_NEIGHBORS_TABLE:
 		triggerResponseState(ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE, pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_REQUEST_VOTE_THE_ORIGIN:
+		StateThree_VoteTheOrigin_VoteTheOriginHandler(pui8MessageData);
+		break;
+
+	case ROBOT_REQUEST_ROTATE_COORDINATES:
+		triggerResponseState(ROBOT_RESPONSE_STATE_ROTATE_COORDINATES, pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_REQUEST_READ_LOCATIONS_TABLE:
+		triggerResponseState(ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE, pui8MessageData, ui32DataSize);
 		break;
 
 	default:
@@ -449,6 +474,14 @@ void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32
 		StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(pui8MessageData, ui32DataSize);
 		break;
 
+	case ROBOT_RESPONSE_COORDINATES_ROTATED:
+		StateFour_RotateCoordinates_UpdateRotationFlagTableHandler(pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_RESPONSE_LOCATIONS_TABLE:
+		StateFour_RotateCoordinates_ReceivedLocationsTableHandler(pui8MessageData, ui32DataSize);
+		break;
+
 	default:
 		// Invalid Response
 		break;
@@ -462,15 +495,15 @@ bool sendMessageToHost(e_MessageType eMessType, uint8_t ui8Command,
 	bool bReturn;
 
 	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
-	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
-	if(puiMessageBuffer == 0)
+	uint8_t* pui8MessageBuffer = malloc(sizeof(*pui8MessageBuffer) * ui32TotalSize);
+	if(pui8MessageBuffer == 0)
 		return false;
 
-	constructMessage(puiMessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
+	constructMessage(pui8MessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
 
-	bReturn = sendDataToHost(puiMessageBuffer, ui32TotalSize);
+	bReturn = sendDataToHost(pui8MessageBuffer, ui32TotalSize);
 
-	free(puiMessageBuffer);
+	free(pui8MessageBuffer);
 
 	return bReturn;
 }
@@ -485,22 +518,22 @@ bool sendDataToHost(uint8_t* pui8Data, uint32_t ui32DataLength)
 //------------------------ Robot side ------------------------
 void broadcastToLocalNeighbors(uint8_t ui8Command, uint8_t* pui8MessageData, uint8_t ui32DataSize)
 {
-	broatcastMessageToNeighbor(NETWORK_BROADCAST_ADDRESS, ui8Command, pui8MessageData, ui32DataSize);
+	broadcastMessageToNeighbor(NETWORK_BROADCAST_ADDRESS, ui8Command, pui8MessageData, ui32DataSize);
 }
 
-void broatcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
+void broadcastMessageToNeighbor(uint32_t ui32NeighborId, uint8_t ui8Command,
 		uint8_t* pui8MessageData, uint32_t ui32DataSize)
 {
 	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
-	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
-	if(puiMessageBuffer == 0)
+	uint8_t* pui8MessageBuffer = malloc(sizeof(*pui8MessageBuffer) * ui32TotalSize);
+	if(pui8MessageBuffer == 0)
 		return;
 
-	constructMessage(puiMessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
+	constructMessage(pui8MessageBuffer, MESSAGE_TYPE_ROBOT_REQUEST, ui8Command, pui8MessageData, ui32DataSize);
 
-	broadcastDataToNeighbor(ui32NeighborId, puiMessageBuffer, ui32TotalSize);
+	broadcastDataToNeighbor(ui32NeighborId, pui8MessageBuffer, ui32TotalSize);
 
-	free(puiMessageBuffer);
+	free(pui8MessageBuffer);
 }
 
 void broadcastDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui32DataSize)
@@ -531,15 +564,15 @@ bool transmitMessageToNeighbor(e_MessageType eMessType, uint32_t ui32NeighborId,
 	bool bReturn;
 
 	uint32_t ui32TotalSize = MESSAGE_HEADER_LENGTH + ui32DataSize;
-	uint8_t* puiMessageBuffer = malloc(ui32TotalSize);
-	if(puiMessageBuffer == 0)
+	uint8_t* pui8MessageBuffer = malloc(sizeof(*pui8MessageBuffer) * ui32TotalSize);
+	if(pui8MessageBuffer == 0)
 		return false;
 
-	constructMessage(puiMessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
+	constructMessage(pui8MessageBuffer, eMessType, ui8Command, pui8MessageData, ui32DataSize);
 
-	bReturn = sendDataToNeighbor(ui32NeighborId, puiMessageBuffer, ui32TotalSize);
+	bReturn = sendDataToNeighbor(ui32NeighborId, pui8MessageBuffer, ui32TotalSize);
 
-	free(puiMessageBuffer);
+	free(pui8MessageBuffer);
 
 	return bReturn;
 }

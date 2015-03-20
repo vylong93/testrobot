@@ -52,10 +52,7 @@ int main(void)
 
 	turnOffLED(LED_ALL);
 
-//	initDataOfRobot3();
-//	RobotLocationsTable_add(Network_getSelfAddress(), 0, 0);
-//	Tri_tryToCalculateRobotLocationsTable();
-
+//	test();
 
 #ifdef HAVE_IMU
 	InvMPU mpu6050;
@@ -175,12 +172,24 @@ int main(void)
 		switch (getRobotState())
 		{
 			case ROBOT_STATE_MEASURE_DISTANCE:
+				DEBUG_PRINT("goto State ONE: Measure Distance\n");
 				StateOne_MeasureDistance();
 			break;
 
 			case ROBOT_STATE_EXCHANGE_TABLE:
+				DEBUG_PRINT("goto State TWO: Exchange Table\n");
 				StateTwo_ExchangeTable();
 			break;
+
+			case ROBOT_STATE_VOTE_ORIGIN:
+				DEBUG_PRINT("goto State THREE: Vote Origin\n");
+				StateThree_VoteTheOrigin();
+			break;
+
+			case ROBOT_STATE_ROTATE_COORDINATES:
+				DEBUG_PRINT("goto State FOUR: Rotate Coordinates\n");
+				StateFour_RotateCoordinates();
+				break;
 
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
@@ -265,199 +274,6 @@ void MCU_RF_IRQ_handler(void)
 		returnToSleep();
 }
 
-//void StateThree_VoteOrigin()
-//{
-//	if(g_ui32OriginID == g_ui32RobotID) // haven't update
-//	{
-//		// set This As Origin Node
-//		g_ui8OriginNumberOfNeighbors = g_ui8LocsCounter;
-//		g_ui8Hopth = 0;
-//		g_ui32RotationHopID = g_ui32RobotID;
-//	}
-//	else // haven't update
-//	{
-//		if (g_ui8OriginNumberOfNeighbors < g_ui8LocsCounter)
-//		{
-//			// set This As Origin Node
-//			g_ui32OriginID = g_ui32RobotID;
-//			g_ui8OriginNumberOfNeighbors = g_ui8LocsCounter;
-//			g_ui8Hopth = 0;
-//			g_ui32RotationHopID = g_ui32RobotID;
-//		}
-//	}
-//
-//	g_ui8ReBroadcastCounter = 0;
-//
-//	g_bBypassThisState = false;
-//
-//	delayTimerA(DELAY_ROTATE_NETWORK, false);	// start State Timer
-//
-//	while (!g_bDelayTimerAFlagAssert)
-//	{
-//		turnOffLED(LED_GREEN);
-//
-//		generateRandomByte();
-//		while (g_ui8RandomNumber == 0)
-//			;
-//
-//		delayTimerB(DELAY_REBROADCAST, true);
-//
-//		// delay timeout
-//		if (!g_bBypassThisState)
-//		{
-//			reloadDelayTimerA();
-//
-//			turnOnLED(LED_GREEN);
-//
-//			// construct message: <Update Network Origin COMMAND> <thisOriginID> <thisOriginNumberOfNeighbors> <thisHopth>
-//			RF24_TX_buffer[0] = ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN;
-//			RF24_TX_buffer[1] = g_ui32OriginID >> 24;
-//			RF24_TX_buffer[2] = g_ui32OriginID >> 16;
-//			RF24_TX_buffer[3] = g_ui32OriginID >> 8;
-//			RF24_TX_buffer[4] = g_ui32OriginID;
-//			RF24_TX_buffer[5] = g_ui8OriginNumberOfNeighbors;
-//			RF24_TX_buffer[6] = g_ui8Hopth;
-//
-//			broadcastLocalNeighbor(RF24_TX_buffer, 7);
-//			RF24_RX_activate();
-//
-//			g_ui8ReBroadcastCounter++;
-//
-//			if (g_ui8ReBroadcastCounter >= REBROADCAST_TIMES)
-//				g_bBypassThisState = true;
-//		}
-//	}
-//
-//	g_eProcessState = ROTATE_NETWORK;
-//}
-
-//void StateFour_RequestRotateNetwork()
-//{
-//	uint8_t ui8RandomRfChannel;
-//	uint32_t tableSizeInByte;
-//	uint32_t neighborID;
-//	int8_t i;
-//	int32_t tempValue;
-//
-//	if (g_ui32OriginID & 0x01)
-//		turnOnLED(LED_GREEN);
-//	else
-//		turnOffLED(LED_GREEN);
-//
-//	if (g_ui32OriginID & 0x02)
-//		turnOnLED(LED_BLUE);
-//	else
-//		turnOffLED(LED_BLUE);
-//
-//	if (g_ui32OriginID & 0x04)
-//		turnOnLED(LED_RED);
-//	else
-//		turnOffLED(LED_RED);
-//
-//	if (g_ui32OriginID == g_ui32RobotID)
-//	{
-//		// I'am Original
-//		g_bIsNetworkRotated = true;
-//
-//		g_ui32RotationHopID = g_ui32RobotID;
-//
-//		g_vector.x = 0;
-//		g_vector.y = 0;
-//	}
-//
-//	// waiting request and rotate
-//	while(!g_bIsNetworkRotated);
-//
-//	// Debug Only
-//	if (g_ui32RobotID == g_ui32OriginID)
-//	{
-//		g_ui8ReTransmitCounter = 0; // disable software trigger retransmit
-//
-//		tableSizeInByte = sizeof(location_t) * g_ui8LocsCounter;
-//
-//		i = 0;
-//		while (i < g_ui8LocsCounter)
-//		{
-//			generateRandomByte();
-//			while (g_ui8RandomNumber == 0)
-//				;
-//			g_ui8RandomNumber = (g_ui8RandomNumber < 100) ? (g_ui8RandomNumber + 100) : (g_ui8RandomNumber);
-//
-//			ui8RandomRfChannel = (g_ui8RandomNumber % 125) + 1; // only allow channel range form 1 to 125
-//
-//			delayTimerB(g_ui8RandomNumber + 1000, true);
-//
-//			neighborID = locs[i].ID;
-//
-//			if (neighborID == g_ui32RotationHopID || neighborID == g_ui32RobotID)
-//			{
-//				i++;
-//				continue;
-//			}
-//
-//			// send rotate network command and locs size
-//			RF24_TX_buffer[0] = ROBOT_REQUEST_ROTATE_NETWORK;
-//
-//			RF24_TX_buffer[1] = g_ui32RobotID >> 24;
-//			RF24_TX_buffer[2] = g_ui32RobotID >> 16;
-//			RF24_TX_buffer[3] = g_ui32RobotID >> 8;
-//			RF24_TX_buffer[4] = g_ui32RobotID;
-//
-//			RF24_TX_buffer[5] = tableSizeInByte >> 24;
-//			RF24_TX_buffer[6] = tableSizeInByte >> 16;
-//			RF24_TX_buffer[7] = tableSizeInByte >> 8;
-//			RF24_TX_buffer[8] = tableSizeInByte;
-//
-//			tempValue = (int8_t)(g_vector.x * 65536.0 + 0.5);
-//			RF24_TX_buffer[9] = tempValue >> 24;
-//			RF24_TX_buffer[10] = tempValue >> 16;
-//			RF24_TX_buffer[11] = tempValue >> 8;
-//			RF24_TX_buffer[12] = tempValue;
-//
-//			tempValue = (int8_t)(g_vector.y * 65536.0 + 0.5);
-//			RF24_TX_buffer[13] = tempValue >> 24;
-//			RF24_TX_buffer[14] = tempValue >> 16;
-//			RF24_TX_buffer[15] = tempValue >> 8;
-//			RF24_TX_buffer[16] = tempValue;
-//
-//			RF24_TX_buffer[17] = ui8RandomRfChannel;
-//
-//			if (sendMessageToOneNeighbor(neighborID, RF24_TX_buffer, 18))
-//			{
-//				turnOffLED(LED_RED);
-//
-//				RF24_setChannel(ui8RandomRfChannel);
-//				RF24_TX_flush();
-//				RF24_clearIrqFlag(RF24_IRQ_MASK);
-//				RF24_RX_activate();
-//
-//				SysCtlDelay(3000); // delay 150us
-//				sendMessageToOneNeighbor(neighborID, (uint8_t*)locs, tableSizeInByte);
-//				i++;
-//
-//				RF24_setChannel(0);
-//				RF24_TX_flush();
-//				RF24_clearIrqFlag(RF24_IRQ_MASK);
-//				RF24_RX_activate();
-//
-//				turnOnLED(LED_RED);
-//			}
-//		}
-//	}
-//	// Coordinates rotated!!!
-//
-//	// offset locs table to real vector
-//	for(i = 0; i < g_ui8LocsCounter; i++)
-//	{
-//		locs[i].vector.x += g_vector.x;
-//		locs[i].vector.y += g_vector.y;
-//	}
-//
-////	g_eProcessState = IDLE;
-//
-//	turnOffLED(LED_ALL);
-//	g_eProcessState = REDUCE_ERROR;
-//}
 
 //void StateFive_ReduceCoordinatesError()
 //{

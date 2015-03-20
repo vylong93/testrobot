@@ -10,6 +10,7 @@
 #include "libstorage/inc/RobotMeas.h"
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/RobotLocation.h"
+#include "libmath/inc/custom_math.h"
 #include "data_manipulation.h"
 
 CustomLinkedList<RobotMeas> g_NeighborsTable;
@@ -245,13 +246,13 @@ void RobotLocationsTable_remove(uint32_t id)
 	g_RobotLocationsTable.remove(robotLocation);
 }
 
-int RobotLocationTable_getIndexOfRobot(uint32_t ui32RobotID)
+int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID)
 {
 	RobotLocation target(ui32RobotID, NULL);
 	return g_RobotLocationsTable.isContain(target);
 }
 
-bool RobotLocationTable_isContainRobot(uint32_t ui32RobotId)
+bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId)
 {
 	int i;
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
@@ -260,6 +261,52 @@ bool RobotLocationTable_isContainRobot(uint32_t ui32RobotId)
 			return true;
 	}
 	return false;
+}
+
+uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index)
+{
+	return g_RobotLocationsTable[ui32Index].ID;
+}
+
+void RobotLocationsTable_setVectorOfRobot(uint32_t ui32RobotId, float x, float y)
+{
+	RobotLocation target(ui32RobotId, 0);
+	int i = g_RobotLocationsTable.isContain(target);
+	if (i >= 0)
+	{
+		g_RobotLocationsTable[i].vector.x = x;
+		g_RobotLocationsTable[i].vector.y = y;
+	}
+}
+
+void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
+{
+	float x, y;
+
+	float fAngleOffset = MATH_PI_MUL_2 - fAngle;
+
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		x = g_RobotLocationsTable[i].vector.x;
+		y = g_RobotLocationsTable[i].vector.y;
+
+		g_RobotLocationsTable[i].vector.x = x * cosf(fAngleOffset) - y * sinf(fAngleOffset);
+		g_RobotLocationsTable[i].vector.y = x * sinf(fAngleOffset) + y * cosf(fAngleOffset);
+
+		if (bFlipXaxis)
+			g_RobotLocationsTable[i].vector.x *= -1;
+	}
+}
+
+void RobotLocationsTable_linearTransform(float dx, float dy)
+{
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		g_RobotLocationsTable[i].vector.x += dx;
+		g_RobotLocationsTable[i].vector.y += dy;
+	}
 }
 
 void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)

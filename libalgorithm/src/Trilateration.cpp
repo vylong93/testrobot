@@ -9,137 +9,79 @@
 #include "libalgorithm/inc/GradientDescentNode.h"
 #include "libstorage/inc/robot_data.h"
 #include "libprotocol/inc/network.h"
-#include "libstorage/inc/CustomLinkedList.h"
-#include "libstorage/inc/RobotLocation.h"
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/RobotMeas.h"
 #include "libmath/inc/Vector2.h"
 #include "libmath/inc/custom_math.h"
 #include "librobot/inc/robot_analog.h"
+#include "data_manipulation.h"
 #include <math.h>
+
+extern "C" void setRobotIdentityVector(float x, float y);
 
 extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
-void initDataOfRobot3(void)
+void initData(uint8_t* pui8MessageData)
 {
-	//	Robot Locations Table 0xbead01]: Count = 5
-	//	___Robot [0xbead01] (0.0000cm;	0.0000cm)
-	//	___Robot [0xbead05] (20.4219cm;	0.0000cm)
-	//	___Robot [0xbead03] (20.5795cm;	20.6205cm)
-	//	___Robot [0xbead08] (16.4993cm;	-19.6116cm)
-	//	___Robot [0xbead04] (31.7628cm;	-18.6782cm)
+//	Locations Table of Robot [0x00BEAD03]:
+//	Robot:0xBEAD03 (0; 0)
+//	Robot:0xBEAD04 (22.9401; 0.0432587)
+//	Robot:0xBEAD05 (-3.89941; 24.5287)
+//	Robot:0xBEAD01 (12.6989; 13.8422)
+//	Robot:0xBEAD08 (30.9314; 20.1106)
 
-	//	Neighbors Table of Robot [0xBEAD03]:
-	//	Robot [0xBEAD05] :: 19.4492 cm
-	//	Robot [0xBEAD08] :: 27.6055 cm
-	//	Robot [0xBEAD01] :: 16.7422 cm
-	//	Robot [0xBEAD04] :: 17.7695 cm
+	RobotLocation item(0,0);
+	item.ID = 0xBEAD03; item.vector.x = 0; 			item.vector.y = 0;
+	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD04; item.vector.x = 22.9401f; 	item.vector.y = 0.0432587f;
+	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD05; item.vector.x = -3.89941f; 	item.vector.y = 24.5287f;
+	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD01; item.vector.x = 12.6989; 	item.vector.y = 13.8422;
+	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD08; item.vector.x = 30.9314; 	item.vector.y = 20.1106;
+	g_RobotLocationsTable.add(item);
 
-	//	One Hop Neighbors Table of Robot [0x00BEAD03]:
-	//	first Hop ID = 0xBEAD04:
-	//	Robot [0xBEAD03] :: 17.7695 cm
-	//	Robot [0xBEAD01] :: 17.457 cm
-	//	Robot [0xBEAD05] :: 31.0547 cm
-	//	Robot [0xBEAD08] :: 19.4023 cm
-	//
-	//	first Hop ID = 0xBEAD01:
-	//	Robot [0xBEAD03] :: 16.7422 cm
-	//	Robot [0xBEAD05] :: 17.3672 cm
-	//	Robot [0xBEAD08] :: 16.625 cm
-	//	Robot [0xBEAD04] :: 17.457 cm
-	//
-	//	first Hop ID = 0xBEAD08:
-	//	Robot [0xBEAD03] :: 27.6055 cm
-	//	Robot [0xBEAD01] :: 16.625 cm
-	//	Robot [0xBEAD04] :: 19.4023 cm
-	//	Robot [0xBEAD05] :: 29.3555 cm
-	//
-	//	first Hop ID = 0xBEAD05:
-	//	Robot [0xBEAD03] :: 19.4492 cm
-	//	Robot [0xBEAD01] :: 17.3672 cm
-	//	Robot [0xBEAD04] :: 31.0547 cm
-	//	Robot [0xBEAD08] :: 29.3555 cm
+//	Locations Table of Robot [0x00BEAD01]:
+//	Robot:0xBEAD01 (0; 0)
+//	Robot:0xBEAD04 (18.12; -0.337952)
+//	Robot:0xBEAD03 (7.27976; 19.0407)
+//	Robot:0xBEAD08 (5.17384; -17.4693)
+//	Robot:0xBEAD05 (-15.3676; 12.6814)
 
-	Network_setSelfAddress(0xBEAD03);
-	DEBUG_PRINTS("init Data of Robot[0x%06x].........\n", Network_getSelfAddress());
+	CustomLinkedList<RobotLocation> OriLocationsTable;
+	item.ID = 0xBEAD01; item.vector.x = 0; 			item.vector.y = 0;
+	OriLocationsTable.add(item);
+	item.ID = 0xBEAD04; item.vector.x = 18.12f; 	item.vector.y = -0.337952f;
+	OriLocationsTable.add(item);
+	item.ID = 0xBEAD03; item.vector.x = 7.27976f; 	item.vector.y = 19.0407f;
+	OriLocationsTable.add(item);
+	item.ID = 0xBEAD08; item.vector.x = 5.17384; 	item.vector.y = -17.4693;
+	OriLocationsTable.add(item);
+	item.ID = 0xBEAD05; item.vector.x = -15.3676; 	item.vector.y = 12.6814;
+	OriLocationsTable.add(item);
 
-	// (1) Fill Neighbors Table
-	NeighborsTable_add(0xBEAD05, (uint16_t)(19.4492f * 256));
-	NeighborsTable_add(0xBEAD08, (uint16_t)(27.6055f * 256));
-	NeighborsTable_add(0xBEAD01, (uint16_t)(16.7422f * 256));
-	NeighborsTable_add(0xBEAD04, (uint16_t)(17.7695f * 256));
+	int32_t i32Template;
+	int pointer = 0;
+	int i;
+	for(i = 0; i < OriLocationsTable.Count; i++)
+	{
+		parse32bitTo4Bytes(&pui8MessageData[pointer], OriLocationsTable[i].ID);
+		pointer += 4;
 
-	// (2) Fill OneHopNeighbors Table
-	RobotMeas robot(0, 0);
-	CustomLinkedList<RobotMeas> NeighborsTable;
-	OneHopMeas oneHopMeas;
+		i32Template = (int32_t)(OriLocationsTable[i].vector.x * 65535 + 0.5);
+		parse32bitTo4Bytes(&pui8MessageData[pointer], i32Template);
+		pointer += 4;
 
-	oneHopMeas.firstHopID = 0xBEAD04;
-	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(17.7695f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(17.457f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(31.0547f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(19.4023f * 256);
-	NeighborsTable.add(robot);
-	oneHopMeas.pNeighborsTable = &NeighborsTable;
-	g_OneHopNeighborsTable.add(oneHopMeas);
-
-	oneHopMeas.firstHopID = 0xBEAD01;
-	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(16.7422f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(17.3672f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(16.625f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(17.457f * 256);
-	NeighborsTable.add(robot);
-	oneHopMeas.pNeighborsTable = &NeighborsTable;
-	g_OneHopNeighborsTable.add(oneHopMeas);
-
-	oneHopMeas.firstHopID = 0xBEAD08;
-	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(27.6055f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(16.625f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(19.4023f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(29.3555f * 256);
-	NeighborsTable.add(robot);
-	oneHopMeas.pNeighborsTable = &NeighborsTable;
-	g_OneHopNeighborsTable.add(oneHopMeas);
-
-	oneHopMeas.firstHopID = 0xBEAD05;
-	NeighborsTable.clearAll();
-	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(19.4492f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(17.3672f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(31.0547f * 256);
-	NeighborsTable.add(robot);
-	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(29.3555f * 256);
-	NeighborsTable.add(robot);
-	oneHopMeas.pNeighborsTable = &NeighborsTable;
-	g_OneHopNeighborsTable.add(oneHopMeas);
-
-	g_RobotLocationsTable.clearAll();
-
-	DEBUG_PRINT("------------initialize Data OK\n");
-
-	DEBUG_PRINT("Robots' position in real world\n");
-	DEBUG_PRINT("          [3]   [4]\n");
-	DEBUG_PRINT("                      \n");
-	DEBUG_PRINT("       [5]   [1]   [8]\n");
-	DEBUG_PRINT("------------------------------\n");
+		i32Template = (int32_t)(OriLocationsTable[i].vector.y * 65535 + 0.5);
+		parse32bitTo4Bytes(&pui8MessageData[pointer], i32Template);
+		pointer += 4;
+	}
 }
 
-bool Tri_tryToCalculateRobotLocationsTable(void)
+bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId)
 {
 	/* Pseudo code
 	 	(0) Verify Neighbors Table and OneHopNeighborTable to have the same distance
@@ -153,7 +95,6 @@ bool Tri_tryToCalculateRobotLocationsTable(void)
 
 	DEBUG_PRINT("Entering Tri_tryToCalculateRobotLocationsTable........\n");
 
-	uint32_t ui32RobotOsId = Network_getSelfAddress();
 	uint32_t ui32RobotXsId;
 	uint32_t ui32RobotYsId;
 	uint16_t ui16EdgeOX;
@@ -162,7 +103,7 @@ bool Tri_tryToCalculateRobotLocationsTable(void)
 
 	//TODO: (0) Verify Neighbors Table and OneHopNeighborTable to have the same distance
 
-	if (Tri_tryToFindTwoBestXYNeighbors(&ui32RobotXsId, &ui32RobotYsId, &ui16EdgeOX, &ui16EdgeOY, &ui16EdgeXY) == false)
+	if (Tri_tryToFindTwoBestXYNeighbors(ui32RobotOsId, &ui32RobotXsId, &ui32RobotYsId, &ui16EdgeOX, &ui16EdgeOY, &ui16EdgeXY) == false)
 	{
 		DEBUG_PRINT("........Returning FALSE from Tri_tryToCalculateRobotLocationsTable\n");
 		return false;
@@ -176,13 +117,13 @@ bool Tri_tryToCalculateRobotLocationsTable(void)
 	if(g_RobotLocationsTable.Count < g_NeighborsTable.Count)
 		Tri_findAllPossibleRemainPoints();
 
-//	GradientDescentMulti_correctLocationsTable(ui32RobotOsId);
+	GradientDescentMulti_correctLocationsTable(ui32RobotOsId, 0);
 
 	DEBUG_PRINT("........Returning TRUE from Tri_tryToCalculateRobotLocationsTable\n");
 	return true;
 }
 
-bool Tri_tryToFindTwoBestXYNeighbors(uint32_t* pui32RobotXsId, uint32_t* pui32RobotYsId, uint16_t* pui16EdgeOX, uint16_t* pui16EdgeOY, uint16_t* pui16EdgeXY)
+bool Tri_tryToFindTwoBestXYNeighbors(uint32_t ui32RobotOsId, uint32_t* pui32RobotXsId, uint32_t* pui32RobotYsId, uint16_t* pui16EdgeOX, uint16_t* pui16EdgeOY, uint16_t* pui16EdgeXY)
 {
 	DEBUG_PRINT("Entering Tri_tryToFindTwoBestXYNeighbors........\n");
 
@@ -223,7 +164,7 @@ bool Tri_tryToFindTwoBestXYNeighbors(uint32_t* pui32RobotXsId, uint32_t* pui32Ro
 			robotMeasY = g_OneHopNeighborsTable[oneHopIndexOfX].pNeighborsTable->ElementAt(j);
 
 			// make sure it not my ID
-			if (robotMeasY.ID == Network_getSelfAddress())
+			if (robotMeasY.ID == ui32RobotOsId)
 				continue;
 
 			ui32IdRobotY = robotMeasY.ID;
@@ -344,7 +285,7 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 		ui32RobotZsId = g_NeighborsTable[i].ID;
 		DEBUG_PRINTS("Pick Robot Z from O neighbors = [0x%06x]\n", ui32RobotZsId);
 
-		if(RobotLocationTable_isContainRobot(ui32RobotZsId))
+		if(RobotLocationsTable_isContainRobot(ui32RobotZsId))
 			continue;
 
 		oneHopIndexsZ = OneHopNeighborsTable_getIndexOfRobot(ui32RobotZsId);
@@ -411,7 +352,7 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 	DEBUG_PRINT("........Returning from Tri_findAllPointsFromFirstTwoPoints\n");
 }
 
-void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID)
+void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID)
 {
 	DEBUG_PRINT("Entering GradientDescentMulti_correctLocationsTable........\n");
 
@@ -422,7 +363,7 @@ void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID)
 	int i;
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
 	{
-		if(g_RobotLocationsTable[i].ID == ui32OriginalID)
+		if(g_RobotLocationsTable[i].ID == ui32OriginalID || g_RobotLocationsTable[i].ID == ui32RotationHopID)
 			continue;
 		pTarget = new GradientDescentNode;
 		pTarget->init(&g_RobotLocationsTable[i]);
@@ -509,7 +450,6 @@ void Tri_findAllPossibleRemainPoints()
 		if (oneHopIndexsK < 0)	// This condition never wrong due to State 1 has cover this
 			continue;
 
-	   	//TODO: doi vi tri O, X, Y, Z cho nhau
 		//Tri_tryToFindTwoLocatedNeighbors(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable, &ui16EdgePK, ui16EdgeQK);
 		bool bIsFoundP = false;
 		bool bIsFoundQ = false;
@@ -521,7 +461,7 @@ void Tri_findAllPossibleRemainPoints()
 				if (j >= g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->Count)
 					break;
 
-				if(RobotLocationTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
+				if(RobotLocationsTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
 				{
 					ui32RobotPsId = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID;
 					ui16EdgePK = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).Distance;
@@ -535,7 +475,7 @@ void Tri_findAllPossibleRemainPoints()
 				if (j >= g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->Count)
 					break;
 
-				if(RobotLocationTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
+				if(RobotLocationsTable_isContainRobot(g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID))
 				{
 					ui32RobotQsId = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).ID;
 					ui16EdgeQK = g_OneHopNeighborsTable[oneHopIndexsK].pNeighborsTable->ElementAt(j).Distance;
@@ -698,6 +638,60 @@ bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint1
 	return true;
 }
 
+bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHopID, float fRotationHopXvalue, float fRotationHopYvalue, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable)
+{
+	DEBUG_PRINT("Entering Tri_tryToRotateLocationsTable........\n");
+
+	RobotLocation item(0, 0);
+	CustomLinkedList<RobotLocation> OriLocationsTable;
+	int32_t i32Template;
+	int pointer = 0;
+	int i;
+	for(i = 0; i < ui32SizeOfOriLocsTable; i++)
+	{
+		item.ID = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		pointer += 4;
+
+		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		item.vector.x = (float)(i32Template / 65536.0f);
+		pointer += 4;
+
+		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		item.vector.y = (float)(i32Template / 65536.0f);
+		pointer += 4;
+
+		OriLocationsTable.add(item);
+	}
+
+	Vector2<float> vectRotationHop(fRotationHopXvalue, fRotationHopYvalue);
+	Vector2<float> vectTransform;
+
+	float fCorrectionAngle;
+	bool bIsNeedMirroring;
+	uint32_t ui32IdsRobotJ;
+	if(Tri_tryToGetCommonNeighborID(&OriLocationsTable, &ui32IdsRobotJ, ui32SelfID, ui32RotationHopID))
+	{
+		if(Tri_calculateCorrectionAngle(ui32SelfID, ui32RotationHopID, ui32IdsRobotJ, &OriLocationsTable, &fCorrectionAngle, &bIsNeedMirroring))
+		{
+			RobotLocationsTable_rotate(fCorrectionAngle, bIsNeedMirroring);
+
+			vectTransform = Tri_updateRobotVectorToWorldFrame(ui32SelfID, vectRotationHop, &OriLocationsTable);
+
+			// Testing Only
+//			RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
+//			RobotLocationsTable_setVectorOfRobot(ui32RotationHopID, fRotationHopXvalue, fRotationHopYvalue);
+
+			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
+
+			return true;
+		}
+	}
+
+	DEBUG_PRINT("........Returning FALSE from Tri_tryToRotateLocationsTable\n");
+
+	return false;
+}
+
 Vector2<float> Tri_chooseTheBestVectorFromThreePoints(float fAlphaZ, uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
 {
 	int indexO, indexX, indexY;
@@ -708,13 +702,13 @@ Vector2<float> Tri_chooseTheBestVectorFromThreePoints(float fAlphaZ, uint32_t ui
 	float errorNegSigned = 0;
 	float errorPosSigned = 0;
 
-	indexO = RobotLocationTable_getIndexOfRobot(ui32RobotOsId);
+	indexO = RobotLocationsTable_getIndexOfRobot(ui32RobotOsId);
 	if(indexO < 0)	return NULL;
 
-	indexX = RobotLocationTable_getIndexOfRobot(ui32RobotXsId);
+	indexX = RobotLocationsTable_getIndexOfRobot(ui32RobotXsId);
 	if(indexX < 0)	return NULL;
 
-	indexY = RobotLocationTable_getIndexOfRobot(ui32RobotYsId);
+	indexY = RobotLocationsTable_getIndexOfRobot(ui32RobotYsId);
 	if(indexY < 0)	return NULL;
 
 	vectorZPosSigned.x = fEdgeOZ * cosf(fAlphaZ);
@@ -816,4 +810,101 @@ int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta)
 		return (-1);
 //
 //	return (0);
+}
+
+bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID, uint32_t ui32SelfID, uint32_t ui32RotationHopID)
+{
+	uint32_t ui32TargetId;
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		ui32TargetId = g_RobotLocationsTable[i].ID;
+
+		if(ui32TargetId == ui32SelfID || ui32TargetId == ui32RotationHopID)
+			continue;
+
+		int j;
+		for(j = 0; j < pOriLocsTable->Count; j++)
+		{
+			if (ui32TargetId == pOriLocsTable->ElementAt(j).ID)
+			{
+				*pui32CommonID = ui32TargetId;
+				return true;
+			}
+		}
+	}
+	*pui32CommonID = 0;
+	return false;
+}
+
+bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopID, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring)
+{
+	float fAlphaJ, fAlphaK, fAlphaJK;
+	float fBetaJ, fBetaI, fBetaJI;
+
+	//
+	// calculate correction angle
+	//
+	fAlphaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ,pOriLocsTable);
+	fAlphaK = Tri_getRobotAngleFromLocationsTable(ui32SelfID, pOriLocsTable);
+
+	fAlphaJK = fAlphaJ - fAlphaK;
+	fAlphaJK = (fAlphaJK < 0) ? (MATH_PI_MUL_2 + fAlphaJK) : (fAlphaJK);
+
+	fBetaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
+	fBetaI = Tri_getRobotAngleFromLocationsTable(ui32RotationHopID, &g_RobotLocationsTable);
+
+	fBetaJI = fBetaJ - fBetaI;
+	fBetaJI = (fBetaJI < 0) ? (MATH_PI_MUL_2 + fBetaJI) : (fBetaJI);
+
+	if ((fAlphaJK < MATH_PI && fBetaJI > MATH_PI)
+			|| (fAlphaJK > MATH_PI && fBetaJI < MATH_PI))
+	{
+		*pbIsNeedMirroring = false;
+		*pfCorrectionAngle = fBetaI - fAlphaK + MATH_PI;
+	}
+	else if ((fAlphaJK < MATH_PI && fBetaJI < MATH_PI)
+			|| (fAlphaJK > MATH_PI && fBetaJI > MATH_PI))
+	{
+		*pbIsNeedMirroring = true;
+		*pfCorrectionAngle = fBetaI + fAlphaK;
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+float Tri_getRobotAngleFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable)
+{
+	int i;
+	for(i = 0; i < pLocsTable->Count; i++)
+	{
+		if(pLocsTable->ElementAt(i).ID == ui32RobotId)
+		{
+			return atanf(pLocsTable->ElementAt(i).vector.y / pLocsTable->ElementAt(i).vector.x);
+		}
+	}
+
+	return 0;
+}
+
+Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<float> vectRotationHop, CustomLinkedList<RobotLocation>* pOriLocsTable)
+{
+	Vector2<float> vectorInWorlFrame(0, 0);
+	int i;
+	for(i = 0; i < pOriLocsTable->Count; i++)
+	{
+		if(pOriLocsTable->ElementAt(i).ID == ui32SelfId)
+		{
+			vectorInWorlFrame = vectRotationHop + pOriLocsTable->ElementAt(i).vector;
+
+			setRobotIdentityVector(vectorInWorlFrame.x, vectorInWorlFrame.y);
+
+			return vectorInWorlFrame;
+		}
+	}
+	return vectorInWorlFrame;
 }

@@ -13,6 +13,8 @@
 #include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_eeprom.h"
 
+#include "libcustom/inc/custom_uart_debug.h"
+
 #include "libcustom/inc/custom_led.h"
 #include "libcustom/inc/custom_delay.h"
 #include "libalgorithm/inc/TDOA.h"
@@ -22,13 +24,34 @@
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
-extern bool Tri_tryToCalculateRobotLocationsTable(void);
-extern void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID);
+extern void initData(uint8_t* pui8MessageData);
+extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
+extern bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHopID, float fRotationHopXvalue, float fRotationHopYvalue, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
+extern void Tri_transformLocationsTableToWorldFrame(float fRotationHopXvalue, float fRotationHopYvalue);
+extern void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
+
+RobotIdentity_t g_RobotIdentity;
 
 static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
 static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
 static uint8_t* g_pui8RequestData;
+
+void test(void)
+{
+	g_RobotIdentity.Origin_Hopth = 0;
+	g_RobotIdentity.Origin_ID = 0xBEAD01;
+	g_RobotIdentity.Origin_NeighborsCount = 4;
+	g_RobotIdentity.Self_ID = 0xBEAD03;
+	g_RobotIdentity.Self_NeighborsCount = 4;
+
+	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 60);
+	initData(pui8MessageData);
+
+	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, 0xBEAD01, 0, 0, pui8MessageData, 60 / 12);
+
+	free(pui8MessageData);
+}
 
 void initRobotProcess(void)
 {
@@ -52,7 +75,19 @@ void initRobotProcess(void)
 	}
 
 	//
-	// Initilize TDOA
+	// Initialize RobotIdentity
+	//
+	g_RobotIdentity.Self_ID = Network_getSelfAddress();
+	g_RobotIdentity.Self_NeighborsCount = 0;
+	g_RobotIdentity.Origin_ID = 0;
+	g_RobotIdentity.Origin_NeighborsCount = 0;
+	g_RobotIdentity.Origin_Hopth = 0;
+	g_RobotIdentity.RotationHop_ID = 0;
+	g_RobotIdentity.x = 0;
+	g_RobotIdentity.y = 0;
+
+	//
+	// Initialize TDOA
 	//
 	if(getTDOAParameterInEEPROM(&fTDOA_Intercept, &fTDOA_Slope))
 	{
@@ -62,7 +97,7 @@ void initRobotProcess(void)
 	TDOA_initFilters();
 
 	//
-	// Initilize Data Storages
+	// Initialize Data Storages
 	//
 	initLinkedList();
 
@@ -72,7 +107,6 @@ void initRobotProcess(void)
 	ROM_IntPrioritySet(INT_SW_TRIGGER_ROBOT_RESPONSE, PRIORITY_ROBOT_RESPONSE);
 
 	ROM_IntEnable(INT_SW_TRIGGER_ROBOT_RESPONSE);
-
 }
 
 void setRobotState(e_RobotState eState)
@@ -97,6 +131,12 @@ uint8_t* getRequestMessageDataPointer(void)
 	return g_pui8RequestData;
 }
 
+void setRobotIdentityVector(float x, float y)
+{
+	g_RobotIdentity.x = x;
+	g_RobotIdentity.y = y;
+}
+
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize)
 {
 	int32_t i;
@@ -105,7 +145,7 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 
 	if(ui32DataSize > 0)
 	{
-		g_pui8RequestData = malloc(sizeof(uint8_t) * ui32DataSize);
+		g_pui8RequestData = malloc(sizeof(*g_pui8RequestData) * ui32DataSize);
 		if(g_pui8RequestData == 0)
 			return;
 
@@ -285,80 +325,9 @@ bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp)
 	handleCommonSubTaskDelayRandomState();
 
 	return true; // Terminal the subTask after handle
-
-//	uint32_t ui32MessageSize;
-//	uint8_t* pui8RxBuffer = 0;
-//
-//	turnOnLED(LED_RED);
-//
-//	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-//	{
-//		// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
-//		decodeMessage(pui8RxBuffer, ui32MessageSize);
-//	}
-//
-//	Network_deleteBuffer(pui8RxBuffer);
-//
-//	turnOffLED(LED_RED);
-//
-//	return true; // Terminal This subTask whether or not correct rf message is received
 }
 
-void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
-{
-	turnOnLED(LED_GREEN);
-
-	// Get neighbor measure results
-	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
-	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
-
-	// Filtered the invalid results measurement
-	if (ui16Distance > 0 && ui16Distance < MAXIMUM_DISTANCE)
-		NeighborsTable_addOverride(ui32ResponseRobotId, ui16Distance);
-
-	turnOffLED(LED_GREEN);
-}
-
-bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
-{
-	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
-	int16_t i16Intercept = (int16_t)(TDOA_getIntercept() * 1024 + 0.5);	// Fixed-point 6.10
-	int16_t i16Slope = (int16_t)(TDOA_getSlope() * 1024 + 0.5);			// Fixed-point 6.10
-
-	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted());
-
-	TDOA_filterSignalsMic(getMicrophone0BufferPointer());
-	if(TDOA_isFilteredSignalNoisy())
-		return false;
-
-	TDOA_filterSignalsMic(getMicrophone1BufferPointer());
-	if(TDOA_isFilteredSignalNoisy())
-		return false;
-
-	broadcastMeasureDistanceCommandToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MICS, i16Intercept, i16Slope);
-	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
-
-	return true;
-}
-
-void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope)
-{
-	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
-
-	uint32_t ui32SelfId = Network_getSelfAddress();
-	uint8_t pui8MessageData[8];	// <4-byte SelfId><2-byte Intercept><2-byte Slope>
-
-	parse32bitTo4Bytes(pui8MessageData, ui32SelfId);
-
-	parse16bitTo2Bytes(&pui8MessageData[4], i16Intercept);
-
-	parse16bitTo2Bytes(&pui8MessageData[6], i16Slope);
-
-	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 8);
-}
-
-void handleSamplingMicsRequest(uint8_t* pui8RequestData)
+void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 {
 	bool bIsSkipTheRest = false;
 
@@ -426,15 +395,66 @@ void handleSamplingMicsRequest(uint8_t* pui8RequestData)
 	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
+void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	turnOnLED(LED_GREEN);
+
+	// Get neighbor measure results
+	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
+	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
+
+	// Filtered the invalid results measurement
+	if (ui16Distance > 0 && ui16Distance < MAXIMUM_DISTANCE)
+		NeighborsTable_addOverride(ui32ResponseRobotId, ui16Distance);
+
+	turnOffLED(LED_GREEN);
+}
+
+bool tryToRequestLocalNeighborsForDistanceMeasurement(void)
+{
+	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
+	int16_t i16Intercept = (int16_t)(TDOA_getIntercept() * 1024 + 0.5);	// Fixed-point 6.10
+	int16_t i16Slope = (int16_t)(TDOA_getSlope() * 1024 + 0.5);			// Fixed-point 6.10
+
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted());
+
+	TDOA_filterSignalsMic(getMicrophone0BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	TDOA_filterSignalsMic(getMicrophone1BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	broadcastMeasureDistanceCommandToLocalNeighbors(ROBOT_REQUEST_SAMPLING_MICS, i16Intercept, i16Slope);
+	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
+
+	return true;
+}
+
+void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope)
+{
+	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
+
+	uint8_t pui8MessageData[8];	// <4-byte SelfId><2-byte Intercept><2-byte Slope>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	parse16bitTo2Bytes(&pui8MessageData[4], i16Intercept);
+
+	parse16bitTo2Bytes(&pui8MessageData[6], i16Slope);
+
+	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 8);
+}
+
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	//NOTE: ui16Distance is Fixed-point <8.8> format
 
 	uint8_t pui8ResponseData[6];	// <4-byte self id><2-byte distance>
-	uint32_t ui32SelfId;
 
-	ui32SelfId = Network_getSelfAddress();
-	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
+	parse32bitTo4Bytes(pui8ResponseData, g_RobotIdentity.Self_ID);
 
 	parse16bitTo2Bytes(&pui8ResponseData[4], ui16Distance);
 
@@ -581,7 +601,7 @@ void StateTwo_ExchangeTable(void)
 	}
 	while(!g_bIsNewLocationsTableAvailable);
 
-	setRobotState(ROBOT_STATE_IDLE);	// TODO: switch to next state: VOTE_ORIGIN
+	setRobotState(ROBOT_STATE_VOTE_ORIGIN);
 }
 
 void StateTwo_ExchangeTable_ResetFlag(void)
@@ -620,11 +640,12 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	{
 		if((OneHopNeighborsTable_getSize() == NeighborsTable_getSize()))
 		{
-			RobotLocationsTable_add(Network_getSelfAddress(), 0, 0);
+			RobotLocationsTable_add(g_RobotIdentity.Self_ID, 0, 0);
 
-			if(Tri_tryToCalculateRobotLocationsTable())
+			if(Tri_tryToCalculateRobotLocationsTable(g_RobotIdentity.Self_ID))
 			{
 				g_bIsNewLocationsTableAvailable = true;
+				g_RobotIdentity.Self_NeighborsCount = RobotLocationsTable_getSize();
 			}
 			else
 			{
@@ -664,36 +685,18 @@ bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp)
 	handleCommonSubTaskDelayRandomState();
 
 	return true; // Terminal the subTask after handle
-
-//	uint32_t ui32MessageSize;
-//	uint8_t* pui8RxBuffer = 0;
-//
-//	turnOnLED(LED_RED);
-//
-//	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-//	{
-//		// Valid commands in this state: ROBOT_REQUEST_NEIGHBORS_TABLE and ROBOT_RESPONSE_NEIGHBORS_TABLE
-//		decodeMessage(pui8RxBuffer, ui32MessageSize);
-//	}
-//
-//	Network_deleteBuffer(pui8RxBuffer);
-//
-//	turnOffLED(LED_RED);
-//
-//	return true; // alway return true to keep loop at the first state of TASK()
 }
 
 void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData)
 {
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
-	uint32_t ui32SelfID = Network_getSelfAddress();
 
 	uint32_t ui32TotalLength = SIZE_OF_ROBOT_ID + NeighborsTable_getSize() * SIZE_OF_ROBOT_MEAS;
-	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * ui32TotalLength);
+	uint8_t* pui8DataBuffer = malloc(sizeof(*pui8DataBuffer) * ui32TotalLength);
 	if(pui8DataBuffer == 0)
 		return;
 
-	parse32bitTo4Bytes(pui8DataBuffer, ui32SelfID);
+	parse32bitTo4Bytes(pui8DataBuffer, g_RobotIdentity.Self_ID);
 
 	NeighborsTable_fillContentToByteBuffer(&pui8DataBuffer[SIZE_OF_ROBOT_ID], ui32TotalLength - SIZE_OF_ROBOT_ID);
 
@@ -716,12 +719,547 @@ void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8Messa
 
 void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId)
 {
-	uint32_t ui32SelfId = Network_getSelfAddress();
 	uint8_t pui8MessageData[4];	// <4-byte SelfId>
 
-	parse32bitTo4Bytes(pui8MessageData, ui32SelfId);
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
 
 	sendMessageToNeighbor(ui32NeighborId, ROBOT_REQUEST_NEIGHBORS_TABLE, pui8MessageData, 4);
+}
+
+
+//========= State 3 - Vote The Origin ===================================
+static uint8_t g_ui8BroadcastVoteCommandCounter;
+
+void StateThree_VoteTheOrigin(void)
+{
+	/* Pseudo code
+	   reset myselt as the origin()
+	   {
+		   set the number of neighbors of the origin is my locations table count
+		   set the hopt count to zero
+		   set the rotation hop ID to my ID
+		   set the origin id to my ID
+	   }
+	   reset flag's state 3: broadcastCounter = 0
+	   call Robot timer delay [STATE_THREELIFE_TIME_IN_MS] with TASK()
+		   TASK()
+		   --{
+			   DO
+			   {
+				   generate random values
+				   clear isFlagAssert flag
+				   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+					   handlerInDelayRandom()
+					   -- {
+								call RF handler()
+								-- {
+									-> call handle Update Network Origin COMMAND:
+									-- updateOrRejectNetworkOrigin()
+									   {
+									   	   IF rxOriginNodeID == my origin ID THEN
+									   	   	   return
+									   	   END
+
+										   IF my Number of Neighbors Of Origin <= rxNumberOfNeighborsOfOrigin
+											   my Hopth = rxHopth + 1
+											   my Origin ID = rxOriginNodeID
+											   my Number of Neighbors Of Origin = rxNumberOfNeighborsOfOrigin
+										   END
+
+									   	   broadcastCounter = 0;
+									   }
+								-- }
+								return true; // alway return true to reset task timer
+						-- }
+
+					if (isFlagAssert == true)
+						reset Robot timer delay();
+
+				} WHILE (isFlagAssert == true);
+
+				// Now, robot timer delay random is expired
+
+				IF broadcastCounter < BROADCAST_VOTE_TIMES THEN
+					broadcast <Update Network Origin COMMAND><thisOriginID><thisOriginNumberOfNeighbors><thisHopthNumber>
+					broadcastCounter++
+				END
+
+				return false; // continue the main TASK
+		   --}
+	   goto next state: ROTATE_NETWORK
+	 */
+
+	turnOffLED(LED_ALL);
+
+	StateThree_VoteTheOrigin_ResetFlag();
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	activeRobotTask(VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS, StateThree_VoteTheOrigin_MainTask);
+
+	//
+	// indicates the origin id
+	//
+	indicatesOriginIdToLEDs(g_RobotIdentity.Origin_ID);
+
+
+	//setRobotState(ROBOT_STATE_IDLE);
+	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
+}
+
+void StateThree_VoteTheOrigin_ResetFlag(void)
+{
+	g_RobotIdentity.Origin_ID = g_RobotIdentity.Self_ID;
+	g_RobotIdentity.Origin_NeighborsCount = g_RobotIdentity.Self_NeighborsCount;
+	g_RobotIdentity.Origin_Hopth = 0;
+	g_ui8BroadcastVoteCommandCounter = 0;
+}
+
+bool StateThree_VoteTheOrigin_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		 // 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateThree_VoteTheOrigin_SubTask_DelayRandom_Handler);
+
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
+	}
+	while (isRfFlagAssert);
+
+	// In here, robot timer delay is expired
+
+	if (g_ui8BroadcastVoteCommandCounter < BROADCAST_VOTE_TIMES)
+	{
+		broadcastVoteTheOriginCommandToLocalNeighbors();
+		g_ui8BroadcastVoteCommandCounter++;
+	}
+
+	return false; // continue the main TASK
+}
+
+bool StateThree_VoteTheOrigin_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: ROBOT_REQUEST_VOTE_THE_ORIGIN
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData)
+{
+	uint32_t ui32RxOriginNodeID = construct4Byte(pui8RequestData);
+	uint8_t ui8RxOriginNeighborsCount = pui8RequestData[4];
+	uint8_t ui8RxOriginHopth = pui8RequestData[5];
+
+	bool bIsNeedToUpdateRobotIdentity ;
+
+	if (ui32RxOriginNodeID == g_RobotIdentity.Origin_ID)
+		return;
+
+	if (ui8RxOriginNeighborsCount > g_RobotIdentity.Origin_NeighborsCount)
+	{
+		bIsNeedToUpdateRobotIdentity = true;
+	}
+	else if (ui8RxOriginNeighborsCount == g_RobotIdentity.Origin_NeighborsCount &&
+			ui32RxOriginNodeID < g_RobotIdentity.Origin_ID)
+	{
+		bIsNeedToUpdateRobotIdentity = true;
+	}
+	else
+	{
+		bIsNeedToUpdateRobotIdentity = false;
+	}
+
+	if(bIsNeedToUpdateRobotIdentity)
+	{
+		g_RobotIdentity.Origin_ID = ui32RxOriginNodeID;
+		g_RobotIdentity.Origin_NeighborsCount = ui8RxOriginNeighborsCount;
+		g_RobotIdentity.Origin_Hopth = ui8RxOriginHopth + 1;
+	}
+
+	g_ui8BroadcastVoteCommandCounter = 0;
+}
+
+void broadcastVoteTheOriginCommandToLocalNeighbors(void)
+{
+	uint8_t pui8MessageData[6]; // <4-byte origin><1-byte origin's neighbors count><1-byte hopth>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Origin_ID);
+	pui8MessageData[4] = g_RobotIdentity.Origin_NeighborsCount;
+	pui8MessageData[5] = g_RobotIdentity.Origin_Hopth;
+
+	broadcastToLocalNeighbors(ROBOT_REQUEST_VOTE_THE_ORIGIN, pui8MessageData, 6);
+}
+
+void indicatesOriginIdToLEDs(uint32_t ui32Id)
+{
+	if (ui32Id & 0x01)
+		turnOnLED(LED_GREEN);
+	else
+		turnOffLED(LED_GREEN);
+
+	if (ui32Id & 0x02)
+		turnOnLED(LED_BLUE);
+	else
+		turnOffLED(LED_BLUE);
+
+	if (ui32Id & 0x04)
+		turnOnLED(LED_RED);
+	else
+		turnOffLED(LED_RED);
+}
+
+
+//========= State 4 - Rotate Network Coordinates ===================================
+RobotRotationFlag_t* g_pCoordinatesRotationFlagTable;
+int32_t g_i32FlagTableLength;
+int32_t g_i32TargetPointer;
+bool g_bIsCoordinatesRotated;
+
+void StateFour_RotateCoordinates(void)
+{
+	/* Pseudo code
+	   allocate rotation flag table()
+	   {
+	   	   clear global target pointer
+	   	   clear all rotation flag to FALSE
+		   IF I am the origin THEN
+		   	   set my rotation hop id is my id
+		   	   set my location is (0; 0)
+		   	   set my rotation flag to TRUE
+	   	   END
+	   }
+
+	   call Robot timer delay [STATE_FOUR_LIFE_TIME_IN_MS] with TASK()
+		   TASK()
+		   --{
+		   	   try to find a neighbor which rotation flag is FALSE
+
+			   DO
+			   {
+				   generate random values
+				   clear isFlagAssert flag
+				   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+					   handlerInDelayRandom() ,  and
+					   -- {
+								call RF handler()
+								-- {
+									-> call handle COMMAND:
+									case ROBOT_REQUEST_ROTATE_COORDINATES:
+									-- IF my coordinates rotated THEN
+									 	  transmit ROBOT_RESPONSE_COORDINATES_ROTATED
+									   ELSE
+									   	  transmit ROBOT_REQUEST_READ_LOCATIONS_TABLE
+									   END
+
+									case ROBOT_RESPONSE_COORDINATES_ROTATED:
+									-- set corresponding rotation flag to TRUE
+
+									case ROBOT_REQUEST_LOCATIONS_TABLE:
+									-- transmit my locations table to request neighbor
+
+									case ROBOT_RESPONSE_LOCATIONS_TABLE:
+									-- try to rotate locations table
+									   IF success THEN
+									   	   set my rotation flag to TRUE
+									   END
+								-- }
+								return true; // alway return true to reset task timer
+						-- }
+
+					if (isFlagAssert == true)
+						reset Robot timer delay();
+
+				} WHILE (isFlagAssert == true);
+
+				// Now, robot timer delay random is expired
+	   			IF I have rotated AND target neighbor is not rotated THEN
+					request target neighbors to rotate
+					increase target pointer
+					reset Robot timer delay
+	   			END
+
+				return false; // continue the main TASK
+		   --}
+
+	   IF I didn't rotate my locations table THEN
+	   	   goto previous state: VOTE_THE_ORIGIN
+	   ELSE
+		   transform locs table to world frame
+	       goto next state
+	   END
+	 */
+
+	DEBUG_PRINTS("Self ID = 0x%06x\n", g_RobotIdentity.Self_ID);
+	DEBUG_PRINTS("Origin ID = 0x%06x\n", g_RobotIdentity.Origin_ID);
+
+	if(StateFour_RotateCoordinates_ResetFlag() == false)
+	{
+		setRobotState(ROBOT_STATE_IDLE);
+		return;
+	}
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	activeRobotTask(ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFour_RotateCoordinates_MainTask);
+
+	if(g_pCoordinatesRotationFlagTable != 0)
+		free(g_pCoordinatesRotationFlagTable);
+
+	if(g_bIsCoordinatesRotated)
+	{
+		setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+	}
+	else
+	{
+		setRobotState(ROBOT_STATE_VOTE_ORIGIN);
+	}
+}
+
+bool StateFour_RotateCoordinates_ResetFlag(void)
+{
+	DEBUG_PRINT("Entering StateFour_RotateCoordinates_ResetFlag........\n");
+
+	g_i32TargetPointer = 0;
+
+	g_i32FlagTableLength = NeighborsTable_getSize();
+	g_pCoordinatesRotationFlagTable = malloc(sizeof(*g_pCoordinatesRotationFlagTable) * g_i32FlagTableLength);
+	if (g_pCoordinatesRotationFlagTable == 0)
+	{
+		DEBUG_PRINT("........Returning FALSE from StateFour_RotateCoordinates_ResetFlag\n");
+		return false;
+	}
+
+	int i;
+	for(i = 0; i < g_i32FlagTableLength; i++)
+	{
+		g_pCoordinatesRotationFlagTable[i].ID = NeighborsTable_getIdAtIndex(i);
+		g_pCoordinatesRotationFlagTable[i].isRotated = false;
+		DEBUG_PRINTS2("add item to Rotation Flag Table: 0x%06x : %d\n", g_pCoordinatesRotationFlagTable[i].ID, g_pCoordinatesRotationFlagTable[i].isRotated);
+	}
+
+	if(g_RobotIdentity.Origin_ID == g_RobotIdentity.Self_ID)
+	{
+		g_RobotIdentity.RotationHop_ID = g_RobotIdentity.Self_ID;
+		g_RobotIdentity.x = 0;
+		g_RobotIdentity.y = 0;
+		g_bIsCoordinatesRotated = true;
+		DEBUG_PRINTS("I am the origin: 0x%06x\n", g_RobotIdentity.RotationHop_ID);
+	}
+
+	DEBUG_PRINT("........Returning TRUE from StateFour_RotateCoordinates_ResetFlag\n");
+	return true;
+}
+
+bool StateFour_RotateCoordinates_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	DEBUG_PRINT("Entering StateFour_RotateCoordinates_MainTask........\n");
+
+	uint32_t ui32TargetId;
+	do
+	{
+		ui32TargetId = g_pCoordinatesRotationFlagTable[g_i32TargetPointer].ID;
+		g_i32TargetPointer++;
+		if(g_i32TargetPointer >= g_i32FlagTableLength)
+		{
+			g_i32TargetPointer = 0;
+			break;
+		}
+	} while(getRotationFlagOfRobot(ui32TargetId));
+
+	DEBUG_PRINTS3("Select target neighbor: pointer = %d, ID = 0x%06x, flag = %d\n", g_i32TargetPointer, ui32TargetId, g_pCoordinatesRotationFlagTable[g_i32TargetPointer].isRotated);
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		 // 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateFour_RotateCoordinates_SubTask_DelayRandom_Handler);
+
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
+	}
+	while (isRfFlagAssert);
+
+	// In here, robot timer delay is expired
+	if (g_bIsCoordinatesRotated && getRotationFlagOfRobot(ui32TargetId) == false)
+	{
+		sendRequestRotateCoordinatesCommandToNeighbor(ui32TargetId);
+
+		resetRobotTaskTimer();
+	}
+
+	DEBUG_PRINT("........Returning from StateFour_RotateCoordinates_MainTask\n");
+
+	return false; // continue the main TASK
+}
+
+bool StateFour_RotateCoordinates_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: ROBOT_REQUEST_ROTATE_COORDINATES, ROBOT_REQUEST_READ_LOCATIONS_TABLE, ROBOT_RESPONSE_COORDINATES_ROTATED and ROBOT_RESPONSE_LOCATIONS_TABLE
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void StateFour_RotateCoordinates_RotateCoordinatesHandler(uint8_t* pui8RequestData)
+{
+	// <4-byte SelfId>
+	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
+
+	DEBUG_PRINTS("received ROBOT_REQUEST_ROTATE_COORDINATES from 0x%06x\n", ui32RequestRobotID);
+
+	uint8_t pui8MessageData[4];	// <4-byte SelfId>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	if(g_bIsCoordinatesRotated)
+	{
+		DEBUG_PRINTS("send ROBOT_RESPONSE_COORDINATES_ROTATED to 0x%06x\n", ui32RequestRobotID);
+		responseMessageToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_COORDINATES_ROTATED, pui8MessageData, 4);
+	}
+	else
+	{
+		DEBUG_PRINTS("send ROBOT_REQUEST_READ_LOCATIONS_TABLE to 0x%06x\n", ui32RequestRobotID);
+		sendMessageToNeighbor(ui32RequestRobotID, ROBOT_REQUEST_READ_LOCATIONS_TABLE, pui8MessageData, 4);
+	}
+}
+
+void StateFour_RotateCoordinates_UpdateRotationFlagTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
+
+	DEBUG_PRINTS("received ROBOT_RESPONSE_COORDINATES_ROTATED from 0x%06x\n", ui32ResponseRobotId);
+
+	setRotationFlagOfRobotTo(ui32ResponseRobotId, true);
+}
+
+void StateFour_RotateCoordinates_ReadLocationsTableHandler(uint8_t* pui8RequestData)
+{
+	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
+
+	uint32_t ui32TotalLength = RobotLocationsTable_getSize() * SIZE_OF_ROBOT_LOCATION + 12;
+	uint8_t* pui8DataBuffer = malloc(sizeof(*pui8DataBuffer) * ui32TotalLength);
+	if(pui8DataBuffer == 0)
+		return;
+
+	//TODO: replace by RotationHop ID and Rotation Vector here
+
+	parse32bitTo4Bytes(pui8DataBuffer, g_RobotIdentity.Self_ID);
+
+	int32_t i32Template;
+	i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8DataBuffer[4], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8DataBuffer[8], i32Template);
+
+	RobotLocationsTable_fillContentToByteBuffer(&pui8DataBuffer[12], ui32TotalLength - 12);
+
+	responseMessageToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_LOCATIONS_TABLE, pui8DataBuffer, ui32TotalLength);
+
+	DEBUG_PRINTS("transmit locations table to 0x%06x\n", ui32RequestRobotID);
+
+	free(pui8DataBuffer);
+}
+
+void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	uint32_t ui32RequestRobotID = construct4Byte(pui8MessageData);
+
+	int32_t i32TemplateXY;
+	float fRequestRobot_x;
+	float fRequestRobot_y;
+
+	i32TemplateXY = construct4Byte(&pui8MessageData[4]);
+	fRequestRobot_x = (float)(i32TemplateXY / 65536.0f);
+
+	i32TemplateXY = construct4Byte(&pui8MessageData[8]);
+	fRequestRobot_y = (float)(i32TemplateXY / 65536.0f);
+
+	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, ui32RequestRobotID, fRequestRobot_x, fRequestRobot_y, &pui8MessageData[12], (int32_t)((ui32DataSize - 12) / SIZE_OF_ROBOT_LOCATION));
+
+	g_RobotIdentity.RotationHop_ID = ui32RequestRobotID;
+
+	g_bIsCoordinatesRotated = true;
+}
+
+void sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID)
+{
+	uint8_t pui8MessageData[4];	// <4-byte SelfId>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	DEBUG_PRINTS("send ROBOT_REQUEST_ROTATE_COORDINATES to 0x%06x\n", ui32NeighborID);
+
+	sendMessageToNeighbor(ui32NeighborID, ROBOT_REQUEST_ROTATE_COORDINATES, pui8MessageData, 4);
+}
+
+void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag)
+{
+	if (g_pCoordinatesRotationFlagTable == 0)
+		return;
+
+	int i;
+	for(i = 0; i < g_i32FlagTableLength; i++)
+	{
+		if (g_pCoordinatesRotationFlagTable[i].ID == ui32RobotID)
+		{
+			g_pCoordinatesRotationFlagTable[i].isRotated = bFlag;
+			return;
+		}
+	}
+}
+
+bool getRotationFlagOfRobot(uint32_t ui32RobotID)
+{
+	if (g_pCoordinatesRotationFlagTable == 0)
+		return false;
+
+	int i;
+	for(i = 0; i < g_i32FlagTableLength; i++)
+	{
+		if (g_pCoordinatesRotationFlagTable[i].ID == ui32RobotID)
+			return g_pCoordinatesRotationFlagTable[i].isRotated;
+	}
+	return false;
 }
 
 
@@ -813,7 +1351,7 @@ void testRfTransmister(uint8_t* pui8Data)
 
 	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
 
-	uint16_t* pui16TestData = malloc(sizeof(uint16_t) * (ui32TestDataSize >> 1));
+	uint16_t* pui16TestData = malloc(sizeof(*pui16TestData) * (ui32TestDataSize >> 1));
 	if(pui16TestData == 0)
 		return;
 
@@ -894,7 +1432,7 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read %d word(s) in EEPROM\n", ui32DataCount);
 
 	uint8_t ui8ResponseSize = ui32DataCount * 6 + 1;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui8ResponseSize);
+	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui8ResponseSize);
 	if(pui8ResponseBuffer == 0)
 		return;
 
@@ -968,7 +1506,7 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0]);
 
 	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(uint8_t) * ui32ResponseSize);
+	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui32ResponseSize);
 	if(pui8ResponseBuffer == 0)
 		return;
 
@@ -1011,7 +1549,7 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 
 	uint32_t ui32DataPointer = 0;
 	uint32_t ui32ResponseLength = ui8TestTimes * 4; // Each peak is 2-byte in 8.8 fixed-point format
-	uint8_t* pui8ResponseToHostBuffer = malloc(sizeof(uint8_t) * ui32ResponseLength);
+	uint8_t* pui8ResponseToHostBuffer = malloc(sizeof(*pui8ResponseToHostBuffer) * ui32ResponseLength);
 	if(pui8ResponseToHostBuffer == 0)
 		return;
 
@@ -1140,11 +1678,9 @@ void handleCalibrateSamplingMicsRequest(uint8_t* pui8RequestData)
 bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB)
 {
 	uint8_t pui8ResponseData[8];	// <self id 4b><peak A 2b><peak B 2b>
-	uint32_t ui32SelfId;
 	uint16_t ui16TemplatePeak;
 
-	ui32SelfId = Network_getSelfAddress();
-	parse32bitTo4Bytes(pui8ResponseData, ui32SelfId);
+	parse32bitTo4Bytes(pui8ResponseData, g_RobotIdentity.Self_ID);
 
 	ui16TemplatePeak = (uint16_t)(fPeakA * 256 + 0.5);
 	parse16bitTo2Bytes(&pui8ResponseData[4], ui16TemplatePeak);
@@ -1206,7 +1742,6 @@ void sendOneHopNeighborsTableToHost(void)
 
 void sendRobotLocationsTableToHost(void)
 {
-//	uint8_t* pui8DataBuffer = malloc(sizeof(uint8_t) * 120);
 	uint8_t pui8DataBuffer[120] = {0};
 
 	turnOnLED(LED_ALL);
@@ -1216,11 +1751,14 @@ void sendRobotLocationsTableToHost(void)
 	sendDataToHost(pui8DataBuffer, 120);
 
 	turnOffLED(LED_ALL);
-
-//	free(pui8DataBuffer);
 }
 
 void selfCorrectLocationsTable(void)
 {
-	GradientDescentMulti_correctLocationsTable(Network_getSelfAddress());
+	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, 0);
+}
+
+void selfCorrectLocationsTableExceptRotationHopID(void)
+{
+	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
 }
