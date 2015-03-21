@@ -21,10 +21,10 @@ extern "C"
 typedef enum tag_RobotState
 {
 	ROBOT_STATE_IDLE = 0,
-	ROBOT_STATE_MEASURE_DISTANCE,	// State One
-	ROBOT_STATE_EXCHANGE_TABLE,		// State Two
-	ROBOT_STATE_VOTE_ORIGIN,		// State Three
-	ROBOT_STATE_ROTATE_COORDINATES,	// State Four
+	ROBOT_STATE_MEASURE_DISTANCE = 1,	// State One
+	ROBOT_STATE_EXCHANGE_TABLE = 2,		// State Two
+	ROBOT_STATE_VOTE_ORIGIN = 3,		// State Three
+	ROBOT_STATE_ROTATE_COORDINATES = 4,	// State Four
 	ROBOT_STATE_REDUCE_ERROR,
 	ROBOT_STATE_LOCOMOTION,
 	ROBOT_STATE_T_SHAPE,
@@ -51,6 +51,8 @@ typedef struct tagRobotIdentity {
 	uint8_t Origin_Hopth;
 	float x;
 	float y;
+	float RotationHop_x;
+	float RotationHop_y;
 } RobotIdentity_t;
 
 typedef struct tagRobotRotationFlag{
@@ -138,7 +140,7 @@ void StateFour_RotateCoordinates_UpdateRotationFlagTableHandler(uint8_t* pui8Mes
 void StateFour_RotateCoordinates_ReadLocationsTableHandler(uint8_t* pui8RequestData);
 void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
-void sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID);
+bool sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID);
 void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag);
 bool getRotationFlagOfRobot(uint32_t ui32RobotID);
 
@@ -167,6 +169,7 @@ void sendOneHopNeighborsTableToHost(void);
 void sendRobotLocationsTableToHost(void);
 void selfCorrectLocationsTable(void);
 void selfCorrectLocationsTableExceptRotationHopID(void);
+void transmitRobotIdentityToHost(void);
 
 #ifdef __cplusplus
 }

@@ -418,6 +418,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		selfCorrectLocationsTableExceptRotationHopID();
 		break;
 
+	case HOST_COMMAND_GOTO_STATE:
+		setRobotState((e_RobotState)pui8MessageData[0]);
+		break;
+
+	case HOST_COMMAND_READ_ROBOT_IDENTITY:
+		transmitRobotIdentityToHost();
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;

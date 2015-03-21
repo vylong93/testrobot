@@ -53,6 +53,7 @@ int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta);
 bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID, uint32_t ui32SelfID, uint32_t ui32RotationHopID);
 bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopID, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring);
 float Tri_getRobotAngleFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable);
+Vector2<float> Tri_getRobotVectorFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable);
 Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<float> vectRotationHop, CustomLinkedList<RobotLocation>* pOriLocsTable);
 
 #endif /* TRILATERATION_H_ */

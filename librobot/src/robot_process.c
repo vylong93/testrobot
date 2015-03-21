@@ -39,16 +39,22 @@ static uint8_t* g_pui8RequestData;
 
 void test(void)
 {
-	g_RobotIdentity.Origin_Hopth = 0;
+	g_RobotIdentity.Self_ID = 0xBEAD04;
+	g_RobotIdentity.Self_NeighborsCount = 5;
+
+	g_RobotIdentity.x = 0;
+	g_RobotIdentity.y = 0;
+
 	g_RobotIdentity.Origin_ID = 0xBEAD01;
-	g_RobotIdentity.Origin_NeighborsCount = 4;
-	g_RobotIdentity.Self_ID = 0xBEAD03;
-	g_RobotIdentity.Self_NeighborsCount = 4;
+	g_RobotIdentity.Origin_NeighborsCount = 5;
+	g_RobotIdentity.Origin_Hopth = 1;
+
+	g_RobotIdentity.RotationHop_ID = 0xBEAD05;
 
 	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 60);
 	initData(pui8MessageData);
 
-	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, 0xBEAD01, 0, 0, pui8MessageData, 60 / 12);
+	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID, 21.361, 0.266083, pui8MessageData, 60 / 12);
 
 	free(pui8MessageData);
 }
@@ -85,6 +91,8 @@ void initRobotProcess(void)
 	g_RobotIdentity.RotationHop_ID = 0;
 	g_RobotIdentity.x = 0;
 	g_RobotIdentity.y = 0;
+	g_RobotIdentity.RotationHop_x = 0;
+	g_RobotIdentity.RotationHop_y = 0;
 
 	//
 	// Initialize TDOA
@@ -806,8 +814,8 @@ void StateThree_VoteTheOrigin(void)
 	indicatesOriginIdToLEDs(g_RobotIdentity.Origin_ID);
 
 
-	//setRobotState(ROBOT_STATE_IDLE);
-	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
+	setRobotState(ROBOT_STATE_IDLE);
+	//setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
 }
 
 void StateThree_VoteTheOrigin_ResetFlag(void)
@@ -1115,7 +1123,8 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	// In here, robot timer delay is expired
 	if (g_bIsCoordinatesRotated && getRotationFlagOfRobot(ui32TargetId) == false)
 	{
-		sendRequestRotateCoordinatesCommandToNeighbor(ui32TargetId);
+		if(sendRequestRotateCoordinatesCommandToNeighbor(ui32TargetId))
+			setRotationFlagOfRobotTo(ui32TargetId, true);
 
 		resetRobotTaskTimer();
 	}
@@ -1180,8 +1189,6 @@ void StateFour_RotateCoordinates_ReadLocationsTableHandler(uint8_t* pui8RequestD
 	if(pui8DataBuffer == 0)
 		return;
 
-	//TODO: replace by RotationHop ID and Rotation Vector here
-
 	parse32bitTo4Bytes(pui8DataBuffer, g_RobotIdentity.Self_ID);
 
 	int32_t i32Template;
@@ -1217,11 +1224,13 @@ void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8Mess
 	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, ui32RequestRobotID, fRequestRobot_x, fRequestRobot_y, &pui8MessageData[12], (int32_t)((ui32DataSize - 12) / SIZE_OF_ROBOT_LOCATION));
 
 	g_RobotIdentity.RotationHop_ID = ui32RequestRobotID;
+	g_RobotIdentity.RotationHop_x = fRequestRobot_x;
+	g_RobotIdentity.RotationHop_y = fRequestRobot_y;
 
 	g_bIsCoordinatesRotated = true;
 }
 
-void sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID)
+bool sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID)
 {
 	uint8_t pui8MessageData[4];	// <4-byte SelfId>
 
@@ -1229,7 +1238,7 @@ void sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID)
 
 	DEBUG_PRINTS("send ROBOT_REQUEST_ROTATE_COORDINATES to 0x%06x\n", ui32NeighborID);
 
-	sendMessageToNeighbor(ui32NeighborID, ROBOT_REQUEST_ROTATE_COORDINATES, pui8MessageData, 4);
+	return sendMessageToNeighbor(ui32NeighborID, ROBOT_REQUEST_ROTATE_COORDINATES, pui8MessageData, 4);
 }
 
 void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag)
@@ -1761,4 +1770,32 @@ void selfCorrectLocationsTable(void)
 void selfCorrectLocationsTableExceptRotationHopID(void)
 {
 	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
+}
+
+void transmitRobotIdentityToHost(void)
+{
+	uint8_t pui8ResponseBuffer[31] = { 0 };
+
+	parse32bitTo4Bytes(pui8ResponseBuffer, g_RobotIdentity.Self_ID);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[4], g_RobotIdentity.Origin_ID);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[8], g_RobotIdentity.RotationHop_ID);
+
+	pui8ResponseBuffer[12] = g_RobotIdentity.Self_NeighborsCount;
+	pui8ResponseBuffer[13] = g_RobotIdentity.Origin_NeighborsCount;
+	pui8ResponseBuffer[14] = g_RobotIdentity.Origin_Hopth;
+
+	int32_t i32Template;
+	i32Template = (int32_t)(g_RobotIdentity.x * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.y * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[23], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.RotationHop_y * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
+
+	sendDataToHost(pui8ResponseBuffer, 31);
 }

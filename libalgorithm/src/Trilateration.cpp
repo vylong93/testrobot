@@ -25,43 +25,33 @@ extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
 void initData(uint8_t* pui8MessageData)
 {
-//	Locations Table of Robot [0x00BEAD03]:
-//	Robot:0xBEAD03 (0; 0)
-//	Robot:0xBEAD04 (22.9401; 0.0432587)
-//	Robot:0xBEAD05 (-3.89941; 24.5287)
-//	Robot:0xBEAD01 (12.6989; 13.8422)
-//	Robot:0xBEAD08 (30.9314; 20.1106)
+//	Locations Table of Robot [0x00BEAD04]:
+//	Robot:0xBEAD04 (0; 0)
+//	Robot:0xBEAD05 (33.676; 0.111511)
+//	Robot:0xBEAD01 (15.3616; 8.43095)
+//	Robot:0xBEAD03 (24.5245; 22.4866)
+//	Robot:0xBEAD08 (4.43593; 20.7595)
 
 	RobotLocation item(0,0);
-	item.ID = 0xBEAD03; item.vector.x = 0; 			item.vector.y = 0;
-	g_RobotLocationsTable.add(item);
-	item.ID = 0xBEAD04; item.vector.x = 22.9401f; 	item.vector.y = 0.0432587f;
-	g_RobotLocationsTable.add(item);
-	item.ID = 0xBEAD05; item.vector.x = -3.89941f; 	item.vector.y = 24.5287f;
-	g_RobotLocationsTable.add(item);
-	item.ID = 0xBEAD01; item.vector.x = 12.6989; 	item.vector.y = 13.8422;
-	g_RobotLocationsTable.add(item);
-	item.ID = 0xBEAD08; item.vector.x = 30.9314; 	item.vector.y = 20.1106;
-	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD04; item.vector.x = 0; 			item.vector.y = 0;			g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD05; item.vector.x = 33.676f; 	item.vector.y = 0.111511f;	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD01; item.vector.x = 15.3616f; 	item.vector.y = 8.43095f;	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD03; item.vector.x = 24.5245f; 	item.vector.y = 22.4866f;	g_RobotLocationsTable.add(item);
+	item.ID = 0xBEAD08; item.vector.x = 4.43593f; 	item.vector.y = 20.7595f;	g_RobotLocationsTable.add(item);
 
-//	Locations Table of Robot [0x00BEAD01]:
-//	Robot:0xBEAD01 (0; 0)
-//	Robot:0xBEAD04 (18.12; -0.337952)
-//	Robot:0xBEAD03 (7.27976; 19.0407)
-//	Robot:0xBEAD08 (5.17384; -17.4693)
-//	Robot:0xBEAD05 (-15.3676; 12.6814)
+//	Locations Table of Robot [0x00BEAD05]:
+//	Robot:0xBEAD05 (21.3613; 0.266083)
+//	Robot:0xBEAD04 (-9.41879; 13.8079)
+//	Robot:0xBEAD01 (1.23299; 0.0153503)
+//	Robot:0xBEAD03 (3.86044; -16.5552)
+//	Robot:0xBEAD08 (-13.7907; -6.79756)
 
 	CustomLinkedList<RobotLocation> OriLocationsTable;
-	item.ID = 0xBEAD01; item.vector.x = 0; 			item.vector.y = 0;
-	OriLocationsTable.add(item);
-	item.ID = 0xBEAD04; item.vector.x = 18.12f; 	item.vector.y = -0.337952f;
-	OriLocationsTable.add(item);
-	item.ID = 0xBEAD03; item.vector.x = 7.27976f; 	item.vector.y = 19.0407f;
-	OriLocationsTable.add(item);
-	item.ID = 0xBEAD08; item.vector.x = 5.17384; 	item.vector.y = -17.4693;
-	OriLocationsTable.add(item);
-	item.ID = 0xBEAD05; item.vector.x = -15.3676; 	item.vector.y = 12.6814;
-	OriLocationsTable.add(item);
+	item.ID = 0xBEAD05; item.vector.x = 21.3613f; 	item.vector.y = 0.266083f;		OriLocationsTable.add(item);
+	item.ID = 0xBEAD04; item.vector.x = -9.41879f; 	item.vector.y = 13.8079f;		OriLocationsTable.add(item);
+	item.ID = 0xBEAD01; item.vector.x = 1.23299f; 	item.vector.y = 0.0153503f;		OriLocationsTable.add(item);
+	item.ID = 0xBEAD03; item.vector.x = 3.86044f; 	item.vector.y = -16.5552f;		OriLocationsTable.add(item);
+	item.ID = 0xBEAD08; item.vector.x = -13.7907f; 	item.vector.y = -6.79756f;		OriLocationsTable.add(item);
 
 	int32_t i32Template;
 	int pointer = 0;
@@ -678,8 +668,8 @@ bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHop
 			vectTransform = Tri_updateRobotVectorToWorldFrame(ui32SelfID, vectRotationHop, &OriLocationsTable);
 
 			// Testing Only
-//			RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
-//			RobotLocationsTable_setVectorOfRobot(ui32RotationHopID, fRotationHopXvalue, fRotationHopYvalue);
+			// RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
+			// RobotLocationsTable_setVectorOfRobot(ui32RotationHopID, fRotationHopXvalue, fRotationHopYvalue);
 
 			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
 
@@ -839,12 +829,63 @@ bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable
 
 bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopID, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring)
 {
+	//
+	// New Attempt: calculate correction angle
+	//
+//	float fAlphaK;
+//	float fBetaI;
+//	float fCorrectionAngleNoMirroring;
+//	float fCorrectionAngleNeedMirroring;
+//	Vector2<float> vectRobotJinOriLocs(0, 0);
+//	Vector2<float> vectRobotJinLocs(0, 0);
+//	Vector2<float> vectRotatedNoMirror(0, 0);
+//	Vector2<float> vectRotatedMirroring(0, 0);
+//	float errorInMirroring;
+//	float errorNoMirror;
+//
+//	fAlphaK = Tri_getRobotAngleFromLocationsTable(ui32SelfID, pOriLocsTable);
+//	fBetaI = Tri_getRobotAngleFromLocationsTable(ui32RotationHopID, &g_RobotLocationsTable);
+//
+//	fCorrectionAngleNoMirroring = fBetaI - fAlphaK + MATH_PI;
+//	fCorrectionAngleNeedMirroring = fBetaI + fAlphaK;
+////	fCorrectionAngleNoMirroring = MATH_PI_MUL_2 - (fBetaI - fAlphaK + MATH_PI);
+////	fCorrectionAngleNeedMirroring = MATH_PI_MUL_2 - (fBetaI + fAlphaK);
+//
+////	fCorrectionAngleNoMirroring = atan2f(sinf(fCorrectionAngleNoMirroring), cosf(fCorrectionAngleNoMirroring));
+////	fCorrectionAngleNeedMirroring = atan2f(sinf(fCorrectionAngleNeedMirroring), cosf(fCorrectionAngleNeedMirroring));
+//
+//	vectRobotJinLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
+//
+//	vectRotatedNoMirror.x = vectRobotJinLocs.x * cosf(fCorrectionAngleNoMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNoMirroring);
+//	vectRotatedNoMirror.y = vectRobotJinLocs.x * sinf(fCorrectionAngleNoMirroring) + vectRobotJinLocs.y * cosf(fCorrectionAngleNoMirroring);
+//
+//	vectRotatedMirroring.x = -(vectRobotJinLocs.x * cosf(fCorrectionAngleNeedMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNeedMirroring));
+//	vectRotatedMirroring.y = vectRobotJinLocs.x * sinf(fCorrectionAngleNeedMirroring) + vectRobotJinLocs.y * cosf(fCorrectionAngleNeedMirroring);
+//
+//	vectRobotJinOriLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, pOriLocsTable) - Tri_getRobotVectorFromLocationsTable(ui32SelfID, pOriLocsTable);
+//
+//	errorNoMirror = absFloatNumber(vectRotatedNoMirror.x - vectRobotJinOriLocs.x) + absFloatNumber(vectRotatedNoMirror.y - vectRobotJinOriLocs.y);
+//	errorInMirroring = absFloatNumber(vectRotatedMirroring.x - vectRobotJinOriLocs.x) + absFloatNumber(vectRotatedMirroring.y - vectRobotJinOriLocs.y);
+//
+//	if(errorNoMirror < errorInMirroring)
+//	{
+//		*pfCorrectionAngle = fCorrectionAngleNoMirroring;
+////		*pfCorrectionAngle = fCorrectionAngleNoMirroring + MATH_PI_MUL_2;
+//		*pbIsNeedMirroring = false;
+//	}
+//	else
+//	{
+//		*pfCorrectionAngle = fCorrectionAngleNeedMirroring;
+////		*pfCorrectionAngle = fCorrectionAngleNoMirroring + MATH_PI_MUL_2;
+//		*pbIsNeedMirroring = true;
+//	}
+
+	//
+	// Old Attempt: calculate correction angle
+	//
 	float fAlphaJ, fAlphaK, fAlphaJK;
 	float fBetaJ, fBetaI, fBetaJI;
 
-	//
-	// calculate correction angle
-	//
 	fAlphaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ,pOriLocsTable);
 	fAlphaK = Tri_getRobotAngleFromLocationsTable(ui32SelfID, pOriLocsTable);
 
@@ -879,16 +920,41 @@ bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopI
 
 float Tri_getRobotAngleFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable)
 {
+	float angle;
 	int i;
 	for(i = 0; i < pLocsTable->Count; i++)
 	{
 		if(pLocsTable->ElementAt(i).ID == ui32RobotId)
 		{
-			return atanf(pLocsTable->ElementAt(i).vector.y / pLocsTable->ElementAt(i).vector.x);
+			if(pLocsTable->ElementAt(i).vector.y == 0 &&
+					pLocsTable->ElementAt(i).vector.x == 0)
+				return 0;
+
+			angle = atan2f(pLocsTable->ElementAt(i).vector.y, pLocsTable->ElementAt(i).vector.x);
+
+			if (angle > 0)
+				return angle;
+			else
+				return (angle + MATH_PI_MUL_2);
 		}
 	}
 
 	return 0;
+}
+
+Vector2<float> Tri_getRobotVectorFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable)
+{
+	Vector2<float> vector(0, 0);
+	int i;
+	for(i = 0; i < pLocsTable->Count; i++)
+	{
+		if(pLocsTable->ElementAt(i).ID == ui32RobotId)
+		{
+			return pLocsTable->ElementAt(i).vector;
+		}
+	}
+
+	return vector;
 }
 
 Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<float> vectRotationHop, CustomLinkedList<RobotLocation>* pOriLocsTable)

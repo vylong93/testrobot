@@ -86,6 +86,8 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_READ_LOCATIONS_TABLE			0x1A
 #define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE	0x1B
 #define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE_EXCEPT_ROTATION_HOP 	0x1C
+#define HOST_COMMAND_GOTO_STATE						0x1D
+#define HOST_COMMAND_READ_ROBOT_IDENTITY			0x1E
 
 //------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 					0x0A
