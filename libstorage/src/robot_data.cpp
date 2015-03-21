@@ -268,17 +268,6 @@ uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index)
 	return g_RobotLocationsTable[ui32Index].ID;
 }
 
-void RobotLocationsTable_setVectorOfRobot(uint32_t ui32RobotId, float x, float y)
-{
-	RobotLocation target(ui32RobotId, 0);
-	int i = g_RobotLocationsTable.isContain(target);
-	if (i >= 0)
-	{
-		g_RobotLocationsTable[i].vector.x = x;
-		g_RobotLocationsTable[i].vector.y = y;
-	}
-}
-
 void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 {
 	float x, y;
@@ -296,6 +285,20 @@ void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 
 		if (bFlipXaxis)
 			g_RobotLocationsTable[i].vector.x *= -1;
+	}
+}
+
+void RobotLocationsTable_transformToWorldFrame(uint32_t ui32RotationHopId, float fRotationHopXvalue, float fRotationHopYvalue)
+{
+	Vector2<float> vectRotationHop(fRotationHopXvalue, fRotationHopYvalue);
+	Vector2<float> vectTransform(0,0);
+
+	RobotLocation target(ui32RotationHopId, 0);
+	int i = g_RobotLocationsTable.isContain(target);
+	if (i >= 0)
+	{
+		vectTransform = vectRotationHop - g_RobotLocationsTable[i].vector;
+		RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
 	}
 }
 

@@ -667,10 +667,6 @@ bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHop
 
 			vectTransform = Tri_updateRobotVectorToWorldFrame(ui32SelfID, vectRotationHop, &OriLocationsTable);
 
-			// Testing Only
-			// RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
-			// RobotLocationsTable_setVectorOfRobot(ui32RotationHopID, fRotationHopXvalue, fRotationHopYvalue);
-
 			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
 
 			return true;
@@ -974,3 +970,4 @@ Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<fl
 	}
 	return vectorInWorlFrame;
 }
+

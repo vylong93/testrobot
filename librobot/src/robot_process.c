@@ -80,19 +80,7 @@ void initRobotProcess(void)
 		DEBUG_PRINTS("set Self Address to Default Address: 0x%08x\n", RF_DEFAULT_ROBOT_ID);
 	}
 
-	//
-	// Initialize RobotIdentity
-	//
-	g_RobotIdentity.Self_ID = Network_getSelfAddress();
-	g_RobotIdentity.Self_NeighborsCount = 0;
-	g_RobotIdentity.Origin_ID = 0;
-	g_RobotIdentity.Origin_NeighborsCount = 0;
-	g_RobotIdentity.Origin_Hopth = 0;
-	g_RobotIdentity.RotationHop_ID = 0;
-	g_RobotIdentity.x = 0;
-	g_RobotIdentity.y = 0;
-	g_RobotIdentity.RotationHop_x = 0;
-	g_RobotIdentity.RotationHop_y = 0;
+	resetRobotIdentity();
 
 	//
 	// Initialize TDOA
@@ -115,6 +103,23 @@ void initRobotProcess(void)
 	ROM_IntPrioritySet(INT_SW_TRIGGER_ROBOT_RESPONSE, PRIORITY_ROBOT_RESPONSE);
 
 	ROM_IntEnable(INT_SW_TRIGGER_ROBOT_RESPONSE);
+}
+
+void resetRobotIdentity(void)
+{
+	//
+	// Initialize RobotIdentity
+	//
+	g_RobotIdentity.Self_ID = Network_getSelfAddress();
+	g_RobotIdentity.Self_NeighborsCount = 0;
+	g_RobotIdentity.Origin_ID = 0;
+	g_RobotIdentity.Origin_NeighborsCount = 0;
+	g_RobotIdentity.Origin_Hopth = 0;
+	g_RobotIdentity.RotationHop_ID = 0;
+	g_RobotIdentity.x = 0;
+	g_RobotIdentity.y = 0;
+	g_RobotIdentity.RotationHop_x = 0;
+	g_RobotIdentity.RotationHop_y = 0;
 }
 
 void setRobotState(e_RobotState eState)
@@ -276,6 +281,7 @@ void StateOne_MeasureDistance_ResetFlag(void)
 	NeighborsTable_clear();
 	OneHopNeighborsTable_clear();
 	RobotLocationsTable_clear();
+	resetRobotIdentity();
 	g_bIsSuccessMeasuredDistances = false;
 }
 
@@ -814,8 +820,8 @@ void StateThree_VoteTheOrigin(void)
 	indicatesOriginIdToLEDs(g_RobotIdentity.Origin_ID);
 
 
-	setRobotState(ROBOT_STATE_IDLE);
-	//setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
+	//setRobotState(ROBOT_STATE_IDLE);
+	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
 }
 
 void StateThree_VoteTheOrigin_ResetFlag(void)
@@ -1769,6 +1775,8 @@ void selfCorrectLocationsTable(void)
 
 void selfCorrectLocationsTableExceptRotationHopID(void)
 {
+	RobotLocationsTable_transformToWorldFrame(g_RobotIdentity.RotationHop_ID, g_RobotIdentity.RotationHop_x, g_RobotIdentity.RotationHop_y);
+
 	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
 }
 

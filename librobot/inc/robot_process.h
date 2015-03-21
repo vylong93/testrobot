@@ -64,6 +64,8 @@ void test(void);
 
 void initRobotProcess(void);
 
+void resetRobotIdentity(void);
+
 void setRobotState(e_RobotState eState);
 e_RobotState getRobotState(void);
 
