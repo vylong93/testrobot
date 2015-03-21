@@ -42,25 +42,12 @@ typedef enum tag_RobotResponseState
 	ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE
 } e_RobotResponseState;
 
-typedef struct tagRobotIdentity {
-	uint32_t Self_ID;
-	uint32_t Origin_ID;
-	uint32_t RotationHop_ID;
-	uint8_t Self_NeighborsCount;
-	uint8_t Origin_NeighborsCount;
-	uint8_t Origin_Hopth;
-	float x;
-	float y;
-	float RotationHop_x;
-	float RotationHop_y;
-} RobotIdentity_t;
-
 typedef struct tagRobotRotationFlag{
 	uint32_t ID;
 	bool isRotated;
 } RobotRotationFlag_t;
 
-void test(void);
+void test(void); // Test Only
 
 void initRobotProcess(void);
 
@@ -72,8 +59,6 @@ e_RobotState getRobotState(void);
 void setRobotResponseState(e_RobotResponseState eState);
 e_RobotResponseState getRobotResponseState(void);
 uint8_t* getRequestMessageDataPointer(void);
-
-void setRobotIdentityVector(float x, float y);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
 

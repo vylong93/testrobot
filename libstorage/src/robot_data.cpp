@@ -288,27 +288,35 @@ void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 	}
 }
 
-void RobotLocationsTable_transformToWorldFrame(uint32_t ui32RotationHopId, float fRotationHopXvalue, float fRotationHopYvalue)
+void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity)
 {
-	Vector2<float> vectRotationHop(fRotationHopXvalue, fRotationHopYvalue);
+	Vector2<float> vectRotationHop(pRobotIdentity->RotationHop_x, pRobotIdentity->RotationHop_y);
 	Vector2<float> vectTransform(0,0);
 
-	RobotLocation target(ui32RotationHopId, 0);
+	RobotLocation target(pRobotIdentity->RotationHop_ID, 0);
 	int i = g_RobotLocationsTable.isContain(target);
 	if (i >= 0)
 	{
 		vectTransform = vectRotationHop - g_RobotLocationsTable[i].vector;
-		RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y);
+		RobotLocationsTable_linearTransform(vectTransform.x, vectTransform.y, pRobotIdentity->Origin_ID);
 	}
 }
 
-void RobotLocationsTable_linearTransform(float dx, float dy)
+void RobotLocationsTable_linearTransform(float dx, float dy, uint32_t ui32OriginId)
 {
 	int i;
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
 	{
-		g_RobotLocationsTable[i].vector.x += dx;
-		g_RobotLocationsTable[i].vector.y += dy;
+		if(g_RobotLocationsTable[i].ID == ui32OriginId)
+		{
+			g_RobotLocationsTable[i].vector.x = 0;
+			g_RobotLocationsTable[i].vector.y = 0;
+		}
+		else
+		{
+			g_RobotLocationsTable[i].vector.x += dx;
+			g_RobotLocationsTable[i].vector.y += dy;
+		}
 	}
 }
 

@@ -17,13 +17,11 @@
 #include "data_manipulation.h"
 #include <math.h>
 
-extern "C" void setRobotIdentityVector(float x, float y);
-
 extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
-void initData(uint8_t* pui8MessageData)
+void initData(uint8_t* pui8MessageData) // Test Only
 {
 //	Locations Table of Robot [0x00BEAD04]:
 //	Robot:0xBEAD04 (0; 0)
@@ -628,7 +626,7 @@ bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint1
 	return true;
 }
 
-bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHopID, float fRotationHopXvalue, float fRotationHopYvalue, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable)
+bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable)
 {
 	DEBUG_PRINT("Entering Tri_tryToRotateLocationsTable........\n");
 
@@ -653,19 +651,18 @@ bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHop
 		OriLocationsTable.add(item);
 	}
 
-	Vector2<float> vectRotationHop(fRotationHopXvalue, fRotationHopYvalue);
 	Vector2<float> vectTransform;
 
 	float fCorrectionAngle;
 	bool bIsNeedMirroring;
 	uint32_t ui32IdsRobotJ;
-	if(Tri_tryToGetCommonNeighborID(&OriLocationsTable, &ui32IdsRobotJ, ui32SelfID, ui32RotationHopID))
+	if(Tri_tryToGetCommonNeighborID(pRobotIdentity, &OriLocationsTable, &ui32IdsRobotJ))
 	{
-		if(Tri_calculateCorrectionAngle(ui32SelfID, ui32RotationHopID, ui32IdsRobotJ, &OriLocationsTable, &fCorrectionAngle, &bIsNeedMirroring))
+		if(Tri_calculateCorrectionAngle(pRobotIdentity, ui32IdsRobotJ, &OriLocationsTable, &fCorrectionAngle, &bIsNeedMirroring))
 		{
 			RobotLocationsTable_rotate(fCorrectionAngle, bIsNeedMirroring);
 
-			vectTransform = Tri_updateRobotVectorToWorldFrame(ui32SelfID, vectRotationHop, &OriLocationsTable);
+			vectTransform = Tri_updateRobotVectorToWorldFrame(pRobotIdentity, &OriLocationsTable);
 
 			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
 
@@ -798,7 +795,7 @@ int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta)
 //	return (0);
 }
 
-bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID, uint32_t ui32SelfID, uint32_t ui32RotationHopID)
+bool Tri_tryToGetCommonNeighborID(RobotIdentity_t* pRobotIdentity, CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID)
 {
 	uint32_t ui32TargetId;
 	int i;
@@ -806,7 +803,7 @@ bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable
 	{
 		ui32TargetId = g_RobotLocationsTable[i].ID;
 
-		if(ui32TargetId == ui32SelfID || ui32TargetId == ui32RotationHopID)
+		if(ui32TargetId == pRobotIdentity->Self_ID || ui32TargetId == pRobotIdentity->RotationHop_ID)
 			continue;
 
 		int j;
@@ -823,7 +820,7 @@ bool Tri_tryToGetCommonNeighborID(CustomLinkedList<RobotLocation>* pOriLocsTable
 	return false;
 }
 
-bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopID, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring)
+bool Tri_calculateCorrectionAngle(RobotIdentity_t* pRobotIdentity, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring)
 {
 	//
 	// New Attempt: calculate correction angle
@@ -839,8 +836,8 @@ bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopI
 //	float errorInMirroring;
 //	float errorNoMirror;
 //
-//	fAlphaK = Tri_getRobotAngleFromLocationsTable(ui32SelfID, pOriLocsTable);
-//	fBetaI = Tri_getRobotAngleFromLocationsTable(ui32RotationHopID, &g_RobotLocationsTable);
+//	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
+//	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, &g_RobotLocationsTable);
 //
 //	fCorrectionAngleNoMirroring = fBetaI - fAlphaK + MATH_PI;
 //	fCorrectionAngleNeedMirroring = fBetaI + fAlphaK;
@@ -883,13 +880,13 @@ bool Tri_calculateCorrectionAngle(uint32_t ui32SelfID, uint32_t ui32RotationHopI
 	float fBetaJ, fBetaI, fBetaJI;
 
 	fAlphaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ,pOriLocsTable);
-	fAlphaK = Tri_getRobotAngleFromLocationsTable(ui32SelfID, pOriLocsTable);
+	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
 
 	fAlphaJK = fAlphaJ - fAlphaK;
 	fAlphaJK = (fAlphaJK < 0) ? (MATH_PI_MUL_2 + fAlphaJK) : (fAlphaJK);
 
 	fBetaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
-	fBetaI = Tri_getRobotAngleFromLocationsTable(ui32RotationHopID, &g_RobotLocationsTable);
+	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, &g_RobotLocationsTable);
 
 	fBetaJI = fBetaJ - fBetaI;
 	fBetaJI = (fBetaJI < 0) ? (MATH_PI_MUL_2 + fBetaJI) : (fBetaJI);
@@ -953,17 +950,19 @@ Vector2<float> Tri_getRobotVectorFromLocationsTable(uint32_t ui32RobotId, Custom
 	return vector;
 }
 
-Vector2<float> Tri_updateRobotVectorToWorldFrame(uint32_t ui32SelfId, Vector2<float> vectRotationHop, CustomLinkedList<RobotLocation>* pOriLocsTable)
+Vector2<float> Tri_updateRobotVectorToWorldFrame(RobotIdentity_t* pRobotIdentity, CustomLinkedList<RobotLocation>* pOriLocsTable)
 {
+	Vector2<float> vectRotationHop(pRobotIdentity->RotationHop_x, pRobotIdentity->RotationHop_y);
 	Vector2<float> vectorInWorlFrame(0, 0);
 	int i;
 	for(i = 0; i < pOriLocsTable->Count; i++)
 	{
-		if(pOriLocsTable->ElementAt(i).ID == ui32SelfId)
+		if(pOriLocsTable->ElementAt(i).ID == pRobotIdentity->Self_ID)
 		{
 			vectorInWorlFrame = vectRotationHop + pOriLocsTable->ElementAt(i).vector;
 
-			setRobotIdentityVector(vectorInWorlFrame.x, vectorInWorlFrame.y);
+			pRobotIdentity->x = vectorInWorlFrame.x;
+			pRobotIdentity->y = vectorInWorlFrame.y;
 
 			return vectorInWorlFrame;
 		}

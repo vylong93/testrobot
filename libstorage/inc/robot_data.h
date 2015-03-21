@@ -16,6 +16,7 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "libstorage/inc/RobotIdentity.h"
 
 #define SIZE_OF_ROBOT_ID				4
 #define SIZE_OF_ROBOT_MEAS				6
@@ -26,17 +27,6 @@ extern "C"
 #define NEIGHBORS_TABLE_LENGTH 			10
 #define ONEHOP_NEIGHBORS_TABLE_LENGTH 	NEIGHBORS_TABLE_LENGTH
 #define LOCATIONS_TABLE_LENGTH			NEIGHBORS_TABLE_LENGTH
-
-
-//typedef struct tagVector {
-//	float x;
-//	float y;
-//} vector2_t;
-//
-//typedef struct tagLocation {
-//	uint32_t ID;
-//	vector2_t vector;
-//} location_t;
 
 void initLinkedList(void);
 
@@ -70,8 +60,8 @@ int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID);
 bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index);
 void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis);
-void RobotLocationsTable_transformToWorldFrame(uint32_t ui32RotationHopId, float fRotationHopXvalue, float fRotationHopYvalue);
-void RobotLocationsTable_linearTransform(float dx, float dy);
+void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity);
+void RobotLocationsTable_linearTransform(float dx, float dy, uint32_t ui32OriginId);
 void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 #ifdef __cplusplus

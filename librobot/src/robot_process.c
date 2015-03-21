@@ -24,10 +24,11 @@
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
-extern void initData(uint8_t* pui8MessageData);
+#include "libstorage/inc/RobotIdentity.h"
+
+extern void initData(uint8_t* pui8MessageData); // Test Only
 extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
-extern bool Tri_tryToRotateLocationsTable(uint32_t ui32SelfID, uint32_t ui32RotationHopID, float fRotationHopXvalue, float fRotationHopYvalue, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
-extern void Tri_transformLocationsTableToWorldFrame(float fRotationHopXvalue, float fRotationHopYvalue);
+extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
 extern void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
 
 RobotIdentity_t g_RobotIdentity;
@@ -37,7 +38,7 @@ static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
 static uint8_t* g_pui8RequestData;
 
-void test(void)
+void test(void) // Test Only
 {
 	g_RobotIdentity.Self_ID = 0xBEAD04;
 	g_RobotIdentity.Self_NeighborsCount = 5;
@@ -50,11 +51,13 @@ void test(void)
 	g_RobotIdentity.Origin_Hopth = 1;
 
 	g_RobotIdentity.RotationHop_ID = 0xBEAD05;
+	g_RobotIdentity.RotationHop_x = 21.361f;
+	g_RobotIdentity.RotationHop_y = 0.266083f;
 
 	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 60);
 	initData(pui8MessageData);
 
-	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID, 21.361, 0.266083, pui8MessageData, 60 / 12);
+	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 60 / 12);
 
 	free(pui8MessageData);
 }
@@ -142,12 +145,6 @@ e_RobotResponseState getRobotResponseState(void)
 uint8_t* getRequestMessageDataPointer(void)
 {
 	return g_pui8RequestData;
-}
-
-void setRobotIdentityVector(float x, float y)
-{
-	g_RobotIdentity.x = x;
-	g_RobotIdentity.y = y;
 }
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize)
@@ -1227,11 +1224,11 @@ void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8Mess
 	i32TemplateXY = construct4Byte(&pui8MessageData[8]);
 	fRequestRobot_y = (float)(i32TemplateXY / 65536.0f);
 
-	Tri_tryToRotateLocationsTable(g_RobotIdentity.Self_ID, ui32RequestRobotID, fRequestRobot_x, fRequestRobot_y, &pui8MessageData[12], (int32_t)((ui32DataSize - 12) / SIZE_OF_ROBOT_LOCATION));
-
 	g_RobotIdentity.RotationHop_ID = ui32RequestRobotID;
 	g_RobotIdentity.RotationHop_x = fRequestRobot_x;
 	g_RobotIdentity.RotationHop_y = fRequestRobot_y;
+
+	Tri_tryToRotateLocationsTable(&g_RobotIdentity, &pui8MessageData[12], (int32_t)((ui32DataSize - 12) / SIZE_OF_ROBOT_LOCATION));
 
 	g_bIsCoordinatesRotated = true;
 }
@@ -1775,7 +1772,7 @@ void selfCorrectLocationsTable(void)
 
 void selfCorrectLocationsTableExceptRotationHopID(void)
 {
-	RobotLocationsTable_transformToWorldFrame(g_RobotIdentity.RotationHop_ID, g_RobotIdentity.RotationHop_x, g_RobotIdentity.RotationHop_y);
+	RobotLocationsTable_transformToWorldFrame(&g_RobotIdentity);
 
 	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
 }
