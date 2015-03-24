@@ -18,6 +18,18 @@ extern "C"
 #include <stdlib.h>
 #include "arm_math.h"
 
+typedef struct tagLineEquation {
+	float a;
+	float b;
+	float c;
+} LineEquation_t;
+
+typedef struct tagCircleEquation {
+	float x0;
+	float y0;
+	float R;
+} CircleEquation_t;
+
 #define MATH_PI_MUL_2			6.283185307
 #define MATH_PI_MUL_3_DIV_2	    4.71238898
 #define MATH_PI 				3.141592654
@@ -41,8 +53,12 @@ bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c);
 bool isTriangle(uint32_t a, uint32_t b, uint32_t c);
 float findCosAngleUseCosineRuleForTriangle(float fSide1, float fSide2, float fOppositeSide);
 
+float findAltitudeOfTriangle(float a, float b, float c);
+bool solveQuadraticEquation(float A, float _B, float C, float* pX1, float *pX2);
+
 #ifdef __cplusplus
 }
+
 #endif
 
 #endif /* LIBMATH_INC_CUSTOM_MATH_H_ */

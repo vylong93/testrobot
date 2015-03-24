@@ -4,23 +4,82 @@
  *  Created on: Sep 6, 2014
  *      Author: MasterE
  */
-#include "libcustom/inc/custom_uart_debug.h"
 #include "libalgorithm/inc/Trilateration.h"
-#include "libalgorithm/inc/GradientDescentNode.h"
-#include "libstorage/inc/robot_data.h"
+
 #include "libprotocol/inc/network.h"
+#include "librobot/inc/robot_analog.h"
+
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/RobotMeas.h"
-#include "libmath/inc/Vector2.h"
-#include "libmath/inc/custom_math.h"
-#include "librobot/inc/robot_analog.h"
+#include "libstorage/inc/robot_data.h"
+
 #include "data_manipulation.h"
 #include <math.h>
+
+#include "libcustom/inc/custom_uart_debug.h"
 
 extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
+void initDataOfRobot1(void)
+{
+	DEBUG_PRINT("init Data of Robot[1].........\n");
+
+	Network_setSelfAddress(0xbead01);
+
+	// (1) Fill Neighbors Table
+	NeighborsTable_add(0xBEAD05, (uint16_t)(20.5352f * 256));
+	NeighborsTable_add(0xBEAD08, (uint16_t)(19.8438f * 256));
+	NeighborsTable_add(0xBEAD03, (uint16_t)(20.1797f * 256));
+	NeighborsTable_add(0xBEAD04, (uint16_t)(20.255f * 256));
+
+	// (2) Fill OneHopNeighbors Table
+	RobotMeas robot(0, 0);
+	CustomLinkedList<RobotMeas> NeighborsTable;
+	OneHopMeas oneHopMeas;
+
+	oneHopMeas.firstHopID = 0xBEAD04;
+	NeighborsTable.clearAll();
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(21.2188f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(20.25f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(34.457f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(34.4922f * 256);	NeighborsTable.add(robot);
+	oneHopMeas.pNeighborsTable = &NeighborsTable;
+	g_OneHopNeighborsTable.add(oneHopMeas);
+
+	oneHopMeas.firstHopID = 0xBEAD03;
+	NeighborsTable.clearAll();
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(22.2539f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(20.1797f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(34.457f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(20.3281f * 256);	NeighborsTable.add(robot);
+	oneHopMeas.pNeighborsTable = &NeighborsTable;
+	g_OneHopNeighborsTable.add(oneHopMeas);
+
+	oneHopMeas.firstHopID = 0xBEAD08;
+	NeighborsTable.clearAll();
+	robot.ID = 0xBEAD05; robot.Distance = (uint16_t)(35.293f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(19.8438f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(20.3281f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(34.4922f * 256);	NeighborsTable.add(robot);
+	oneHopMeas.pNeighborsTable = &NeighborsTable;
+	g_OneHopNeighborsTable.add(oneHopMeas);
+
+	oneHopMeas.firstHopID = 0xBEAD05;
+	NeighborsTable.clearAll();
+	robot.ID = 0xBEAD08; robot.Distance = (uint16_t)(35.293f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD04; robot.Distance = (uint16_t)(21.2188f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD03; robot.Distance = (uint16_t)(22.2539f * 256);	NeighborsTable.add(robot);
+	robot.ID = 0xBEAD01; robot.Distance = (uint16_t)(20.5352f * 256);	NeighborsTable.add(robot);
+	oneHopMeas.pNeighborsTable = &NeighborsTable;
+	g_OneHopNeighborsTable.add(oneHopMeas);
+
+	g_RobotLocationsTable.clearAll();
+
+	DEBUG_PRINT("------------initialize Data OK\n");
+	DEBUG_PRINT("------------------------------\n");
+}
 void initData(uint8_t* pui8MessageData) // Test Only
 {
 //	Locations Table of Robot [0x00BEAD04]:
@@ -100,17 +159,19 @@ bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId)
 
 	Tri_calculateXYLocations(ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
 
-	Tri_findAllPointsFromFirstTwoPoints(ui32RobotOsId, ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
+//	Tri_findAllPointsFromFirstTwoPoints(ui32RobotOsId, ui32RobotXsId, ui32RobotYsId, ui16EdgeOX, ui16EdgeOY, ui16EdgeXY);
+//	if(g_RobotLocationsTable.Count < g_NeighborsTable.Count)
+//		Tri_findAllPossibleRemainPoints();
 
-	if(g_RobotLocationsTable.Count < g_NeighborsTable.Count)
-		Tri_findAllPossibleRemainPoints();
+	Tri_tryToCalculateTheRemainPoints(ui32RobotOsId);
 
-	GradientDescentMulti_correctLocationsTable(ui32RobotOsId, 0);
+	//RobotLocationsTable_selfCorrectByGradientDescent(ui32RobotOsId, 0);
 
 	DEBUG_PRINT("........Returning TRUE from Tri_tryToCalculateRobotLocationsTable\n");
 	return true;
 }
 
+//============= New Attempt: Edges Only =============================================================
 bool Tri_tryToFindTwoBestXYNeighbors(uint32_t ui32RobotOsId, uint32_t* pui32RobotXsId, uint32_t* pui32RobotYsId, uint16_t* pui16EdgeOX, uint16_t* pui16EdgeOY, uint16_t* pui16EdgeXY)
 {
 	DEBUG_PRINT("Entering Tri_tryToFindTwoBestXYNeighbors........\n");
@@ -142,7 +203,6 @@ bool Tri_tryToFindTwoBestXYNeighbors(uint32_t ui32RobotOsId, uint32_t* pui32Robo
 		oneHopIndexOfX = g_OneHopNeighborsTable.isContain(oneHopMeasX);
 		if(oneHopIndexOfX < 0)
 			continue;
-		//oneHopMeasX.pNeighborsTable = g_OneHopNeighborsTable[oneHopIndexOfX].pNeighborsTable;
 
 		// (2) try to a second neighbor play as Y role
 		int j;
@@ -191,35 +251,291 @@ bool Tri_tryToFindTwoBestXYNeighbors(uint32_t ui32RobotOsId, uint32_t* pui32Robo
 	DEBUG_PRINT("........Return FALSE from Tri_tryToFindTwoBestXYNeighbors\n");
 	return false;
 }
-
 void Tri_calculateXYLocations(uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, uint16_t ui16EdgeOX, uint16_t ui16EdgeOY, uint16_t ui16EdgeXY)
 {
 	DEBUG_PRINT("Entering Tri_calculateXYLocations........\n");
 
-	Vector2<float> vectorOX(0, 0);
-	Vector2<float> vectorOY(0, 0);
-
+	// New Attempt: Edges only - faster 4ps
 	float fEdgeOX = ui16EdgeOX / 256.0f;
 	float fEdgeOY = ui16EdgeOY / 256.0f;
 	float fEdgeXY = ui16EdgeXY / 256.0f;
 	DEBUG_PRINTS3("Valid Triangle: OX = %2.4f, OY = %2.4f, XY = %2.4f\n", fEdgeOX, fEdgeOY, fEdgeXY);
 
-	float fCosAlphaYOX = findCosAngleUseCosineRuleForTriangle(fEdgeOX, fEdgeOY, fEdgeXY);
-	float fSinAlphaYOX = sinf(acosf(fCosAlphaYOX));
+	Vector2<float> pointX(fEdgeOX, 0);
+	RobotLocationsTable_add(ui32RobotXsId, pointX.x, pointX.y);
+	DEBUG_PRINTS3("Add Robot X[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotXsId, pointX.x, pointX.y);
 
-	vectorOX.x = fEdgeOX;
-	vectorOX.y = 0;
-	RobotLocationsTable_add(ui32RobotXsId, vectorOX.x, vectorOX.y);
-	DEBUG_PRINTS3("Add Robot X[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotXsId, vectorOX.x, vectorOX.y);
+	Vector2<float> pointY1;
+	pointY1.y = findAltitudeOfTriangle(fEdgeOX, fEdgeOY, fEdgeXY);
+	pointY1.x = sqrtf(fEdgeOY*fEdgeOY - pointY1.y*pointY1.y);
 
-	vectorOY.x = fEdgeOY * fCosAlphaYOX;
-	vectorOY.y = fEdgeOY * fSinAlphaYOX;
-	RobotLocationsTable_add(ui32RobotYsId, vectorOY.x, vectorOY.y);
-	DEBUG_PRINTS3("Add Robot Y[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotYsId, vectorOY.x, vectorOY.y);
+	Vector2<float> pointY2(-pointY1.x, pointY1.y);
+	Vector2<float> vectorXY1 = pointX - pointY1;
+	Vector2<float> vectorXY2 = pointX - pointY2;
+
+	float errorXY1 = absFloatNumber(fEdgeXY - vectorXY1.getMagnitude());
+	float errorXY2 = absFloatNumber(fEdgeXY - vectorXY2.getMagnitude());
+	if(errorXY1 < errorXY2)
+	{
+		RobotLocationsTable_add(ui32RobotYsId, pointY1.x, pointY1.y);
+		DEBUG_PRINTS3("Add Robot Y[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotYsId, pointY1.x, pointY1.y);
+	}
+	else
+	{
+		RobotLocationsTable_add(ui32RobotYsId, pointY2.x, pointY2.y);
+		DEBUG_PRINTS3("Add Robot Y[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotYsId, pointY2.x, pointY2.y);
+	}
+
+	// Old Attempt: Trigonometric with Angles
+//	Vector2<float> vectorOX(0, 0);
+//	Vector2<float> vectorOY(0, 0);
+//
+//	float fEdgeOX = ui16EdgeOX / 256.0f;
+//	float fEdgeOY = ui16EdgeOY / 256.0f;
+//	float fEdgeXY = ui16EdgeXY / 256.0f;
+//	DEBUG_PRINTS3("Valid Triangle: OX = %2.4f, OY = %2.4f, XY = %2.4f\n", fEdgeOX, fEdgeOY, fEdgeXY);
+//
+//	float fCosAlphaYOX = findCosAngleUseCosineRuleForTriangle(fEdgeOX, fEdgeOY, fEdgeXY);
+//	float fSinAlphaYOX = sinf(acosf(fCosAlphaYOX));
+//
+//	vectorOX.x = fEdgeOX;
+//	vectorOX.y = 0;
+//	RobotLocationsTable_add(ui32RobotXsId, vectorOX.x, vectorOX.y);
+//	DEBUG_PRINTS3("Add Robot X[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotXsId, vectorOX.x, vectorOX.y);
+//
+//	vectorOY.x = fEdgeOY * fCosAlphaYOX;
+//	vectorOY.y = fEdgeOY * fSinAlphaYOX;
+//	RobotLocationsTable_add(ui32RobotYsId, vectorOY.x, vectorOY.y);
+//	DEBUG_PRINTS3("Add Robot Y[0x%06x] (%2.4f; %2.4f) to Locations Table\n", ui32RobotYsId, vectorOY.x, vectorOY.y);
 
 	DEBUG_PRINT("........Returning from Tri_calculateXYLocations\n");
 }
 
+void Tri_tryToCalculateTheRemainPoints(uint32_t ui32RobotIsId)
+{
+	/* Pseudo code
+	   I'm robot I
+	   LOOP through neighbors table to pick a Robot J
+	   		IF Robot J already have locations OR
+	   			I don't have Neighbors Table of Robot J OR
+	   				Robot J's Neighbors Table not contain I
+	   		THEN
+				continue pick another neighbor
+			END
+
+			Try to pick 2 two located neighbors P, Q in Robot J's Table
+			calculate robot J's location
+			add to locations table
+			reset counter
+	 */
+
+	uint32_t ui32RobotJsId;
+
+	bool bIsFoundP;
+	bool bIsFoundQ;
+
+	uint16_t ui16EdgeIJ;
+	uint16_t ui16EdgePJ;
+	uint16_t ui16EdgeQJ;
+
+	Vector2<float> pointI(0, 0);
+	Vector2<float> pointP;
+	Vector2<float> pointQ;
+	Vector2<float> pointJ;
+
+	int oneHopIndexsJ;
+	RobotLocation locOfRobotJ(0, NULL);
+
+	int i;
+	for(i = 0; i < g_NeighborsTable.Count; i++)
+	{
+		ui32RobotJsId = g_NeighborsTable[i].ID;
+		DEBUG_PRINTS("Pick Robot J from O neighbors = [0x%06x]\n", ui32RobotJsId);
+
+		if(RobotLocationsTable_isContainRobot(ui32RobotJsId))
+			continue;
+
+		oneHopIndexsJ = OneHopNeighborsTable_getIndexOfRobot(ui32RobotJsId);
+		if (oneHopIndexsJ < 0)	// This condition never wrong due to State 1 has cover this
+			continue;
+
+		if(NeighborsTable_getDistanceOfRobot(ui32RobotJsId, &ui16EdgeIJ) == false)			// get IJ
+			continue;
+
+		bIsFoundP = false;
+		bIsFoundQ = false;
+
+		int j = 0;
+		do	// Try to find robot P
+		{
+			if (j >= g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->Count)
+				break;
+
+			if(g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).ID == ui32RobotIsId)
+			{
+				j++;
+				continue;
+			}
+
+			if(RobotLocationsTable_getVectorOfRobot(g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).ID, &(pointP.x), &(pointP.y)))
+			{
+				ui16EdgePJ = g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).Distance;
+				bIsFoundP = true;
+			}
+			j++;
+		} while (!bIsFoundP);
+
+		do // Try to find robot Q
+		{
+			if (j >= g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->Count)
+				break;
+
+			if(g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).ID == ui32RobotIsId)
+			{
+				j++;
+				continue;
+			}
+
+			if(RobotLocationsTable_getVectorOfRobot(g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).ID, &(pointQ.x), &(pointQ.y)))
+			{
+				ui16EdgeQJ = g_OneHopNeighborsTable[oneHopIndexsJ].pNeighborsTable->ElementAt(j).Distance;
+				bIsFoundQ = true;
+			}
+			j++;
+		} while (!bIsFoundQ);
+
+	   	if (!(bIsFoundP && bIsFoundQ))
+	   		continue;
+
+		// (1) calculate location of robot J base on ui16EdgeIJ, ui16EdgePJ, ui16EdgeQJ, pointI(0, 0), pointP and pointQ
+	    if(!Tri_calculateRobotLocationBaseOnThreeLocatedPoint(ui16EdgeIJ / 256.0, ui16EdgePJ / 256.0, ui16EdgeQJ / 256.0, pointI, pointP, pointQ, &pointJ))
+	    	continue;
+
+		// (2) add to Locations table
+	   	locOfRobotJ.ID = ui32RobotJsId;
+		locOfRobotJ.vector = pointJ;
+
+		g_RobotLocationsTable.add(locOfRobotJ);
+		DEBUG_PRINTS3("Add Robot J[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotJ.ID, locOfRobotJ.vector.x, locOfRobotJ.vector.y);
+
+		// (3) reset loop counter
+		i = 0;
+	}
+}
+bool Tri_calculateRobotLocationBaseOnThreeLocatedPoint(float fEdgeIJ, float fEdgePJ, float fEdgeQJ, Vector2<float> pointI, Vector2<float> pointP, Vector2<float> pointQ, Vector2<float>* pPointJ)
+{
+	// (1) calculate Slope-Intercept Form of the straight-line cross I and P
+	LineEquation_t lineIP;
+	Vector2<float> vectorPI = pointP - pointI;
+	lineIP.a = -vectorPI.y;
+	lineIP.b = vectorPI.x;
+	lineIP.c = vectorPI.y*pointI.x - vectorPI.x*pointI.y;
+
+	// (2) find the H point
+	float fEdgeIP = vectorPI.getMagnitude();
+	float fHeightJH = findAltitudeOfTriangle(fEdgeIP, fEdgePJ, fEdgeIJ);
+
+	Vector2<float> pointH;
+	if(fHeightJH == fEdgeIJ)
+	{
+		pointH = pointI;
+	}
+	else if (fHeightJH == fEdgePJ)
+	{
+		pointH = pointP;
+	}
+	else
+	{
+		Vector2<float> pointH1;
+		Vector2<float> pointH2;
+
+		float fEdgeIH = sqrtf(fEdgeIJ * fEdgeIJ - fHeightJH * fHeightJH);
+		CircleEquation_t circleI_IH;
+		circleI_IH.x0 = pointI.x;
+		circleI_IH.y0 = pointI.y;
+		circleI_IH.R = fEdgeIH;
+
+		if(!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineIP, circleI_IH, &pointH1, &pointH2))
+			return false;
+
+		// (2.2) choose H
+		Vector2<float> vectorPH1 = pointP - pointH1;
+		Vector2<float> vectorPH2 = pointP - pointH2;
+
+		float fEdgePH = sqrtf(fEdgePJ * fEdgePJ - fHeightJH * fHeightJH);
+		float errorPH1 = absFloatNumber(fEdgePH - vectorPH1.getMagnitude());
+		float errorPH2 = absFloatNumber(fEdgePH - vectorPH2.getMagnitude());
+
+		if(errorPH1 < errorPH2)
+			pointH = pointH1;
+		else
+			pointH = pointH2;
+	}
+
+	// (3) calculate the point J
+	Vector2<float> pointJ1;
+	Vector2<float> pointJ2;
+
+	LineEquation_t lineJH;
+	lineJH.a = lineIP.b;
+	lineJH.b = -lineIP.a;
+	lineJH.c = lineIP.a*pointH.y - lineIP.b*pointH.x;
+
+	CircleEquation_t circleI_IJ;
+	circleI_IJ.x0 = pointI.x;
+	circleI_IJ.y0 = pointI.y;
+	circleI_IJ.R = fEdgeIJ;
+
+	if(!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineJH, circleI_IJ, &pointJ1, &pointJ2))
+		return false;
+
+	// (4) choose the smaller error compare with QJ to determine the correct J point
+	Vector2<float> vectorQJ1 = pointQ - pointJ1;
+	Vector2<float> vectorQJ2 = pointQ - pointJ2;
+	float errorQJ1 = absFloatNumber(fEdgeQJ - vectorQJ1.getMagnitude());
+	float errorQJ2 = absFloatNumber(fEdgeQJ - vectorQJ2.getMagnitude());
+
+	if(errorQJ1 < errorQJ2)
+		*pPointJ = pointJ1;
+	else
+		*pPointJ = pointJ2;
+
+	return true;
+}
+bool Tri_calculateTwoCrossPointBetweenLineAndCircle(LineEquation_t line, CircleEquation_t circle, Vector2<float>* pP1, Vector2<float>* pP2)
+{
+	if(line.b == 0) // Case 1: b == 0
+	{
+		float k = -line.c / line.a;
+		float l = k - circle.x0;
+		if(!solveQuadraticEquation(
+				/*A =*/1,
+				/*B =*/-circle.y0,
+				/*C =*/circle.y0*circle.y0 + l*l - circle.R*circle.R,
+				&pP1->y, &pP2->y))
+			return false;
+
+		pP1->x = pP2->x = k;
+	}
+	else	// Case 2: b != 0
+	{
+		float l = line.a / line.b;
+		float j = line.c / line.b;
+		float k = j + circle.y0;
+		if(!solveQuadraticEquation(
+				/*A =*/1 + l*l,
+				/*B =*/l*k - circle.x0,
+				/*C =*/circle.x0*circle.x0 + k*k - circle.R*circle.R,
+				&pP1->x, &pP2->x))
+			return false;
+
+		pP1->y = -l*pP1->x - j;
+		pP2->y = -l*pP2->x - j;
+	}
+	return true;
+}
+
+//============= Old Attempt: Trigonometric with Angles ==============================================
 void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, uint16_t ui16EdgeOX, uint16_t ui16EdgeOY, uint16_t ui16EdgeXY)
 {
 	/* Pseudo code
@@ -262,7 +578,6 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 	RobotLocation locOfRobotZ(0, NULL);
 	RobotMeas robotMeas;
 	Vector2<float> vectorZ;
-	GradientDescentNode correctLocationAlgorithm;
 
 	float fEdgeOZ, fEdgeXZ, fEdgeYZ;
 	float fAlphaZ;
@@ -321,17 +636,8 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 		if (vectorZ == NULL)
 			continue;
 
-
 		locOfRobotZ.ID = ui32RobotZsId;
 		locOfRobotZ.vector = vectorZ;
-
-//		// Each
-//		correctLocationAlgorithm.init(&locOfRobotZ);
-//		while(!correctLocationAlgorithm.isGradientSearchStop)
-//		{
-//			correctLocationAlgorithm.run();
-//			DEBUG_PRINT("Robot:0x%06x (%2.4f; %2.4f)\n", locOfRobotZ.ID, locOfRobotZ.vector.x, locOfRobotZ.vector.y);
-//		}
 
 		g_RobotLocationsTable.add(locOfRobotZ);
 		DEBUG_PRINTS3("Add Robot Z[0x%06x] (%2.4f; %2.4f) to Locations Table\n", locOfRobotZ.ID, locOfRobotZ.vector.x, locOfRobotZ.vector.y);
@@ -340,50 +646,9 @@ void Tri_findAllPointsFromFirstTwoPoints(uint32_t ui32RobotOsId, uint32_t ui32Ro
 	DEBUG_PRINT("........Returning from Tri_findAllPointsFromFirstTwoPoints\n");
 }
 
-void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID)
+void Tri_findAllPossibleRemainPoints(void)
 {
-	DEBUG_PRINT("Entering GradientDescentMulti_correctLocationsTable........\n");
-
-	bool isGradienttSearchContinue = true;
-	GradientDescentNode* pTarget = NULL;
-	CustomLinkedList<GradientDescentNode> listCorrectLocationAlgorithm;
-
-	int i;
-	for(i = 0; i < g_RobotLocationsTable.Count; i++)
-	{
-		if(g_RobotLocationsTable[i].ID == ui32OriginalID || g_RobotLocationsTable[i].ID == ui32RotationHopID)
-			continue;
-		pTarget = new GradientDescentNode;
-		pTarget->init(&g_RobotLocationsTable[i]);
-		listCorrectLocationAlgorithm.add(*pTarget);
-	}
-
-	// active Gradient descent to calculate new position
-	while(isGradienttSearchContinue)
-	{
-		isGradienttSearchContinue = false;
-
-		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
-		{
-			listCorrectLocationAlgorithm[i].run();
-		}
-
-		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
-		{
-			if(listCorrectLocationAlgorithm[i].isGradientSearchStop == false)
-			{
-				isGradienttSearchContinue = true;
-				break;
-			}
-		}
-	}
-
-	DEBUG_PRINT("........Returning from GradientDescentMulti_correctLocationsTable\n");
-}
-
-void Tri_findAllPossibleRemainPoints()
-{
-	/* Pseudo code
+	/* Pseudo code - HAVE NOT TESTED YET
 	   START LOOP
 	   	   pick robot K in Neighbors Table
 
@@ -518,8 +783,6 @@ void Tri_findAllPossibleRemainPoints()
 		if (vectorK.x == 0 && vectorK.y == 0)
 			continue;
 
-//		locOfRobotK.x = vectorK.x;
-//		locOfRobotK.y = vectorK.y;
 		locOfRobotK.vector = vectorK;
 
 		g_RobotLocationsTable.add(locOfRobotK);
@@ -528,6 +791,91 @@ void Tri_findAllPossibleRemainPoints()
 		// (3) reset loop counter
 		i = 0;
 	}
+}
+
+bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,
+		uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ)
+{
+	DEBUG_PRINT("Entering Tri_calculateAlphaFromSixEdgeAndAngleOffset........\n");
+
+	if (!isTriangle(ui16EdgeIP, ui16EdgeIJ, ui16EdgePJ))
+		return false;
+
+	if (!isTriangle(ui16EdgeIQ, ui16EdgeIJ, ui16EdgeQJ))
+		return false;
+
+	if (!isTriangle(ui16EdgeIP, ui16EdgeIQ, ui16EdgePQ))
+		return false;
+
+	float fEdgeIP = ui16EdgeIP / 256.0f;
+	float fEdgeIJ = ui16EdgeIJ / 256.0f;
+	float fEdgePJ = ui16EdgePJ / 256.0f;
+
+	*pfAlphaPIJ = acosf(findCosAngleUseCosineRuleForTriangle(fEdgeIP, fEdgeIJ, fEdgePJ));
+
+	DEBUG_PRINT("........Returning from Tri_calculateAlphaFromSixEdge\n");
+
+	return true;
+}
+
+Vector2<float> Tri_chooseTheBestVectorFromThreePoints(float fAlphaZ, uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
+{
+	int indexO, indexX, indexY;
+
+	Vector2<float> vectorZNegSigned;
+	Vector2<float> vectorZPosSigned;
+
+	float errorNegSigned = 0;
+	float errorPosSigned = 0;
+
+	indexO = RobotLocationsTable_getIndexOfRobot(ui32RobotOsId);
+	if(indexO < 0)	return NULL;
+
+	indexX = RobotLocationsTable_getIndexOfRobot(ui32RobotXsId);
+	if(indexX < 0)	return NULL;
+
+	indexY = RobotLocationsTable_getIndexOfRobot(ui32RobotYsId);
+	if(indexY < 0)	return NULL;
+
+	vectorZPosSigned.x = fEdgeOZ * cosf(fAlphaZ);
+	vectorZPosSigned.y = fEdgeOZ * sinf(fAlphaZ);
+
+	vectorZNegSigned.x = fEdgeOZ * cosf(-fAlphaZ);
+	vectorZNegSigned.y = fEdgeOZ * sinf(-fAlphaZ);
+
+	errorPosSigned = Tri_calculateErrorOfVectorZ(vectorZPosSigned,
+												g_RobotLocationsTable[indexO].vector,
+												g_RobotLocationsTable[indexX].vector,
+												g_RobotLocationsTable[indexY].vector,
+												fEdgeOZ, fEdgeXZ, fEdgeYZ);
+
+	errorNegSigned = Tri_calculateErrorOfVectorZ(vectorZNegSigned,
+												g_RobotLocationsTable[indexO].vector,
+												g_RobotLocationsTable[indexX].vector,
+												g_RobotLocationsTable[indexY].vector,
+												fEdgeOZ, fEdgeXZ, fEdgeYZ);
+
+	if(errorPosSigned < errorNegSigned)
+		return vectorZPosSigned;
+	else
+		return vectorZNegSigned;
+}
+
+float Tri_calculateErrorOfVectorZ(Vector2<float> vectZ, Vector2<float> vectO, Vector2<float> vectX, Vector2<float> vectY, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
+{
+	Vector2<float> vectOZ = vectO - vectZ;
+	Vector2<float> vectXZ = vectX - vectZ;
+	Vector2<float> vectYZ = vectY - vectZ;
+
+	float errorOZ = vectOZ.getMagnitude() - fEdgeOZ;
+	float errorXZ = vectXZ.getMagnitude() - fEdgeXZ;
+	float errorYZ = vectYZ.getMagnitude() - fEdgeYZ;
+
+	errorOZ = absFloatNumber(errorOZ);
+	errorXZ = absFloatNumber(errorXZ);
+	errorYZ = absFloatNumber(errorYZ);
+
+	return (errorOZ + errorXZ + errorYZ);
 }
 
 bool Tri_tryToGetEdgesOfThreeRobotOPQ(uint32_t ui32RobotPsId, uint32_t ui32RobotQsId, uint16_t *pui16EdgeOP, uint16_t *pui16EdgeOQ, uint16_t *pui16EdgePQ)
@@ -601,139 +949,6 @@ bool Tri_tryToFindAngleInLocalCoordination(float fEdgeR, uint32_t ui32RobotId, f
 	return false;
 }
 
-bool Tri_calculateAlphaFromSixEdge(float* pfAlphaPIJ, uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,
-		uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ)
-{
-	DEBUG_PRINT("Entering Tri_calculateAlphaFromSixEdgeAndAngleOffset........\n");
-
-	if (!isTriangle(ui16EdgeIP, ui16EdgeIJ, ui16EdgePJ))
-		return false;
-
-	if (!isTriangle(ui16EdgeIQ, ui16EdgeIJ, ui16EdgeQJ))
-		return false;
-
-	if (!isTriangle(ui16EdgeIP, ui16EdgeIQ, ui16EdgePQ))
-		return false;
-
-	float fEdgeIP = ui16EdgeIP / 256.0f;
-	float fEdgeIJ = ui16EdgeIJ / 256.0f;
-	float fEdgePJ = ui16EdgePJ / 256.0f;
-
-	*pfAlphaPIJ = acosf(findCosAngleUseCosineRuleForTriangle(fEdgeIP, fEdgeIJ, fEdgePJ));
-
-	DEBUG_PRINT("........Returning from Tri_calculateAlphaFromSixEdge\n");
-
-	return true;
-}
-
-bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable)
-{
-	DEBUG_PRINT("Entering Tri_tryToRotateLocationsTable........\n");
-
-	RobotLocation item(0, 0);
-	CustomLinkedList<RobotLocation> OriLocationsTable;
-	int32_t i32Template;
-	int pointer = 0;
-	int i;
-	for(i = 0; i < ui32SizeOfOriLocsTable; i++)
-	{
-		item.ID = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
-		pointer += 4;
-
-		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
-		item.vector.x = (float)(i32Template / 65536.0f);
-		pointer += 4;
-
-		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
-		item.vector.y = (float)(i32Template / 65536.0f);
-		pointer += 4;
-
-		OriLocationsTable.add(item);
-	}
-
-	Vector2<float> vectTransform;
-
-	float fCorrectionAngle;
-	bool bIsNeedMirroring;
-	uint32_t ui32IdsRobotJ;
-	if(Tri_tryToGetCommonNeighborID(pRobotIdentity, &OriLocationsTable, &ui32IdsRobotJ))
-	{
-		if(Tri_calculateCorrectionAngle(pRobotIdentity, ui32IdsRobotJ, &OriLocationsTable, &fCorrectionAngle, &bIsNeedMirroring))
-		{
-			RobotLocationsTable_rotate(fCorrectionAngle, bIsNeedMirroring);
-
-			vectTransform = Tri_updateRobotVectorToWorldFrame(pRobotIdentity, &OriLocationsTable);
-
-			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
-
-			return true;
-		}
-	}
-
-	DEBUG_PRINT("........Returning FALSE from Tri_tryToRotateLocationsTable\n");
-
-	return false;
-}
-
-Vector2<float> Tri_chooseTheBestVectorFromThreePoints(float fAlphaZ, uint32_t ui32RobotOsId, uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
-{
-	int indexO, indexX, indexY;
-
-	Vector2<float> vectorZNegSigned;
-	Vector2<float> vectorZPosSigned;
-
-	float errorNegSigned = 0;
-	float errorPosSigned = 0;
-
-	indexO = RobotLocationsTable_getIndexOfRobot(ui32RobotOsId);
-	if(indexO < 0)	return NULL;
-
-	indexX = RobotLocationsTable_getIndexOfRobot(ui32RobotXsId);
-	if(indexX < 0)	return NULL;
-
-	indexY = RobotLocationsTable_getIndexOfRobot(ui32RobotYsId);
-	if(indexY < 0)	return NULL;
-
-	vectorZPosSigned.x = fEdgeOZ * cosf(fAlphaZ);
-	vectorZPosSigned.y = fEdgeOZ * sinf(fAlphaZ);
-
-	vectorZNegSigned.x = fEdgeOZ * cosf(-fAlphaZ);
-	vectorZNegSigned.y = fEdgeOZ * sinf(-fAlphaZ);
-
-	errorPosSigned = Tri_calculateErrorOfVectorZ(vectorZPosSigned,
-												g_RobotLocationsTable[indexO].vector,
-												g_RobotLocationsTable[indexX].vector,
-												g_RobotLocationsTable[indexY].vector,
-												fEdgeOZ, fEdgeXZ, fEdgeYZ);
-
-	errorNegSigned = Tri_calculateErrorOfVectorZ(vectorZNegSigned,
-												g_RobotLocationsTable[indexO].vector,
-												g_RobotLocationsTable[indexX].vector,
-												g_RobotLocationsTable[indexY].vector,
-												fEdgeOZ, fEdgeXZ, fEdgeYZ);
-
-	if(errorPosSigned < errorNegSigned)
-		return vectorZPosSigned;
-	else
-		return vectorZNegSigned;
-}
-float Tri_calculateErrorOfVectorZ(Vector2<float> vectZ, Vector2<float> vectO, Vector2<float> vectX, Vector2<float> vectY, float fEdgeOZ, float fEdgeXZ, float fEdgeYZ)
-{
-	Vector2<float> vectOZ = vectO - vectZ;
-	Vector2<float> vectXZ = vectX - vectZ;
-	Vector2<float> vectYZ = vectY - vectZ;
-
-	float errorOZ = vectOZ.getMagnitude() - fEdgeOZ;
-	float errorXZ = vectXZ.getMagnitude() - fEdgeXZ;
-	float errorYZ = vectYZ.getMagnitude() - fEdgeYZ;
-
-	errorOZ = absFloatNumber(errorOZ);
-	errorXZ = absFloatNumber(errorXZ);
-	errorYZ = absFloatNumber(errorYZ);
-
-	return (errorOZ + errorXZ + errorYZ);
-}
-
 Vector2<float> Tri_trilaterateFromSixEdgeAndAngleOffset(uint16_t ui16EdgeIQ, uint16_t ui16EdgeIP, uint16_t ui16EdgeIJ,
 		uint16_t ui16EdgeQJ, uint16_t ui16EdgePJ, uint16_t ui16EdgePQ, float fAngleOffset)
 {
@@ -795,6 +1010,56 @@ int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta)
 //	return (0);
 }
 
+//============= Rotate Coordinates ==================================================================
+bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable)
+{
+	DEBUG_PRINT("Entering Tri_tryToRotateLocationsTable........\n");
+
+	RobotLocation item(0, 0);
+	CustomLinkedList<RobotLocation> OriLocationsTable;
+	int32_t i32Template;
+	int pointer = 0;
+	int i;
+	for(i = 0; i < ui32SizeOfOriLocsTable; i++)
+	{
+		item.ID = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		pointer += 4;
+
+		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		item.vector.x = (float)(i32Template / 65536.0f);
+		pointer += 4;
+
+		i32Template = construct4Byte(&pui8OriLocsTableBufferPointer[pointer]);
+		item.vector.y = (float)(i32Template / 65536.0f);
+		pointer += 4;
+
+		OriLocationsTable.add(item);
+	}
+
+	Vector2<float> vectTransform;
+
+	float fCorrectionAngle;
+	bool bIsNeedMirroring;
+	uint32_t ui32IdsRobotJ;
+	if(Tri_tryToGetCommonNeighborID(pRobotIdentity, &OriLocationsTable, &ui32IdsRobotJ))
+	{
+		if(Tri_calculateCorrectionAngle(pRobotIdentity, ui32IdsRobotJ, &OriLocationsTable, &fCorrectionAngle, &bIsNeedMirroring))
+		{
+			RobotLocationsTable_rotate(fCorrectionAngle, bIsNeedMirroring);
+
+			vectTransform = Tri_updateRobotVectorToWorldFrame(pRobotIdentity, &OriLocationsTable);
+
+			DEBUG_PRINT("........Returning TRUE from Tri_tryToRotateLocationsTable\n");
+
+			return true;
+		}
+	}
+
+	DEBUG_PRINT("........Returning FALSE from Tri_tryToRotateLocationsTable\n");
+
+	return false;
+}
+
 bool Tri_tryToGetCommonNeighborID(RobotIdentity_t* pRobotIdentity, CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID)
 {
 	uint32_t ui32TargetId;
@@ -825,88 +1090,81 @@ bool Tri_calculateCorrectionAngle(RobotIdentity_t* pRobotIdentity, uint32_t ui32
 	//
 	// New Attempt: calculate correction angle
 	//
-//	float fAlphaK;
-//	float fBetaI;
-//	float fCorrectionAngleNoMirroring;
-//	float fCorrectionAngleNeedMirroring;
-//	Vector2<float> vectRobotJinOriLocs(0, 0);
-//	Vector2<float> vectRobotJinLocs(0, 0);
-//	Vector2<float> vectRotatedNoMirror(0, 0);
-//	Vector2<float> vectRotatedMirroring(0, 0);
-//	float errorInMirroring;
-//	float errorNoMirror;
-//
-//	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
-//	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, &g_RobotLocationsTable);
-//
-//	fCorrectionAngleNoMirroring = fBetaI - fAlphaK + MATH_PI;
-//	fCorrectionAngleNeedMirroring = fBetaI + fAlphaK;
-////	fCorrectionAngleNoMirroring = MATH_PI_MUL_2 - (fBetaI - fAlphaK + MATH_PI);
-////	fCorrectionAngleNeedMirroring = MATH_PI_MUL_2 - (fBetaI + fAlphaK);
-//
-////	fCorrectionAngleNoMirroring = atan2f(sinf(fCorrectionAngleNoMirroring), cosf(fCorrectionAngleNoMirroring));
-////	fCorrectionAngleNeedMirroring = atan2f(sinf(fCorrectionAngleNeedMirroring), cosf(fCorrectionAngleNeedMirroring));
-//
-//	vectRobotJinLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
-//
-//	vectRotatedNoMirror.x = vectRobotJinLocs.x * cosf(fCorrectionAngleNoMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNoMirroring);
-//	vectRotatedNoMirror.y = vectRobotJinLocs.x * sinf(fCorrectionAngleNoMirroring) + vectRobotJinLocs.y * cosf(fCorrectionAngleNoMirroring);
-//
-//	vectRotatedMirroring.x = -(vectRobotJinLocs.x * cosf(fCorrectionAngleNeedMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNeedMirroring));
-//	vectRotatedMirroring.y = vectRobotJinLocs.x * sinf(fCorrectionAngleNeedMirroring) + vectRobotJinLocs.y * cosf(fCorrectionAngleNeedMirroring);
-//
-//	vectRobotJinOriLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, pOriLocsTable) - Tri_getRobotVectorFromLocationsTable(ui32SelfID, pOriLocsTable);
-//
-//	errorNoMirror = absFloatNumber(vectRotatedNoMirror.x - vectRobotJinOriLocs.x) + absFloatNumber(vectRotatedNoMirror.y - vectRobotJinOriLocs.y);
-//	errorInMirroring = absFloatNumber(vectRotatedMirroring.x - vectRobotJinOriLocs.x) + absFloatNumber(vectRotatedMirroring.y - vectRobotJinOriLocs.y);
-//
-//	if(errorNoMirror < errorInMirroring)
-//	{
-//		*pfCorrectionAngle = fCorrectionAngleNoMirroring;
-////		*pfCorrectionAngle = fCorrectionAngleNoMirroring + MATH_PI_MUL_2;
-//		*pbIsNeedMirroring = false;
-//	}
-//	else
-//	{
-//		*pfCorrectionAngle = fCorrectionAngleNeedMirroring;
-////		*pfCorrectionAngle = fCorrectionAngleNoMirroring + MATH_PI_MUL_2;
-//		*pbIsNeedMirroring = true;
-//	}
+	float fAlphaK;
+	float fBetaI;
+	float fCorrectionAngleNoMirroring;
+	float fCorrectionAngleNeedMirroring;
+	Vector2<float> vectRobotJinOriLocs;
+	Vector2<float> vectRobotJinLocs;
+	Vector2<float> vectRobotIinOriLocs;
+	Vector2<float> vectRotatedNoMirror;
+	Vector2<float> vectRotatedMirroring;
+	float errorInMirroring;
+	float errorNoMirror;
 
-	//
-	// Old Attempt: calculate correction angle
-	//
-	float fAlphaJ, fAlphaK, fAlphaJK;
-	float fBetaJ, fBetaI, fBetaJI;
-
-	fAlphaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ,pOriLocsTable);
 	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
-
-	fAlphaJK = fAlphaJ - fAlphaK;
-	fAlphaJK = (fAlphaJK < 0) ? (MATH_PI_MUL_2 + fAlphaJK) : (fAlphaJK);
-
-	fBetaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
 	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, &g_RobotLocationsTable);
 
-	fBetaJI = fBetaJ - fBetaI;
-	fBetaJI = (fBetaJI < 0) ? (MATH_PI_MUL_2 + fBetaJI) : (fBetaJI);
+	fCorrectionAngleNoMirroring = fBetaI - fAlphaK + MATH_PI;
+	fCorrectionAngleNeedMirroring = fBetaI + fAlphaK;
 
-	if ((fAlphaJK < MATH_PI && fBetaJI > MATH_PI)
-			|| (fAlphaJK > MATH_PI && fBetaJI < MATH_PI))
+	vectRobotJinLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
+	vectRotatedNoMirror.x = vectRobotJinLocs.x * cosf(fCorrectionAngleNoMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNoMirroring);
+	vectRotatedMirroring.x = -(vectRobotJinLocs.x * cosf(fCorrectionAngleNeedMirroring) - vectRobotJinLocs.y * sinf(fCorrectionAngleNeedMirroring));
+
+	vectRobotIinOriLocs = Tri_getRobotVectorFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
+	vectRotatedNoMirror.x += vectRobotIinOriLocs.x;
+	vectRotatedMirroring.x += vectRobotIinOriLocs.x;
+
+	vectRobotJinOriLocs = Tri_getRobotVectorFromLocationsTable(ui32IdsRobotJ, pOriLocsTable);
+	errorNoMirror = absFloatNumber(vectRotatedNoMirror.x - vectRobotJinOriLocs.x);
+	errorInMirroring = absFloatNumber(vectRotatedMirroring.x - vectRobotJinOriLocs.x);
+
+	if(errorNoMirror < errorInMirroring)
 	{
+		*pfCorrectionAngle = fCorrectionAngleNoMirroring;
 		*pbIsNeedMirroring = false;
-		*pfCorrectionAngle = fBetaI - fAlphaK + MATH_PI;
-	}
-	else if ((fAlphaJK < MATH_PI && fBetaJI < MATH_PI)
-			|| (fAlphaJK > MATH_PI && fBetaJI > MATH_PI))
-	{
-		*pbIsNeedMirroring = true;
-		*pfCorrectionAngle = fBetaI + fAlphaK;
 	}
 	else
 	{
-		return false;
+		*pfCorrectionAngle = fCorrectionAngleNeedMirroring;
+		*pbIsNeedMirroring = true;
 	}
+
+//	//
+//	// Old Attempt: calculate correction angle
+//	//
+//	float fAlphaJ, fAlphaK, fAlphaJK;
+//	float fBetaJ, fBetaI, fBetaJI;
+//
+//	fAlphaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ,pOriLocsTable);
+//	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pOriLocsTable);
+//
+//	fAlphaJK = fAlphaJ - fAlphaK;
+//	fAlphaJK = (fAlphaJK < 0) ? (MATH_PI_MUL_2 + fAlphaJK) : (fAlphaJK);
+//
+//	fBetaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsRobotJ, &g_RobotLocationsTable);
+//	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, &g_RobotLocationsTable);
+//
+//	fBetaJI = fBetaJ - fBetaI;
+//	fBetaJI = (fBetaJI < 0) ? (MATH_PI_MUL_2 + fBetaJI) : (fBetaJI);
+//
+//	if ((fAlphaJK < MATH_PI && fBetaJI > MATH_PI)
+//			|| (fAlphaJK > MATH_PI && fBetaJI < MATH_PI))
+//	{
+//		*pbIsNeedMirroring = false;
+//		*pfCorrectionAngle = fBetaI - fAlphaK + MATH_PI;
+//	}
+//	else if ((fAlphaJK < MATH_PI && fBetaJI < MATH_PI)
+//			|| (fAlphaJK > MATH_PI && fBetaJI > MATH_PI))
+//	{
+//		*pbIsNeedMirroring = true;
+//		*pfCorrectionAngle = fBetaI + fAlphaK;
+//	}
+//	else
+//	{
+//		return false;
+//	}
 
 	return true;
 }
@@ -969,4 +1227,3 @@ Vector2<float> Tri_updateRobotVectorToWorldFrame(RobotIdentity_t* pRobotIdentity
 	}
 	return vectorInWorlFrame;
 }
-

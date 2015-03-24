@@ -38,7 +38,7 @@ void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance);
 bool NeighborsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index);
-uint16_t NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID);
+bool NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID, uint16_t *pui16Distance);
 void NeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 
 // ====== One Hop Neighbors Table manipulation methods =============================
@@ -58,12 +58,13 @@ void RobotLocationsTable_add(uint32_t id, float x, float y);
 void RobotLocationsTable_remove(uint32_t id);
 int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID);
 bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId);
+bool RobotLocationsTable_getVectorOfRobot(uint32_t ui32RobotId, float* pfX, float *pfY);
 uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index);
 void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis);
 void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity);
 void RobotLocationsTable_linearTransform(float dx, float dy, uint32_t ui32OriginId);
 void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
-
+void RobotLocationsTable_selfCorrectByGradientDescent(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
 #ifdef __cplusplus
 }
 #endif

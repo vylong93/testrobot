@@ -13,6 +13,10 @@
 #include "libmath/inc/custom_math.h"
 #include "data_manipulation.h"
 
+#include "libalgorithm/inc/GradientDescentNode.h"
+
+#include "libcustom/inc/custom_uart_debug.h"
+
 CustomLinkedList<RobotMeas> g_NeighborsTable;
 CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 CustomLinkedList<RobotLocation> g_RobotLocationsTable;
@@ -89,13 +93,14 @@ uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index)
 	return g_NeighborsTable[ui32Index].ID;
 }
 
-uint16_t NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID)
+bool NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID, uint16_t *pui16Distance)
 {
 	RobotMeas target(ui32RobotID);
 	int targetIndex = g_NeighborsTable.isContain(target);
 	if(targetIndex < 0)
-		return 0;
-	return g_NeighborsTable[targetIndex].Distance;
+		return false;
+	*pui16Distance = g_NeighborsTable[targetIndex].Distance;
+	return true;
 }
 
 void NeighborsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength)
@@ -263,6 +268,21 @@ bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId)
 	return false;
 }
 
+bool RobotLocationsTable_getVectorOfRobot(uint32_t ui32RobotId, float* pfX, float *pfY)
+{
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		if (g_RobotLocationsTable[i].ID == ui32RobotId)
+		{
+			*pfX = g_RobotLocationsTable[i].vector.x;
+			*pfY = g_RobotLocationsTable[i].vector.y;
+			return true;
+		}
+	}
+	return false;
+}
+
 uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index)
 {
 	return g_RobotLocationsTable[ui32Index].ID;
@@ -349,4 +369,45 @@ void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t u
 			pui8Buffer[i++] = 0;
 		}
 	}
+}
+
+void RobotLocationsTable_selfCorrectByGradientDescent(uint32_t ui32OriginalID, uint32_t ui32RotationHopID)
+{
+	DEBUG_PRINT("Entering RobotLocationsTable_selfCorrectByGradientDescent........\n");
+
+	bool isGradienttSearchContinue = true;
+	GradientDescentNode* pTarget = NULL;
+	CustomLinkedList<GradientDescentNode> listCorrectLocationAlgorithm;
+
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		if(g_RobotLocationsTable[i].ID == ui32OriginalID || g_RobotLocationsTable[i].ID == ui32RotationHopID)
+			continue;
+		pTarget = new GradientDescentNode;
+		pTarget->init(&g_RobotLocationsTable[i]);
+		listCorrectLocationAlgorithm.add(*pTarget);
+	}
+
+	// active Gradient descent to calculate new position
+	while(isGradienttSearchContinue)
+	{
+		isGradienttSearchContinue = false;
+
+		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
+		{
+			listCorrectLocationAlgorithm[i].run();
+		}
+
+		for(i = 0; i < listCorrectLocationAlgorithm.Count; i++)
+		{
+			if(listCorrectLocationAlgorithm[i].isGradientSearchStop == false)
+			{
+				isGradienttSearchContinue = true;
+				break;
+			}
+		}
+	}
+
+	DEBUG_PRINT("........Returning from RobotLocationsTable_selfCorrectByGradientDescent\n");
 }

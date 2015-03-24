@@ -21,7 +21,6 @@
 #include "libmath/inc/custom_math.h"
 #include <math.h>
 
-
 //#define HAVE_IMU
 
 #ifdef HAVE_IMU
@@ -51,6 +50,26 @@ int main(void)
 	initRobotProcess();
 
 	turnOffLED(LED_ALL);
+
+//	NeighborsTable_clear();
+//	OneHopNeighborsTable_clear();
+//	RobotLocationsTable_clear();
+//	initDataOfRobot1();
+//	RobotLocationsTable_add(Network_getSelfAddress(), 0, 0);
+//
+//	uint32_t t0, t1;
+//
+//	uint32_t ClockSpeed = ROM_SysCtlClockGet();
+//	ROM_TimerLoadSet(TASK_TIMER_BASE, TIMER_A, ClockSpeed);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//	ROM_TimerEnable(TASK_TIMER_BASE, TIMER_A);
+//
+//	t0 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//	Tri_tryToCalculateRobotLocationsTable(0xBEAD01);
+//	t1 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//
+//	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
 
 //	test();
 
@@ -198,7 +217,6 @@ int main(void)
 		}
 	}
 #endif
-
 }
 
 void initSystem(void)
@@ -273,7 +291,6 @@ void MCU_RF_IRQ_handler(void)
 	if(getCpuMode() != CPU_MODE_RUN)
 		returnToSleep();
 }
-
 
 //void StateFive_ReduceCoordinatesError()
 //{
@@ -1018,15 +1035,15 @@ void MCU_RF_IRQ_handler(void)
 //
 //	// Soft 21.25us :: Hard 12.5us
 //	uint32_t ClockSpeed = ROM_SysCtlClockGet();
-//	ROM_TimerLoadSet(TIMER_DELAY_BASE, TIMER_A, ClockSpeed);
-//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
-//	ROM_TimerEnable(TIMER_DELAY_BASE, TIMER_A);
+//	ROM_TimerLoadSet(TASK_TIMER_BASE, TIMER_A, ClockSpeed);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//	ROM_TimerEnable(TASK_TIMER_BASE, TIMER_A);
 //
-//	t0 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//	t0 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
 //	c_hard = sqrtf(b);
-//	t1 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//	t1 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
 //	c_soft = sqrt_fast(b);
-//	t2 = ROM_TimerValueGet(TIMER_DELAY_BASE, TIMER_A);
+//	t2 = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
 //
-//	ROM_TimerDisable(TIMER_DELAY_BASE, TIMER_A);
-//	ROM_TimerIntClear(TIMER_DELAY_BASE, TIMER_TIMA_TIMEOUT);
+//	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
+//	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);

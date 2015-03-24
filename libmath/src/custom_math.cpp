@@ -80,5 +80,37 @@ float findCosAngleUseCosineRuleForTriangle(float fSide1, float fSide2, float fOp
 	return ((fSide1*fSide1 + fSide2*fSide2 - fOppositeSide*fOppositeSide) / (2*fSide1*fSide2));
 }
 
+float findAltitudeOfTriangle(float a, float b, float c)
+{
+	/*  Use Heron's fomular with Semiperimeter to calculate the Height
+	 *  http://en.wikipedia.org/wiki/Altitude_(triangle)
+	 *  Edges: a, b, c; Height: ha
+	 *		   .
+	 *		  .. .
+	 *       . .   .
+	 *	  c .  .     . b
+	 *	   .   . ha    .
+	 *    .    .         .
+	 *   . . . . . . . . . .
+	 *           a
+	 */
 
+	float s = (a + b + c) / 2;
+	return ((2 * sqrtf(s * (s - a) * (s - b) * (s - c))) / a);
+}
+
+bool solveQuadraticEquation(float A, float _B, float C, float* pX1, float *pX2)
+{
+	// NOTE: this function sovle the Quadratic equation at format Ax^2 + 2_Bx + C = 0
+	if(A == 0)
+		return false;
+
+	float _Delta = _B*_B - A*C;
+	if (_Delta < 0)
+		return false;
+
+	*pX1 = (-_B - sqrtf(_Delta)) / A;
+	*pX2 = (-_B + sqrtf(_Delta)) / A;
+	return true;
+}
 

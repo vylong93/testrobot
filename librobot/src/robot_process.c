@@ -29,7 +29,6 @@
 extern void initData(uint8_t* pui8MessageData); // Test Only
 extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
 extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
-extern void GradientDescentMulti_correctLocationsTable(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
 
 RobotIdentity_t g_RobotIdentity;
 
@@ -612,7 +611,8 @@ void StateTwo_ExchangeTable(void)
 	}
 	while(!g_bIsNewLocationsTableAvailable);
 
-	setRobotState(ROBOT_STATE_VOTE_ORIGIN);
+	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+//	setRobotState(ROBOT_STATE_VOTE_ORIGIN);
 }
 
 void StateTwo_ExchangeTable_ResetFlag(void)
@@ -809,15 +809,18 @@ void StateThree_VoteTheOrigin(void)
 	//
 	delay_us(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-	activeRobotTask(VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS, StateThree_VoteTheOrigin_MainTask);
-
 	//
 	// indicates the origin id
 	//
 	indicatesOriginIdToLEDs(g_RobotIdentity.Origin_ID);
 
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-	//setRobotState(ROBOT_STATE_IDLE);
+	activeRobotTask(VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS, StateThree_VoteTheOrigin_MainTask);
+
 	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
 }
 
@@ -906,6 +909,11 @@ void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData)
 		g_RobotIdentity.Origin_ID = ui32RxOriginNodeID;
 		g_RobotIdentity.Origin_NeighborsCount = ui8RxOriginNeighborsCount;
 		g_RobotIdentity.Origin_Hopth = ui8RxOriginHopth + 1;
+
+		//
+		// indicates the origin id
+		//
+		indicatesOriginIdToLEDs(g_RobotIdentity.Origin_ID);
 	}
 
 	g_ui8BroadcastVoteCommandCounter = 0;
@@ -1034,6 +1042,8 @@ void StateFour_RotateCoordinates(void)
 	// Synchornous delay for previous state
 	//
 	delay_us(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	turnOffLED(LED_ALL);
 
 	activeRobotTask(ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFour_RotateCoordinates_MainTask);
 
@@ -1767,14 +1777,12 @@ void sendRobotLocationsTableToHost(void)
 
 void selfCorrectLocationsTable(void)
 {
-	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, 0);
+	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, 0);
 }
 
 void selfCorrectLocationsTableExceptRotationHopID(void)
 {
 	RobotLocationsTable_transformToWorldFrame(&g_RobotIdentity);
-
-	GradientDescentMulti_correctLocationsTable(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
 }
 
 void transmitRobotIdentityToHost(void)

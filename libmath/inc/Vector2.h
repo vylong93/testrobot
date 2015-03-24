@@ -68,9 +68,9 @@ Vector2<T> Vector2<T>::operator-(const Vector2<T>& v1)
 	return result;
 };
 
-//*****************
-// Scale operator *
-//*****************
+//*******************
+// Scale operator * *
+//*******************
 template <typename T>
 Vector2<T> Vector2<T>::operator*(const T scale)
 {
