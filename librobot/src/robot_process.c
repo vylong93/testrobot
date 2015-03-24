@@ -611,8 +611,7 @@ void StateTwo_ExchangeTable(void)
 	}
 	while(!g_bIsNewLocationsTableAvailable);
 
-	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
-//	setRobotState(ROBOT_STATE_VOTE_ORIGIN);
+	setRobotState(ROBOT_STATE_VOTE_ORIGIN);
 }
 
 void StateTwo_ExchangeTable_ResetFlag(void)

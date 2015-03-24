@@ -165,7 +165,7 @@ bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId)
 
 	Tri_tryToCalculateTheRemainPoints(ui32RobotOsId);
 
-	//RobotLocationsTable_selfCorrectByGradientDescent(ui32RobotOsId, 0);
+	RobotLocationsTable_selfCorrectByGradientDescent(ui32RobotOsId, 0);
 
 	DEBUG_PRINT("........Returning TRUE from Tri_tryToCalculateRobotLocationsTable\n");
 	return true;
