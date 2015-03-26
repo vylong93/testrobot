@@ -39,24 +39,28 @@ static uint8_t* g_pui8RequestData;
 
 void test(void) // Test Only
 {
-	g_RobotIdentity.Self_ID = 0xBEAD04;
-	g_RobotIdentity.Self_NeighborsCount = 5;
+//	Robot:0xBEAD08 (31.3617; -0.052002)
+//	Self neighbors = 6
+//	Origin:0xBEAD01, neighbors = 6, Hopth = 1
+//	Rotation Hop:0xBEAD01 (0; 0)
+	g_RobotIdentity.Self_ID = 0xBEAD08;
+	g_RobotIdentity.Self_NeighborsCount = 6;
 
 	g_RobotIdentity.x = 0;
 	g_RobotIdentity.y = 0;
 
 	g_RobotIdentity.Origin_ID = 0xBEAD01;
-	g_RobotIdentity.Origin_NeighborsCount = 5;
+	g_RobotIdentity.Origin_NeighborsCount = 6;
 	g_RobotIdentity.Origin_Hopth = 1;
 
-	g_RobotIdentity.RotationHop_ID = 0xBEAD05;
-	g_RobotIdentity.RotationHop_x = 21.361f;
-	g_RobotIdentity.RotationHop_y = 0.266083f;
+	g_RobotIdentity.RotationHop_ID = 0xBEAD01;
+	g_RobotIdentity.RotationHop_x = 0;
+	g_RobotIdentity.RotationHop_y = 0;
 
-	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 60);
+	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 72);
 	initData(pui8MessageData);
 
-	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 60 / 12);
+	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 72 / 12);
 
 	free(pui8MessageData);
 }
@@ -821,6 +825,7 @@ void StateThree_VoteTheOrigin(void)
 	activeRobotTask(VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS, StateThree_VoteTheOrigin_MainTask);
 
 	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
+//	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
 }
 
 void StateThree_VoteTheOrigin_ResetFlag(void)

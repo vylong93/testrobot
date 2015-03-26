@@ -292,16 +292,14 @@ void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 {
 	float x, y;
 
-	float fAngleOffset = MATH_PI_MUL_2 - fAngle;
-
 	int i;
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
 	{
 		x = g_RobotLocationsTable[i].vector.x;
 		y = g_RobotLocationsTable[i].vector.y;
 
-		g_RobotLocationsTable[i].vector.x = x * cosf(fAngleOffset) - y * sinf(fAngleOffset);
-		g_RobotLocationsTable[i].vector.y = x * sinf(fAngleOffset) + y * cosf(fAngleOffset);
+		g_RobotLocationsTable[i].vector.x = x * cosf(fAngle) - y * sinf(fAngle);
+		g_RobotLocationsTable[i].vector.y = x * sinf(fAngle) + y * cosf(fAngle);
 
 		if (bFlipXaxis)
 			g_RobotLocationsTable[i].vector.x *= -1;

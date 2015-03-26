@@ -58,8 +58,8 @@ int8_t Tri_findSignedYaxis(float fAlpha, float fBeta, float fTheta);
 
 //============= Rotate Coordinates ==================================================================
 bool Tri_tryToGetCommonNeighborID(RobotIdentity_t* pRobotIdentity, CustomLinkedList<RobotLocation>* pOriLocsTable, uint32_t* pui32CommonID);
-bool Tri_calculateCorrectionAngle(RobotIdentity_t* pRobotIdentity, uint32_t ui32IdsRobotJ, CustomLinkedList<RobotLocation>* pOriLocsTable, float *pfCorrectionAngle, bool* pbIsNeedMirroring);
-float Tri_getRobotAngleFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable);
+bool Tri_calculateCorrectionAngle(RobotIdentity_t* pRobotIdentity, uint32_t ui32IdsCommonNeighbor, CustomLinkedList<RobotLocation>* pLocsTableOfRotationHop, float *pfCorrectionAngle, bool* pbIsNeedFlipX);
+float Tri_getRobotAngleFromLocationsTable(uint32_t ui32EndPointRobotId, uint32_t ui32StartPointRobotId, CustomLinkedList<RobotLocation>* pLocsTable);
 Vector2<float> Tri_getRobotVectorFromLocationsTable(uint32_t ui32RobotId, CustomLinkedList<RobotLocation>* pLocsTable);
 Vector2<float> Tri_updateRobotVectorToWorldFrame(RobotIdentity_t* pRobotIdentity, CustomLinkedList<RobotLocation>* pOriLocsTable);
 
