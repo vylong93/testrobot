@@ -309,7 +309,7 @@ void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity)
 {
 	Vector2<float> vectRotationHop(pRobotIdentity->RotationHop_x, pRobotIdentity->RotationHop_y);
-	Vector2<float> vectTransform(0,0);
+	Vector2<float> vectTransform;
 
 	RobotLocation target(pRobotIdentity->RotationHop_ID, 0);
 	int i = g_RobotLocationsTable.isContain(target);
@@ -325,16 +325,16 @@ void RobotLocationsTable_linearTransform(float dx, float dy, uint32_t ui32Origin
 	int i;
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
 	{
-		if(g_RobotLocationsTable[i].ID == ui32OriginId)
-		{
-			g_RobotLocationsTable[i].vector.x = 0;
-			g_RobotLocationsTable[i].vector.y = 0;
-		}
-		else
-		{
+//		if(g_RobotLocationsTable[i].ID == ui32OriginId)
+//		{
+//			g_RobotLocationsTable[i].vector.x = 0;
+//			g_RobotLocationsTable[i].vector.y = 0;
+//		}
+//		else
+//		{
 			g_RobotLocationsTable[i].vector.x += dx;
 			g_RobotLocationsTable[i].vector.y += dy;
-		}
+//		}
 	}
 }
 
@@ -357,6 +357,43 @@ void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t u
 			parse32bitTo4Bytes(&pui8Buffer[i + 4], i32FixedPoint16_16);
 
 			i32FixedPoint16_16 = (int32_t)(g_RobotLocationsTable[pointer].vector.y * 65536);
+			parse32bitTo4Bytes(&pui8Buffer[i + 8], i32FixedPoint16_16);
+
+			pointer++;
+			i += SIZE_OF_ROBOT_LOCATION;
+		}
+		else
+		{
+			pui8Buffer[i++] = 0;
+		}
+	}
+}
+
+void RobotLocationsTable_fillContentToByteBufferOffsetLocal(uint32_t ui32LocalOriginId, uint8_t* pui8Buffer, uint32_t ui32TotalLength)
+{
+	if((ui32TotalLength % SIZE_OF_ROBOT_LOCATION) != 0)
+		return;
+
+	RobotLocation localOrigin(ui32LocalOriginId, 0);
+	int indexOfLocalOrigin = g_RobotLocationsTable.isContain(localOrigin);
+	if(indexOfLocalOrigin < 0)
+		return;
+	Vector2<float> vectorOfLocalOrigin = g_RobotLocationsTable[indexOfLocalOrigin].vector;
+
+	int32_t i32FixedPoint16_16;
+
+	int pointer = 0;
+	uint32_t i;
+	for(i = 0; i < ui32TotalLength; )
+	{
+		if(pointer < g_RobotLocationsTable.Count)
+		{
+			parse32bitTo4Bytes(&pui8Buffer[i], g_RobotLocationsTable[pointer].ID);
+
+			i32FixedPoint16_16 = (int32_t)((g_RobotLocationsTable[pointer].vector.x  - vectorOfLocalOrigin.x) * 65536);
+			parse32bitTo4Bytes(&pui8Buffer[i + 4], i32FixedPoint16_16);
+
+			i32FixedPoint16_16 = (int32_t)((g_RobotLocationsTable[pointer].vector.y  - vectorOfLocalOrigin.y) * 65536);
 			parse32bitTo4Bytes(&pui8Buffer[i + 8], i32FixedPoint16_16);
 
 			pointer++;

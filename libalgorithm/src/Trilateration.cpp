@@ -1150,12 +1150,14 @@ bool Tri_calculateCorrectionAngle(RobotIdentity_t* pRobotIdentity, uint32_t ui32
 	fAlphaK = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->Self_ID, pRobotIdentity->RotationHop_ID, pLocsTableOfRotationHop);
 
 	fAlphaJK = fAlphaJ - fAlphaK;
+	fAlphaJK = atan2f(sinf(fAlphaJK), cosf(fAlphaJK));
 	fAlphaJK = (fAlphaJK < 0) ? (MATH_PI_MUL_2 + fAlphaJK) : (fAlphaJK);
 
 	fBetaJ = Tri_getRobotAngleFromLocationsTable(ui32IdsCommonNeighbor, pRobotIdentity->Self_ID, &g_RobotLocationsTable);
 	fBetaI = Tri_getRobotAngleFromLocationsTable(pRobotIdentity->RotationHop_ID, pRobotIdentity->Self_ID, &g_RobotLocationsTable);
 
 	fBetaJI = fBetaJ - fBetaI;
+	fBetaJI = atan2f(sinf(fBetaJI), cosf(fBetaJI));
 	fBetaJI = (fBetaJI < 0) ? (MATH_PI_MUL_2 + fBetaJI) : (fBetaJI);
 
 	if ((fAlphaJK < MATH_PI && fBetaJI > MATH_PI)

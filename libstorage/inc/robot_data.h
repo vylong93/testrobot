@@ -64,6 +64,7 @@ void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis);
 void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity);
 void RobotLocationsTable_linearTransform(float dx, float dy, uint32_t ui32OriginId);
 void RobotLocationsTable_fillContentToByteBuffer(uint8_t* pui8Buffer, uint32_t ui32TotalLength);
+void RobotLocationsTable_fillContentToByteBufferOffsetLocal(uint32_t ui32LocalOriginId, uint8_t* pui8Buffer, uint32_t ui32TotalLength);
 void RobotLocationsTable_selfCorrectByGradientDescent(uint32_t ui32OriginalID, uint32_t ui32RotationHopID);
 #ifdef __cplusplus
 }

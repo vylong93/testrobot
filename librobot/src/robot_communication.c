@@ -17,9 +17,13 @@
 
 #include "libalgorithm/inc/TDOA.h"
 
+#include "libnrf24l01/inc/TM4C123_nRF24L01.h"
+
 //------------------------ Message Decoder ------------------------
 void RobotResponseIntHandler(void)
 {
+	MCU_RF_DisableInterrupt();
+
 	uint8_t* pui8RequestData = getRequestMessageDataPointer();
 
 	switch (getRobotResponseState())
@@ -58,6 +62,8 @@ void RobotResponseIntHandler(void)
 	setRobotResponseState(ROBOT_RESPONSE_STATE_NONE);
 
 	free(pui8RequestData);
+
+	MCU_RF_EnableInterrupt();
 }
 
 void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
@@ -104,26 +110,6 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			}
 //			break;
 //
-//		// EXCHANGE_TABLE state
-//		case ROBOT_REQUEST_NEIGHBORS_TABLE:
-//			reloadDelayTimerA();
-//			checkAndResponeMyNeighborsTableToOneRobot();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
-//		// VOTE_ORIGIN state
-//		case ROBOT_REQUEST_UPDATE_NETWORK_ORIGIN:
-//			turnOnLED(LED_RED);
-//			reloadDelayTimerA();
-//			updateOrRejectNetworkOrigin(RF24_RX_buffer);
-//			turnOffLED(LED_RED);
-//			break;
-//
-//		// ROTATE_NETWORK state
-//		case ROBOT_REQUEST_ROTATE_NETWORK:
-//			getHopOriginTableAndRotate(RF24_RX_buffer);
-//			break;
-//
 //		// REDUCE_ERROR state
 //		case ROBOT_REQUEST_MY_VECTOR:
 //			tryToResponeNeighborVector();
@@ -161,32 +147,6 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			break;
 //
 //		// DeBug command
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE:
-//			if(g_bIsCounterClockwiseOriented)
-//				rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
-//			else
-//				rotateClockwiseWithAngle(g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF:
-//			rotateClockwiseWithAngle(g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_ROTATE_CORRECTION_ANGLE_SAME:
-//			rotateClockwiseWithAngle(0 - g_fRobotOrientedAngle);
-//			g_fRobotOrientedAngle = 0;
-//			break;
-//
-//		case PC_SEND_READ_CORRECTION_ANGLE:
-//			responseCorrectionAngleAndOriented();
-//			break;
-//
-//		case PC_SEND_SET_ROBOT_STATE:
-//			g_eProcessState = (ProcessState_t)(RF24_RX_buffer[1]);
-//			break;
-//
 //		case PC_SEND_ROTATE_CLOCKWISE:
 //			rotateClockwiseTest(RF24_RX_buffer);
 //			break;
@@ -219,42 +179,6 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			g_fStopCondition2 = construct4BytesToInt32(&RF24_RX_buffer[1]) / 65536.0;
 //			break;
 //
-//		case PC_SEND_MEASURE_DISTANCE:
-//
-//			turnOffLED(LED_ALL);
-//
-//			g_eProcessState = MEASURE_DISTANCE;
-//
-//			for (g_ui8NeighborsCounter = 0;
-//					g_ui8NeighborsCounter < NEIGHBOR_TABLE_LENGTH;
-//					g_ui8NeighborsCounter++)
-//			{
-//				NeighborsTable[g_ui8NeighborsCounter].ID = 0;
-//				NeighborsTable[g_ui8NeighborsCounter].distance = 0;
-//				OneHopNeighborsTable[g_ui8NeighborsCounter].firstHopID = 0;
-//			}
-//
-//			Tri_clearLocs(locs, &g_ui8LocsCounter);
-//
-//			g_ui8NeighborsCounter = 0;
-//
-//			break;
-//
-//		case PC_SEND_READ_VECTOR:
-//			sendVectorToControlBoard();
-//			break;
-//
-//		case PC_SEND_READ_NEIGHBORS_TABLE:
-//			sendNeighborsTableToControlBoard();
-//			break;
-//
-//		case PC_SEND_READ_LOCS_TABLE:
-//			sendLocationsTableToControlBoard();
-//
-//		case PC_SEND_READ_ONEHOP_TABLE:
-//			sendOneHopNeighborsTableToControlBoard();
-//			break;
-//
 //		case SMART_PHONE_COMMAND:
 //			switch (RF24_RX_buffer[1])
 //			{
@@ -277,17 +201,7 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			case SP_SEND_RESERVED:
 //				goBackward();
 //				break;
-//
-//			default:
-//				break;
 //			}
-//			break;
-//
-//		default:
-//			break;
-//		}
-//		break;
-
 	}
 }
 

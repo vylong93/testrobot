@@ -127,6 +127,7 @@ void StateFour_RotateCoordinates_UpdateRotationFlagTableHandler(uint8_t* pui8Mes
 void StateFour_RotateCoordinates_ReadLocationsTableHandler(uint8_t* pui8RequestData);
 void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
+void prepareLocationsTableBuffer(void);
 bool sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID);
 void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag);
 bool getRotationFlagOfRobot(uint32_t ui32RobotID);
