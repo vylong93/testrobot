@@ -118,17 +118,6 @@ void decodeMessage(uint8_t* pui8MessageBuffer, uint32_t ui32MessSize)
 //			}
 //			break;
 //
-//		// REDUCE_ERROR state
-//		case ROBOT_REQUEST_MY_VECTOR:
-//			tryToResponeNeighborVector();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
-//		case ROBOT_REQUEST_VECTOR_AND_FLAG:
-//			tryToResponeVectorAndFlag();
-//			delayTimerB(g_ui8RandomNumber, false);
-//			break;
-//
 //		case ROBOT_REQUEST_VECTOR:
 //			tryToResponseVector();
 //			delayTimerB(g_ui8RandomNumber, false);

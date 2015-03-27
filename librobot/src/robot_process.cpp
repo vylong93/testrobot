@@ -1569,6 +1569,13 @@ bool g_bIsGradientSearchStopFlag;
 bool g_bIsActiveCoordinatesFixing;
 uint32_t g_ui32LocalLoop;
 
+void StateSix_TestOnly(void)
+{
+	g_ui32LocalLoop = 1;
+	g_bIsActiveCoordinatesFixing = true;
+	StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition();
+}
+
 void StateSix_CorrectLocations(void)
 {
 	/* Pseudo code
@@ -1735,7 +1742,6 @@ void StateSix_CorrectLocations(void)
 	}
 	else
 	{
-		g_bIsGradientSearchStopFlag = false;
 		g_bIsActiveCoordinatesFixing = true;
 		g_ui32LocalLoop = 1;
 
@@ -1763,7 +1769,7 @@ void StateSix_CorrectLocations(void)
 
 				g_RobotIdentity.x = vectSelf.x;
 				g_RobotIdentity.y = vectSelf.y;
-				RobotLocationTable_setVectorOfRobot(g_RobotIdentity.Self_ID, vectSelf.x, vectSelf.y);
+//				RobotLocationTable_setVectorOfRobot(g_RobotIdentity.Self_ID, vectSelf.x, vectSelf.y);
 
 				g_ui32LocalLoop++;
 

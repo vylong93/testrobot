@@ -26,6 +26,7 @@ typedef enum tag_RobotState
 	ROBOT_STATE_ROTATE_COORDINATES = 4,		// State Four
 	ROBOT_STATE_AVERAGE_VECTOR = 5,			// State Five
 	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
+	ROBOT_STATE_TEST_ONLY = 7,
 	ROBOT_STATE_LOCOMOTION,
 	ROBOT_STATE_T_SHAPE,
 } e_RobotState;
@@ -160,6 +161,8 @@ void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId);
 
 
 //========= State 6 - Correct Locations Table ===================================
+void StateSix_TestOnly(void);
+
 void StateSix_CorrectLocations(void);
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void);

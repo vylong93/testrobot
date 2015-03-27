@@ -220,6 +220,11 @@ int main(void)
 				StateSix_CorrectLocations();
 				break;
 
+			case ROBOT_STATE_TEST_ONLY:
+				StateSix_TestOnly();
+				setRobotState(ROBOT_STATE_IDLE);
+				break;
+
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
 				ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000) * 750); // ~750ms

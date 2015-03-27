@@ -11,6 +11,7 @@
 #include "libstorage/inc/RobotMeas.h"
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/RobotLocation.h"
+#include "libstorage/inc/robot_data.h"
 
 extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
@@ -25,7 +26,7 @@ void GradientDescent_updateGradient(uint32_t ui32SelfId, Vector2<float> vectSelf
 	float fTemplateParameter;
 	Vector2<float> vectorDistance;
 	Vector2<float> vectVariance;
-
+	Vector2<float> vectTarget;
 	int i;
 	for (i = 0; i < g_NeighborsTable.Count; i++)
 	{
@@ -41,7 +42,10 @@ void GradientDescent_updateGradient(uint32_t ui32SelfId, Vector2<float> vectSelf
 
 		ui16Distance = g_NeighborsTable[i].Distance;
 
-		vectorDistance = vectSelf - g_RobotLocationsTable[i].vector;
+		if(!RobotLocationsTable_getVectorOfRobot(g_NeighborsTable[i].ID, &vectTarget.x, &vectTarget.y))
+			continue;
+
+		vectorDistance = vectSelf - vectTarget;
 		if (vectorDistance.x == 0 && vectorDistance.y == 0)
 		{
 			vectorDistance.x = 1;
