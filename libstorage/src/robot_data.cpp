@@ -288,6 +288,21 @@ uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index)
 	return g_RobotLocationsTable[ui32Index].ID;
 }
 
+bool RobotLocationTable_setVectorOfRobot(uint32_t ui32RobotId, float fX, float fY)
+{
+	int i;
+	for(i = 0; i < g_RobotLocationsTable.Count; i++)
+	{
+		if (g_RobotLocationsTable[i].ID == ui32RobotId)
+		{
+			g_RobotLocationsTable[i].vector.x = fX;
+			g_RobotLocationsTable[i].vector.y = fY;
+			return true;
+		}
+	}
+	return false;
+}
+
 void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis)
 {
 	float x, y;

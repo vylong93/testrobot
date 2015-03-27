@@ -10,6 +10,7 @@
 #include "libstorage/inc/RobotMeas.h"
 #include "libstorage/inc/OneHopMeas.h"
 #include "libstorage/inc/robot_data.h"
+#include "libstorage/inc/RobotLocation.h"
 
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;

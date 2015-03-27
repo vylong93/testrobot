@@ -8,24 +8,24 @@
 #ifndef ROBOT_PROCESS_H_
 #define ROBOT_PROCESS_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#include "driverlib/rom.h"
-#include "libprotocol/inc/network.h"
-
-#include "libcustom/inc/custom_uart_debug.h"
-
 typedef enum tag_RobotState
 {
 	ROBOT_STATE_IDLE = 0,
-	ROBOT_STATE_MEASURE_DISTANCE = 1,	// State One
-	ROBOT_STATE_EXCHANGE_TABLE = 2,		// State Two
-	ROBOT_STATE_VOTE_ORIGIN = 3,		// State Three
-	ROBOT_STATE_ROTATE_COORDINATES = 4,	// State Four
-	ROBOT_STATE_REDUCE_ERROR,
+	ROBOT_STATE_MEASURE_DISTANCE = 1,		// State One
+	ROBOT_STATE_EXCHANGE_TABLE = 2,			// State Two
+	ROBOT_STATE_VOTE_ORIGIN = 3,			// State Three
+	ROBOT_STATE_ROTATE_COORDINATES = 4,		// State Four
+	ROBOT_STATE_AVERAGE_VECTOR = 5,			// State Five
+	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
 	ROBOT_STATE_LOCOMOTION,
 	ROBOT_STATE_T_SHAPE,
 } e_RobotState;
@@ -39,7 +39,9 @@ typedef enum tag_RobotResponseState
 	ROBOT_RESPONSE_STATE_SAMPLING_MICS,
 	ROBOT_RESPONSE_STATE_TRANSMIT_NEIGHBORS_TABLE,
 	ROBOT_RESPONSE_STATE_ROTATE_COORDINATES,
-	ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE
+	ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE,
+	ROBOT_RESPONSE_STATE_READ_NEIGHBOR_VECTOR,
+	ROBOT_RESPONSE_STATE_READ_SELF_VECTOR_AND_FLAG
 } e_RobotResponseState;
 
 typedef struct tagRobotRotationFlag{
@@ -65,7 +67,7 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 
-//========= State 1 - Measure Distances ================================
+//========= STATES PERIOD PARAMETER ====================================
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
@@ -82,6 +84,16 @@ void handleNeighborResponseSamplingCollision(void);
 #define ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
 #define ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
 
+#define AVERAGE_VECTOR_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
+#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
+#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
+
+#define CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS		3000	// 3s
+#define CORRECT_LOCATIONS_STATE_MAINTASK2_LIFE_TIME_IN_MS		3000	// 3s
+#define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MIN		100000		// 100ms
+#define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX		1000000		// 1s
+
+//========= State 1 - Measure Distances ================================
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);
 bool StateOne_MeasureDistance_MainTask(va_list argp);
@@ -117,6 +129,7 @@ void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData);
 void broadcastVoteTheOriginCommandToLocalNeighbors(void);
 void indicatesOriginIdToLEDs(uint32_t ui32Id);
 
+
 //========= State 4 - Rotate Network Coordinates ===================================
 void StateFour_RotateCoordinates(void);
 bool StateFour_RotateCoordinates_ResetFlag(void);
@@ -131,6 +144,40 @@ void prepareLocationsTableBuffer(void);
 bool sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID);
 void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag);
 bool getRotationFlagOfRobot(uint32_t ui32RobotID);
+
+
+//========= State 5 - Average Vector ===================================
+void StateFive_AverageVector(void);
+void StateFive_AverageVector_ResetFlag(void);
+bool StateFive_AverageVector_MainTask(va_list argp);
+bool StateFive_AverageVector_SubTask_DelayRandom_Handler(va_list argp);
+void StateFive_AverageVector_ReadNeighborVectorHandler(uint8_t* pui8RequestData);
+void StateFive_AverageVector_ReceivedSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void StateFive_AverageVector_NotFoundSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
+void sendRequestNeighborVectorCommandToNeighbor(uint32_t ui32NeighborId);
+void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId);
+
+
+//========= State 6 - Correct Locations Table ===================================
+void StateSix_CorrectLocations(void);
+
+void StateSix_CorrectLocations_Task1_ResetFlag(void);
+bool StateSix_CorrectLocations_MainTask1(va_list argp);
+bool StateSix_CorrectLocations_SubTask1_Delay_Handler(va_list argp);
+
+void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void);
+void StateSix_CorrectLocations_Task2_ResetFlag(void);
+bool StateSix_CorrectLocations_MainTask2(va_list argp);
+bool StateSix_CorrectLocations_SubTask2_DelayRandom_Handler(va_list argp);
+void StateSix_CorrectLocations_ReadSelfVectorAndFlagHanlder(uint8_t* pui8RequestData);
+void StateSix_CorrectLocations_ReceivedSelfVectorAndFlagHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void StateSix_CorrectLocations_PleaseWaitHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+void StateSix_CorrectLocations_UnActiveHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
+void sendRequestSelfVectorAndFlagCommandToNeighbor(uint32_t ui32NeighborId);
+void responseSelfVectorAndFlagToRequestRobot(uint32_t ui32NeighborId);
+void indicatesLocalLoopToLEDs(void);
 
 //========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data);

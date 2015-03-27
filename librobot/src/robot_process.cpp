@@ -25,10 +25,13 @@
 #include "data_manipulation.h"
 
 #include "libstorage/inc/RobotIdentity.h"
+#include "libalgorithm/inc/Trilateration.h"
+#include "libalgorithm/inc/GradientDescentGlobal.h"
+#include "libmath/inc/Vector2.h"
 
-extern void initData(uint8_t* pui8MessageData); // Test Only
-extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
-extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
+//extern void initData(uint8_t* pui8MessageData); // Test Only
+//extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
+//extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
 
 RobotIdentity_t g_RobotIdentity;
 
@@ -57,12 +60,14 @@ void test(void) // Test Only
 	g_RobotIdentity.RotationHop_x = 0;
 	g_RobotIdentity.RotationHop_y = 0;
 
-	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 72);
+//	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 72);
+	uint8_t* pui8MessageData = new uint8_t[72];
 	initData(pui8MessageData);
 
 	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 72 / 12);
 
-	free(pui8MessageData);
+//	free(pui8MessageData);
+	delete[] pui8MessageData;
 }
 
 void initRobotProcess(void)
@@ -158,7 +163,8 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 
 	if(ui32DataSize > 0)
 	{
-		g_pui8RequestData = malloc(sizeof(*g_pui8RequestData) * ui32DataSize);
+//		g_pui8RequestData = malloc(sizeof(*g_pui8RequestData) * ui32DataSize);
+		g_pui8RequestData = new uint8_t[ui32DataSize];
 		if(g_pui8RequestData == 0)
 			return;
 
@@ -709,7 +715,8 @@ void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestDa
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 
 	uint32_t ui32TotalLength = SIZE_OF_ROBOT_ID + NeighborsTable_getSize() * SIZE_OF_ROBOT_MEAS;
-	uint8_t* pui8DataBuffer = malloc(sizeof(*pui8DataBuffer) * ui32TotalLength);
+//	uint8_t* pui8DataBuffer = malloc(sizeof(*pui8DataBuffer) * ui32TotalLength);
+	uint8_t* pui8DataBuffer = new uint8_t[ui32TotalLength];
 	if(pui8DataBuffer == 0)
 		return;
 
@@ -719,7 +726,8 @@ void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestDa
 
 	responseMessageToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_NEIGHBORS_TABLE, pui8DataBuffer, ui32TotalLength);
 
-	free(pui8DataBuffer);
+//	free(pui8DataBuffer);
+	delete[] pui8DataBuffer;
 }
 
 void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -827,8 +835,7 @@ void StateThree_VoteTheOrigin(void)
 
 	activeRobotTask(VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS, StateThree_VoteTheOrigin_MainTask);
 
-//	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
-	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+	setRobotState(ROBOT_STATE_ROTATE_COORDINATES);
 }
 
 void StateThree_VoteTheOrigin_ResetFlag(void)
@@ -957,11 +964,12 @@ void indicatesOriginIdToLEDs(uint32_t ui32Id)
 
 
 //========= State 4 - Rotate Network Coordinates ===================================
-RobotRotationFlag_t g_pCoordinatesRotationFlagTable[NEIGHBORS_TABLE_LENGTH];
+RobotRotationFlag_t* g_pCoordinatesRotationFlagTable;
+//RobotRotationFlag_t g_pCoordinatesRotationFlagTable[NEIGHBORS_TABLE_LENGTH];
 int32_t g_i32FlagTableLength;
-int32_t g_i32TargetPointer;
+int32_t g_i32TargetFlagPointer;
 bool g_bIsCoordinatesRotated;
-uint8_t* g_pui8LocationsTableBuffer = 0;
+uint8_t* g_pui8LocationsTableBuffer;
 uint32_t g_ui32LocationsTableBufferLength;
 
 void StateFour_RotateCoordinates(void)
@@ -1056,15 +1064,17 @@ void StateFour_RotateCoordinates(void)
 
 	activeRobotTask(ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFour_RotateCoordinates_MainTask);
 
-//	if(g_pCoordinatesRotationFlagTable != 0)
+	if(g_pCoordinatesRotationFlagTable != 0)
 //		free(g_pCoordinatesRotationFlagTable);
+		delete[] g_pCoordinatesRotationFlagTable;
 
 	if(g_pui8LocationsTableBuffer != 0)
-		free(g_pui8LocationsTableBuffer);
+//		free(g_pui8LocationsTableBuffer);
+		delete[] g_pui8LocationsTableBuffer;
 
 	if(g_bIsCoordinatesRotated)
 	{
-		setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+		setRobotState(ROBOT_STATE_AVERAGE_VECTOR);
 	}
 	else
 	{
@@ -1076,15 +1086,18 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 {
 	DEBUG_PRINT("Entering StateFour_RotateCoordinates_ResetFlag........\n");
 
-	g_i32TargetPointer = 0;
+	g_pui8LocationsTableBuffer = 0;
+
+	g_i32TargetFlagPointer = 0;
 
 	g_i32FlagTableLength = NeighborsTable_getSize();
 //	g_pCoordinatesRotationFlagTable = malloc(sizeof(*g_pCoordinatesRotationFlagTable) * g_i32FlagTableLength);
-//	if (g_pCoordinatesRotationFlagTable == 0)
-//	{
-//		DEBUG_PRINT("........Returning FALSE from StateFour_RotateCoordinates_ResetFlag\n");
-//		return false;
-//	}
+	g_pCoordinatesRotationFlagTable = new RobotRotationFlag_t[g_i32FlagTableLength];
+	if (g_pCoordinatesRotationFlagTable == 0)
+	{
+		DEBUG_PRINT("........Returning FALSE from StateFour_RotateCoordinates_ResetFlag\n");
+		return false;
+	}
 
 	int i;
 	for(i = 0; i < g_i32FlagTableLength; i++)
@@ -1129,16 +1142,16 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	uint32_t ui32TargetId;
 	do
 	{
-		ui32TargetId = g_pCoordinatesRotationFlagTable[g_i32TargetPointer].ID;
-		g_i32TargetPointer++;
-		if(g_i32TargetPointer >= g_i32FlagTableLength)
+		ui32TargetId = g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].ID;
+		g_i32TargetFlagPointer++;
+		if(g_i32TargetFlagPointer >= g_i32FlagTableLength)
 		{
-			g_i32TargetPointer = 0;
+			g_i32TargetFlagPointer = 0;
 			break;
 		}
 	} while(getRotationFlagOfRobot(ui32TargetId));
 
-	DEBUG_PRINTS3("Select target neighbor: pointer = %d, ID = 0x%06x, flag = %d\n", g_i32TargetPointer, ui32TargetId, g_pCoordinatesRotationFlagTable[g_i32TargetPointer].isRotated);
+	DEBUG_PRINTS3("Select target neighbor: pointer = %d, ID = 0x%06x, flag = %d\n", g_i32TargetFlagPointer, ui32TargetId, g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].isRotated);
 
 	bool isRfFlagAssert;
 	uint32_t ui32LifeTimeInUsOfSubTask;
@@ -1274,7 +1287,8 @@ void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8Mess
 void prepareLocationsTableBuffer(void)
 {
 	g_ui32LocationsTableBufferLength = RobotLocationsTable_getSize() * SIZE_OF_ROBOT_LOCATION + 12;
-	g_pui8LocationsTableBuffer = malloc(sizeof(*g_pui8LocationsTableBuffer) * g_ui32LocationsTableBufferLength);
+//	g_pui8LocationsTableBuffer = malloc(sizeof(*g_pui8LocationsTableBuffer) * g_ui32LocationsTableBufferLength);
+	g_pui8LocationsTableBuffer = new uint8_t[g_ui32LocationsTableBufferLength];
 	if(g_pui8LocationsTableBuffer == 0)
 		return;
 
@@ -1332,7 +1346,672 @@ bool getRotationFlagOfRobot(uint32_t ui32RobotID)
 }
 
 
+//========= State 5 - Correct Coordinates ===================================
+uint8_t g_ui8NeighborsTablePointer;
+uint8_t g_ui8NeighborsResponseVectorCounter;
+bool g_bIsCalculatedAverageVector;
+float g_fSumXAxisOfSelf;
+float g_fSumYAxisOfSelf;
+
+void StateFive_AverageVector(void)
+{
+	/* Pseudo-Code
+	   reset counter = 0
+	   DO
+   	   {
+	   	   call Robot timer delay [STATE_FIVE_LIFE_TIME_IN_MS] with TASK()
+	   	   	   TASK()
+			   --{
+			   	   DO
+			   	   {
+					   generate random values
+					   clear isFlagAssert flag
+					   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+						   handlerInDelayRandom()
+						   -- {
+									call RF handler()
+									-- {
+										-> call handleTransmitNeighborVectorRequest:
+										-- delay random(1->100) * 50us
+										-- response neighbor's vector to request robot
+									-- }
+									return true; // alway return true to reset task timer
+							-- }
+
+						if (isFlagAssert == true)
+							reset Robot timer delay();
+
+					} WHILE (isFlagAssert == true);
+
+		   	   	   	// Now, robot timer delay random is expired
+		   	   	   	IF I had ask all my neighbor THEN
+						calculate the average
+		   	   	   		// NOTE: shouldn't break the TASK, wait for task expired to keep synchronous state
+		   	   	   	ELSE
+		   	   	   		reset Robot timer delay();
+		   	   	   		IF send Request to targetNeighbor is success THEN
+		   	   	   			set targetNeighbor to next neighbor
+						END
+						// NOTE: shouldn't calculate the Locs Table in here due to asynchronous
+					END
+			   --}
+
+		} WHILE not ask all neighbors yet
+
+	 */
+
+	turnOffLED(LED_ALL);
+
+	StateFive_AverageVector_ResetFlag();
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	do
+	{
+		activeRobotTask(AVERAGE_VECTOR_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFive_AverageVector_MainTask);
+	}
+	while(g_ui8NeighborsTablePointer < NeighborsTable_getSize());
+
+	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+//	setRobotState(ROBOT_STATE_CORRECT_LOCATIONS);
+}
+
+void StateFive_AverageVector_ResetFlag(void)
+{
+	g_ui8NeighborsTablePointer = 0;
+	g_ui8NeighborsResponseVectorCounter = 0;
+	g_bIsCalculatedAverageVector = false;
+	g_fSumXAxisOfSelf = g_RobotIdentity.x;
+	g_fSumYAxisOfSelf = g_RobotIdentity.y;
+}
+
+bool StateFive_AverageVector_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+
+	do
+	{
+		// 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateFive_AverageVector_SubTask_DelayRandom_Handler);
+
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
+	}
+	while(isRfFlagAssert);
+
+	// Now, robot timer delay random is expired
+	if(!g_bIsCalculatedAverageVector)
+	{
+		if(g_ui8NeighborsTablePointer >= NeighborsTable_getSize())
+		{
+			g_ui8NeighborsResponseVectorCounter = NeighborsTable_getSize() + 1;
+
+			g_RobotIdentity.x = g_fSumXAxisOfSelf / g_ui8NeighborsResponseVectorCounter;
+			g_RobotIdentity.y = g_fSumYAxisOfSelf / g_ui8NeighborsResponseVectorCounter;
+
+			g_bIsCalculatedAverageVector = true;
+
+			turnOnLED(LED_BLUE);
+
+			// NOTE: shouldn't break the TASK, wait for task expired to keep synchronous state
+		}
+		else
+		{
+			resetRobotTaskTimer();
+
+			sendRequestNeighborVectorCommandToNeighbor(NeighborsTable_getIdAtIndex(g_ui8NeighborsTablePointer));
+
+			// NOTE: shouldn't calculate the Locs Table in here due to asynchronous
+		}
+	}
+
+	return false; // continue the main TASK
+}
+
+bool StateFive_AverageVector_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: ROBOT_REQUEST_NEIGHBOR_VECTOR, ROBOT_RESPONSE_NEIGHBOR_VECTOR and ROBOT_RESPONSE_NOT_FOUND_NEIGHBOR_VECTOR
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void StateFive_AverageVector_ReadNeighborVectorHandler(uint8_t* pui8RequestData)
+{
+	uint32_t ui32NeighborId = construct4Byte(pui8RequestData);
+
+	int indexOfNeighbor = RobotLocationsTable_getIndexOfRobot(ui32NeighborId);
+
+	if (indexOfNeighbor < 0)
+	{
+		reponseCommandToNeighbor(ui32NeighborId, ROBOT_RESPONSE_NOT_FOUND_NEIGHBOR_VECTOR);
+	}
+	else
+	{
+		responseNeighborVectorToRequestRobot(ui32NeighborId);
+	}
+}
+
+void StateFive_AverageVector_ReceivedSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	int32_t i32Template;
+
+	i32Template = construct4Byte(pui8MessageData);
+	g_fSumXAxisOfSelf += (i32Template / 65536.0f);
+
+	i32Template = construct4Byte(&pui8MessageData[4]);
+	g_fSumYAxisOfSelf += (i32Template / 65536.0f);
+
+	g_ui8NeighborsResponseVectorCounter++;
+	g_ui8NeighborsTablePointer++;
+}
+
+void StateFive_AverageVector_NotFoundSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	g_ui8NeighborsTablePointer++;
+}
+
+void sendRequestNeighborVectorCommandToNeighbor(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[4];	// <4-byte SelfId>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	DEBUG_PRINTS("send ROBOT_REQUEST_NEIGHBOR_VECTOR to 0x%06x\n", ui32NeighborId);
+
+	sendMessageToNeighbor(ui32NeighborId, ROBOT_REQUEST_NEIGHBOR_VECTOR, pui8MessageData, 4);
+}
+
+void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[8];	// <4-byte vectNeighbor.x><4-byte vectNeighbor.y>
+
+	float fXAxisOfNeighbor;
+	float fYAxisOfNeighbor;
+
+	if (RobotLocationsTable_getVectorOfRobot(ui32NeighborId, &fXAxisOfNeighbor, &fYAxisOfNeighbor))
+	{
+		int32_t i32Template;
+
+		i32Template = (int32_t)(fXAxisOfNeighbor * 65536 + 0.5);
+		parse32bitTo4Bytes(pui8MessageData, i32Template);
+
+		i32Template = (int32_t)(fYAxisOfNeighbor * 65536 + 0.5);
+		parse32bitTo4Bytes(&pui8MessageData[4], i32Template);
+
+		responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_NEIGHBOR_VECTOR, pui8MessageData, 8);
+	}
+}
+
+
+//========= State 6 - Synchronous Locations Table ===================================
+uint8_t g_ui8TargetNeighborPointer;
+bool g_bIsGradientSearchStopFlag;
+bool g_bIsActiveCoordinatesFixing;
+uint32_t g_ui32LocalLoop;
+
+void StateSix_CorrectLocations(void)
+{
+	/* Pseudo code
+
+	   IF I'm origin THEN
+	   	   g_bIsActiveCoordinatesFixing = false
+	   	   g_bIsGradientSearchStop = true;
+	   	   force self vector to (0, 0)
+		   g_ui32localLoop = 0
+
+		   DO
+		   {
+			   call Robot Timer Task ()
+			   Task () --{
+				   DO
+				   {
+					   generate random values
+					   clear isFlagAssert flag
+					   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+						   handlerInDelayRandom()
+						   -- {
+									call RF handler()
+									-- {
+
+									-- }
+									return true; // alway return true to reset task timer
+							-- }
+
+						if (isFlagAssert == true)
+						{
+							reset Robot timer delay
+						}
+					} WHILE (isFlagAssert == true);
+
+					// Do nothing
+					return false; // continue this task
+			   -- }
+		   } WHILE not ask all neighbors yet
+
+	   ELSE
+	   	   g_bIsActiveCoordinatesFixing = true
+	   	   g_bIsGradientSearchStop = false;
+
+	   	   g_ui32LocalLoop = 1
+
+		   updateLocsByOtherRobotCurrentPosition()
+		   {
+			   clear locations table
+			   add to locations table origin vector(0, 0)
+			   add to locations table self vector(x, y)
+			   g_ui8TargetNeighborPointer = 0
+			   DO
+			   {
+				   call Robot Timer Task ()
+				   Task () --{
+					   DO
+					   {
+						   generate random values
+						   clear isFlagAssert flag
+						   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+							   handlerInDelayRandom()
+							   -- {
+										call RF handler() --{
+											CASE request self vector and flag:
+												IF g_bIsActiveCoordinatesFixing == false THEN
+													response unactive
+												ELSEIF g_ui32LocalLoop < neighborsLocalLoop THEN
+													response please wait
+												ELSE
+													response self vector and flag
+												END
+
+											CASE response self vector and flag:
+												add neighbor vector to Locations table
+												g_bIsGradientSearchStopFlag &&= neighbor gradient search stop flag
+												increase target neighbor pointer
+
+											CASE response please wait
+												reset task timer
+
+											CASE response Unactive:
+												increase target neighbor pointer
+										--}
+										return true; // alway return true to reset task timer
+								-- }
+
+							if (isFlagAssert == true)
+								reset Robot timer delay();
+
+						} WHILE (isFlagAssert == true);
+
+						// delay random expired
+						IF target id is OriginID THEN
+							skip to next neighbor
+						ELSE IF g_ui8TargetNeighborPointer == neighbors table count
+							return true; // Terminal this task
+						ELSE
+							reset task timer
+							send request self vector and flag with local loop
+						END
+
+						return false; // continue the main task
+				   --}
+				} WHILE not ask all neighbors yet
+			}
+
+			vectEstimatePosNew = current self vector
+			vectGradienNew = (0, 0)
+
+			g_bIsGradientSearchStopFlag = false;
+			g_ui32LocalLoop++;
+
+			WHILE g_bIsGradientSearchStopFlag == false
+				// Algorithm 1
+				WHILE g_bIsGradientSearchStopFlag == false
+
+					updateGradient(&vectGradienNew, false);
+
+					updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, g_fStepSize);
+
+					synchronousLocsTableAndMyVector
+
+					g_ui32LocalLoop++;
+
+					g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition2);
+
+					updateLocsByOtherRobotCurrentPosition()
+
+					indicate local loop to LEDs
+				ENDWHILE
+
+				//Escape Local Minima
+				updateGradient(&vectGradienNew, true);
+
+				fRandomeStepSize from 2.0f to 4.0f
+
+				updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
+
+				synchronousLocsTableAndMyVector
+
+				g_ui32LocalLoop++;
+
+				g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition2);
+
+				updateLocsByOtherRobotCurrentPosition()
+			ENDWHILE
+
+			g_bIsActiveCoordinatesFixing = false;
+	   END
+	*/
+
+	turnOffLED(LED_ALL);
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	if (g_RobotIdentity.Self_ID == g_RobotIdentity.Origin_ID)
+	{
+		StateSix_CorrectLocations_Task1_ResetFlag();
+
+		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
+	}
+	else
+	{
+		g_bIsGradientSearchStopFlag = false;
+		g_bIsActiveCoordinatesFixing = true;
+		g_ui32LocalLoop = 1;
+
+		indicatesLocalLoopToLEDs();
+
+		StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition();
+
+		Vector2<float> vectSelf(g_RobotIdentity.x, g_RobotIdentity.y);
+		Vector2<float> vectEstimatePosNew = vectSelf;
+		Vector2<float> vectEstimatePosOld;
+		Vector2<float> vectGradienNew(0, 0);
+		Vector2<float> vectGradienOld;
+
+		g_bIsGradientSearchStopFlag = false;
+		g_ui32LocalLoop++;
+
+		while(!g_bIsGradientSearchStopFlag)
+		{
+			// Algorithm 1
+			while(!g_bIsGradientSearchStopFlag)
+			{
+				GradientDescent_updateGradient(g_RobotIdentity.Self_ID, vectSelf, &vectGradienNew, false);
+
+				GradientDescent_updatePosition(&vectSelf, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, GRADIENT_GLOBAL_STEP_SIZE);
+
+				g_RobotIdentity.x = vectSelf.x;
+				g_RobotIdentity.y = vectSelf.y;
+				RobotLocationTable_setVectorOfRobot(g_RobotIdentity.Self_ID, vectSelf.x, vectSelf.y);
+
+				g_ui32LocalLoop++;
+
+				g_bIsGradientSearchStopFlag = GradientDescent_checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, GRADIENT_GLOBAL_STOP_CONDITION);
+
+				StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition();
+
+				indicatesLocalLoopToLEDs();
+			}
+//			//TODO: Escape Local Minima
+//			updateGradient(&vectGradienNew, true);
+//
+//			fRandomeStepSize from 2.0f to 4.0f
+//
+//			updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, fRandomeStepSize);
+//
+//			g_RobotIdentity.x = vectSelf.x;
+//			g_RobotIdentity.y = vectSelf.y;
+//			RobotLocationTable_setVectorOfRobot(g_RobotIdentity.Self_ID, vectSelf.x, vectSelf.y);
+//
+//			g_ui32LocalLoop++;
+//
+//			g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition2);
+//
+//			updateLocsByOtherRobotCurrentPosition()
+		}
+		g_bIsActiveCoordinatesFixing = false;
+	}
+
+//	StateSix_CorrectLocations_ResetFlag();
+//
+//	//
+//	// Synchornous delay for previous state
+//	//
+//	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+//
+//	do
+//	{
+//		activeRobotTask(SYNCHRONOUS_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSix_SynchronousLocations_MainTask);
+//	}
+//	while(g_ui8TargetNeighborPointer < NeighborsTable_getSize());
+
+
+	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+}
+
+void StateSix_CorrectLocations_Task1_ResetFlag(void)
+{
+	g_bIsActiveCoordinatesFixing = false;
+	g_RobotIdentity.x = 0;
+	g_RobotIdentity.y = 0;
+}
+
+bool StateSix_CorrectLocations_MainTask1(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	bool isRfFlagAssert = RfTryToCaptureRfSignal(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_SubTask1_Delay_Handler);
+	if (isRfFlagAssert)
+		resetRobotTaskTimer();
+
+	return false; // Continue the main task
+}
+
+bool StateSix_CorrectLocations_SubTask1_Delay_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// No valid commands in this state
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void)
+{
+	StateSix_CorrectLocations_Task2_ResetFlag();
+
+	do
+	{
+		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK2_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask2);
+	}
+	while(g_ui8TargetNeighborPointer < NeighborsTable_getSize());
+}
+
+void StateSix_CorrectLocations_Task2_ResetFlag(void)
+{
+	RobotLocationsTable_clear();
+	RobotLocationsTable_add(g_RobotIdentity.Origin_ID, 0, 0);
+	RobotLocationsTable_add(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+	g_ui8TargetNeighborPointer = 0;
+}
+
+bool StateSix_CorrectLocations_MainTask2(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+
+	do
+	{
+		// 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSix_CorrectLocations_SubTask2_DelayRandom_Handler);
+
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
+	}
+	while(isRfFlagAssert);
+
+	// Now, robot timer delay random is expired
+	uint32_t ui32TargetId = NeighborsTable_getIdAtIndex(g_ui8TargetNeighborPointer);
+
+	if (ui32TargetId == g_RobotIdentity.Origin_ID)
+	{
+		g_ui8TargetNeighborPointer++;
+	}
+	else if (g_ui8TargetNeighborPointer >= NeighborsTable_getSize())
+	{
+		return true; // Terminal this task
+	}
+	else
+	{
+		resetRobotTaskTimer();
+		sendRequestSelfVectorAndFlagCommandToNeighbor(ui32TargetId);
+	}
+
+	return false; // Continue the main task
+}
+
+bool StateSix_CorrectLocations_SubTask2_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: ROBOT_REQUEST_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_PLEASE_WAIT and ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void StateSix_CorrectLocations_ReadSelfVectorAndFlagHanlder(uint8_t* pui8RequestData)
+{
+	uint32_t ui32NeighborId = construct4Byte(pui8RequestData);
+	uint32_t ui32NeighborLocalLoop = construct4Byte(&pui8RequestData[4]);
+
+	if (!g_bIsActiveCoordinatesFixing)
+	{
+		reponseCommandToNeighbor(ui32NeighborId, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE);
+	}
+	else if (g_ui32LocalLoop < ui32NeighborLocalLoop)
+	{
+		reponseCommandToNeighbor(ui32NeighborId, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_PLEASE_WAIT);
+	}
+	else
+	{
+		responseSelfVectorAndFlagToRequestRobot(ui32NeighborId);
+	}
+}
+
+void StateSix_CorrectLocations_ReceivedSelfVectorAndFlagHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	uint32_t ui32NeighborId = construct4Byte(pui8MessageData);
+
+	int32_t i32Template;
+	i32Template = construct4Byte(&pui8MessageData[4]);
+	float fXAxisOfNeighbor = i32Template / 65536.0f;
+
+	i32Template = construct4Byte(&pui8MessageData[8]);
+	float fYAxisOfNeighbor = i32Template / 65536.0f;
+
+	bool bNeighborGradientSearchStopFlag = (pui8MessageData[12] == 0x01) ? (true) : (false);
+
+	RobotLocationsTable_add(ui32NeighborId, fXAxisOfNeighbor, fYAxisOfNeighbor);
+
+	g_bIsGradientSearchStopFlag = g_bIsGradientSearchStopFlag && bNeighborGradientSearchStopFlag;
+
+	g_ui8TargetNeighborPointer++;
+}
+
+void StateSix_CorrectLocations_PleaseWaitHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	resetRobotTaskTimer();
+}
+
+void StateSix_CorrectLocations_UnActiveHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	g_ui8TargetNeighborPointer++;
+}
+
+void sendRequestSelfVectorAndFlagCommandToNeighbor(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[8];	// <4-byte SelfId><4-byte local loop>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+	parse32bitTo4Bytes(&pui8MessageData[4], g_ui32LocalLoop);
+
+	DEBUG_PRINTS("send ROBOT_REQUEST_SELF_VECTOR to 0x%06x\n", ui32NeighborId);
+
+	sendMessageToNeighbor(ui32NeighborId, ROBOT_REQUEST_SELF_VECTOR_AND_FLAG, pui8MessageData, 8);
+}
+
+void responseSelfVectorAndFlagToRequestRobot(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[13];	// <4-byte sefId><4-byte vectSelf.x><4-byte vectSelf.y><1-byte Flag>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	int32_t i32Template;
+
+	i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[4], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[8], i32Template);
+
+	pui8MessageData[12] = (g_bIsGradientSearchStopFlag == true) ? (0x01) : (0x00);
+
+	responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG, pui8MessageData, 13);
+}
+
+void indicatesLocalLoopToLEDs(void)
+{
+	if (g_ui32LocalLoop & 0x01)
+		turnOnLED(LED_GREEN);
+	else
+		turnOffLED(LED_GREEN);
+}
+
 //========= Calibration Tab ============================================
+
 void testRfReceiver(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Test: Rf Receiver\n");
@@ -1420,7 +2099,8 @@ void testRfTransmister(uint8_t* pui8Data)
 
 	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
 
-	uint16_t* pui16TestData = malloc(sizeof(*pui16TestData) * (ui32TestDataSize >> 1));
+	//uint16_t* pui16TestData = malloc(sizeof(*pui16TestData) * (ui32TestDataSize >> 1));
+	uint16_t* pui16TestData = new uint16_t[ui32TestDataSize >> 1];
 	if(pui16TestData == 0)
 		return;
 
@@ -1442,7 +2122,8 @@ void testRfTransmister(uint8_t* pui8Data)
 		DEBUG_PRINT("Test RF Transmission TX: Connection failed...\n");
 	}
 
-	free(pui16TestData);
+	//free(pui16TestData);
+	delete[] pui16TestData;
 }
 
 void sendBatteryVoltageToHost(void)
@@ -1501,7 +2182,8 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read %d word(s) in EEPROM\n", ui32DataCount);
 
 	uint8_t ui8ResponseSize = ui32DataCount * 6 + 1;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui8ResponseSize);
+//	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui8ResponseSize);
+	uint8_t* pui8ResponseBuffer = new uint8_t[ui8ResponseSize];
 	if(pui8ResponseBuffer == 0)
 		return;
 
@@ -1534,7 +2216,8 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 		DEBUG_PRINT("Send eeprom data to host: Failed...\n");
 	}
 
-	free(pui8ResponseBuffer);
+//	free(pui8ResponseBuffer);
+	delete[] pui8ResponseBuffer;
 }
 
 void synchronousEepromData(uint8_t* pui8Data)
@@ -1575,7 +2258,8 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0]);
 
 	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
-	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui32ResponseSize);
+//	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui32ResponseSize);
+	uint8_t* pui8ResponseBuffer = new uint8_t[ui32ResponseSize];
 	if(pui8ResponseBuffer == 0)
 		return;
 
@@ -1600,7 +2284,8 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 		DEBUG_PRINT("Send eeprom bulk data to host: Failed...\n");
 	}
 
-	free(pui8ResponseBuffer);
+//	free(pui8ResponseBuffer);
+	delete[] pui8ResponseBuffer;
 }
 
 void calibrationTx_TDOA(uint8_t* pui8Data)
@@ -1618,7 +2303,8 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 
 	uint32_t ui32DataPointer = 0;
 	uint32_t ui32ResponseLength = ui8TestTimes * 4; // Each peak is 2-byte in 8.8 fixed-point format
-	uint8_t* pui8ResponseToHostBuffer = malloc(sizeof(*pui8ResponseToHostBuffer) * ui32ResponseLength);
+//	uint8_t* pui8ResponseToHostBuffer = malloc(sizeof(*pui8ResponseToHostBuffer) * ui32ResponseLength);
+	uint8_t* pui8ResponseToHostBuffer = new uint8_t[ui32ResponseLength];
 	if(pui8ResponseToHostBuffer == 0)
 		return;
 
@@ -1651,7 +2337,8 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 	if(ui32DataPointer == ui32ResponseLength)
 		sendDataToHost(pui8ResponseToHostBuffer, ui32ResponseLength);
 
-	free(pui8ResponseToHostBuffer);
+//	free(pui8ResponseToHostBuffer);
+	delete[] pui8ResponseToHostBuffer;
 }
 
 bool tryToCalibrateLocalNeighborsForDistanceMeasurement(void)

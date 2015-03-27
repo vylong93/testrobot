@@ -93,6 +93,7 @@ bool isNewBattVoltAvailable(void);
 uint16_t getBatteryVoltage(void);
 void triggerSamplingBatteryVoltage(bool bIsSendToHost);
 
+uint8_t generateRandomByte(void);
 float generateRandomFloatInRange(float min, float max);
 void triggerGenerateRandomByte(void);
 

@@ -259,6 +259,15 @@ void triggerSamplingBatteryVoltage(bool bIsSendToHost)
 	ROM_ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
 
+uint8_t generateRandomByte(void)
+{
+	triggerGenerateRandomByte();
+	while (!g_bIsGenerateRandomByteDone)
+		;
+
+	return g_ui8RandomNumber;
+}
+
 float generateRandomFloatInRange(float min, float max)
 {
 	if (max <= min)
