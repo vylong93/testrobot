@@ -155,20 +155,25 @@ void TDOA_find3LocalPeaks(float *myData, float* LocalPeaksStoragePointer)
 {
 	uint32_t SamplePosition = 0;
 	uint32_t maxSamplePosition = 0;
+	float fMaxValue = myData[0];
 	int i;
-	for (i = 0; i < NUM_DATAS; i++)
+	for (i = 1; i < NUM_DATAS; i++)
 	{
-		if (*(myData + i) > *(myData + maxSamplePosition))
+		if (myData[i] > fMaxValue)
 		{
+			fMaxValue = myData[i];
 			maxSamplePosition = i;
 		}
 	}
+
 	LocalPeaksStoragePointer[1] = maxSamplePosition;
+
 	SamplePosition = TDOA_reachBottom(myData, LocalPeaksStoragePointer[1], -1);
 	if (SamplePosition != 0)
 	{
 		LocalPeaksStoragePointer[0] = TDOA_reachPeak(myData, SamplePosition, -1);
 	}
+
 	SamplePosition = TDOA_reachBottom(myData, LocalPeaksStoragePointer[1], 1);
 	if (SamplePosition != 0)
 	{
