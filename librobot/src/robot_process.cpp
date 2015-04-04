@@ -1090,8 +1090,9 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 
 	g_i32TargetFlagPointer = 0;
 
-	g_i32FlagTableLength = NeighborsTable_getSize();
-//	g_pCoordinatesRotationFlagTable = malloc(sizeof(*g_pCoordinatesRotationFlagTable) * g_i32FlagTableLength);
+//	g_i32FlagTableLength = NeighborsTable_getSize();
+//	g_pCoordinatesRotationFlagTable = new RobotRotationFlag_t[g_i32FlagTableLength];
+	g_i32FlagTableLength = RobotLocationsTable_getSize() - 1;
 	g_pCoordinatesRotationFlagTable = new RobotRotationFlag_t[g_i32FlagTableLength];
 	if (g_pCoordinatesRotationFlagTable == 0)
 	{
@@ -1099,10 +1100,16 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 		return false;
 	}
 
+	uint32_t ui32TargetId;
 	int i;
 	for(i = 0; i < g_i32FlagTableLength; i++)
 	{
-		g_pCoordinatesRotationFlagTable[i].ID = NeighborsTable_getIdAtIndex(i);
+//		g_pCoordinatesRotationFlagTable[i].ID = NeighborsTable_getIdAtIndex(i);
+		ui32TargetId = RobotLocationsTable_getIdAtIndex(i);
+		if(ui32TargetId == g_RobotIdentity.Self_ID)
+			continue;
+
+		g_pCoordinatesRotationFlagTable[i].ID = ui32TargetId;
 		g_pCoordinatesRotationFlagTable[i].isRotated = false;
 		DEBUG_PRINTS2("add item to Rotation Flag Table: 0x%06x : %d\n", g_pCoordinatesRotationFlagTable[i].ID, g_pCoordinatesRotationFlagTable[i].isRotated);
 	}
