@@ -1065,21 +1065,15 @@ void StateFour_RotateCoordinates(void)
 	activeRobotTask(ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFour_RotateCoordinates_MainTask);
 
 	if(g_pCoordinatesRotationFlagTable != 0)
-//		free(g_pCoordinatesRotationFlagTable);
 		delete[] g_pCoordinatesRotationFlagTable;
 
 	if(g_pui8LocationsTableBuffer != 0)
-//		free(g_pui8LocationsTableBuffer);
 		delete[] g_pui8LocationsTableBuffer;
 
 	if(g_bIsCoordinatesRotated)
-	{
 		setRobotState(ROBOT_STATE_AVERAGE_VECTOR);
-	}
 	else
-	{
 		setRobotState(ROBOT_STATE_VOTE_ORIGIN);
-	}
 }
 
 bool StateFour_RotateCoordinates_ResetFlag(void)
@@ -1090,8 +1084,6 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 
 	g_i32TargetFlagPointer = 0;
 
-//	g_i32FlagTableLength = NeighborsTable_getSize();
-//	g_pCoordinatesRotationFlagTable = new RobotRotationFlag_t[g_i32FlagTableLength];
 	g_i32FlagTableLength = RobotLocationsTable_getSize() - 1;
 	g_pCoordinatesRotationFlagTable = new RobotRotationFlag_t[g_i32FlagTableLength];
 	if (g_pCoordinatesRotationFlagTable == 0)
@@ -1101,13 +1093,16 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 	}
 
 	uint32_t ui32TargetId;
+	int pointer = 0;
 	int i;
 	for(i = 0; i < g_i32FlagTableLength; i++)
 	{
-//		g_pCoordinatesRotationFlagTable[i].ID = NeighborsTable_getIdAtIndex(i);
-		ui32TargetId = RobotLocationsTable_getIdAtIndex(i);
+		ui32TargetId = RobotLocationsTable_getIdAtIndex(pointer++);
 		if(ui32TargetId == g_RobotIdentity.Self_ID)
+		{
+			i--;
 			continue;
+		}
 
 		g_pCoordinatesRotationFlagTable[i].ID = ui32TargetId;
 		g_pCoordinatesRotationFlagTable[i].isRotated = false;
@@ -1150,13 +1145,20 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	do
 	{
 		ui32TargetId = g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].ID;
+
 		g_i32TargetFlagPointer++;
 		if(g_i32TargetFlagPointer >= g_i32FlagTableLength)
 		{
 			g_i32TargetFlagPointer = 0;
 			break;
 		}
-	} while(getRotationFlagOfRobot(ui32TargetId));
+
+		if(g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].isRotated)
+			continue;
+		else
+			break;
+
+	} while(true);
 
 	DEBUG_PRINTS3("Select target neighbor: pointer = %d, ID = 0x%06x, flag = %d\n", g_i32TargetFlagPointer, ui32TargetId, g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].isRotated);
 
