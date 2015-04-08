@@ -143,7 +143,6 @@ bool MCU_RF_IsRfTimerExpired(void)
 		return false;
 }
 
-
 inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
 {
 	*pbCurrentInterruptStateStorage = g_bIsIntEnable;
@@ -157,7 +156,6 @@ inline void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptStat
 	if (bPreviousInterruptState)
 		MCU_RF_EnableInterrupt();
 }
-
 
 void MCU_RF_EnableInterrupt(void)
 {

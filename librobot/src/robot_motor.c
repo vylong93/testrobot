@@ -5,8 +5,13 @@
  *      Author: VyLong
  */
 
-#include "librobot\inc\robot_motor.h"
+#include "librobot/inc/robot_motor.h"
 #include "pwm_definition.h"
+
+#include "libmath/inc/custom_math.h"
+#include "libcustom/inc/custom_delay.h"
+#include "libnrf24l01/inc/TM4C123_nRF24L01.h"
+#include <math.h>
 
 static bool bIsMotorDriverEnable = false;
 static bool bIsMotorLeftEnable = false;
@@ -16,7 +21,7 @@ static uint32_t ui32PWMPeriod;
 
 uint8_t g_ui8LeftMotorOffset = 100;
 uint8_t g_ui8RightMotorOffset = 100;
-uint16_t g_ui16PeriodMotorOffset = 1000;
+float g_fPeriodMotorOffset = 1000.0f;
 
 void setLeftMotorOffset(uint8_t ui8Parameter)
 {
@@ -30,7 +35,7 @@ void setRightMotorOffset(uint8_t ui8Parameter)
 
 void setPeriodMotorOffset(uint16_t ui16Parameter)
 {
-	g_ui16PeriodMotorOffset = ui16Parameter;
+	g_fPeriodMotorOffset = ui16Parameter * 1.0f;
 }
 
 void Robot_move(bool bIsForward)
@@ -73,6 +78,53 @@ void Robot_rotate(bool bIsClockwise)
 	}
 
 	configureMotors(mLeft, mRight);
+}
+
+void rotateClockwiseWithAngle(float fAngleInRadian)
+{
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+
+	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+
+	if (fAngleInRadian > 0)
+	{
+		Robot_rotate(true);
+	}
+	else
+	{
+		Robot_rotate(false);
+		fAngleInRadian = 0 - fAngleInRadian;
+	}
+
+	delay_ms((uint32_t)((g_fPeriodMotorOffset * fAngleInRadian / MATH_PI_DIV_2) + 0.5));
+
+	stopMotors();
+
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
+}
+
+void runForwardWithDistance(float fDistanceInCm)
+{
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+
+	if (fDistanceInCm > 0)
+	{
+		Robot_move(true);
+	}
+	else
+	{
+		Robot_move(false);
+
+		fDistanceInCm = 0 - fDistanceInCm;
+	}
+
+	delay_ms((uint32_t)((g_fPeriodMotorOffset * fDistanceInCm / 8.0) + 0.5));
+
+	stopMotors();
+
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
 void initMotors(void)
@@ -294,5 +346,3 @@ void MotorRight_stop()
 		bIsMotorRightEnable = false;
 	}
 }
-
-

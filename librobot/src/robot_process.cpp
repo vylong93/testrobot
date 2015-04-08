@@ -2544,7 +2544,6 @@ void selfCorrectLocationsTable(void)
 
 void selfCorrectLocationsTableExceptRotationHopID(void)
 {
-//	RobotLocationsTable_transformToWorldFrame(&g_RobotIdentity);
 	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
 }
 
@@ -2598,4 +2597,20 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data)
 	delay_ms(ui16DelayMs);
 
 	stopMotors();
+}
+
+void robotMoveCommandWithDistance(uint8_t* pui8Data)
+{
+	int32_t i32DistanceInCm = construct4Byte(pui8Data);
+	float fDistanceInCm = i32DistanceInCm / 65536.0f;
+
+	runForwardWithDistance(fDistanceInCm);
+}
+
+void robotRotateCommandWithAngle(uint8_t* pui8Data)
+{
+	int32_t i32AngleInDegree = construct4Byte(pui8Data);
+	float fAngleInRadian = (i32AngleInDegree / 65536.0f) / _180_DIV_PI;
+
+	rotateClockwiseWithAngle(fAngleInRadian);
 }

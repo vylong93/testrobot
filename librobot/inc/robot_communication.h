@@ -90,6 +90,8 @@ typedef struct tag_MessageHeader
 
 #define HOST_COMMAND_MOVE_WITH_PERIOD			0x1E
 #define HOST_COMMAND_ROTATE_WITH_PERIOD			0x1F
+#define HOST_COMMAND_MOVE_WITH_DISTANCE			0x20
+#define HOST_COMMAND_ROTATE_WITH_ANGLE			0x21
 
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A

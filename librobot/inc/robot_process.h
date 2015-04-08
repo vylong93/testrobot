@@ -211,6 +211,8 @@ void transmitRobotIdentityToHost(void);
 
 void robotMoveCommandWithPeriod(uint8_t* pui8Data);
 void robotRotateCommandWithPeriod(uint8_t* pui8Data);
+void robotMoveCommandWithDistance(uint8_t* pui8Data);
+void robotRotateCommandWithAngle(uint8_t* pui8Data);
 
 #ifdef __cplusplus
 }

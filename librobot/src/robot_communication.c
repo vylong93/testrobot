@@ -341,6 +341,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		robotRotateCommandWithPeriod(pui8MessageData);
 		break;
 
+	case HOST_COMMAND_MOVE_WITH_DISTANCE:
+		robotMoveCommandWithDistance(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_ROTATE_WITH_ANGLE:
+		robotRotateCommandWithAngle(pui8MessageData);
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;

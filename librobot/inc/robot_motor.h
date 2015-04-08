@@ -102,6 +102,9 @@ void setPeriodMotorOffset(uint16_t ui16Parameter);
 void Robot_move(bool bIsForward);
 void Robot_rotate(bool bIsClockwise);
 
+void rotateClockwiseWithAngle(float fAngleInRadian);
+void runForwardWithDistance(float fDistanceInCm);
+
 void initMotors(void);
 void stopMotors(void);
 void enableMOTOR(void);
