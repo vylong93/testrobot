@@ -88,6 +88,9 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_SELF_CORRECT_LOCATIONS_TABLE_EXCEPT_ROTATION_HOP 	0x1C
 #define HOST_COMMAND_GOTO_STATE						0x1D
 
+#define HOST_COMMAND_MOVE_WITH_PERIOD			0x1E
+#define HOST_COMMAND_ROTATE_WITH_PERIOD			0x1F
+
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT							0xB0
@@ -143,37 +146,10 @@ bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui3
 void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_t ui8Command, uint8_t* pui8Data, uint32_t ui32DataSize);
 
 //=============================================================================
-//#define PC_SEND_READ_VECTOR				0xB1
-//#define PC_SEND_LOCAL_LOOP_STOP			0xB2
-//#define PC_SEND_SET_STEPSIZE			0xB3
-//#define PC_SEND_SET_STOP_CONDITION_ONE	0xB4
-//#define PC_SEND_SET_STOP_CONDITION_TWO	0xB5
 //#define PC_SEND_ROTATE_CLOCKWISE		0xB6
 //#define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
 //#define PC_SEND_FORWARD_PERIOD			0xB8
 //#define PC_SEND_FORWARD_DISTANCE		0xB9
-//#define PC_SEND_SET_ROBOT_STATE			0xBA
-//#define PC_SEND_ROTATE_CORRECTION_ANGLE	0xBB
-//#define PC_SEND_READ_CORRECTION_ANGLE	0xBC
-//
-//#define PC_SEND_ROTATE_CORRECTION_ANGLE_DIFF	0xBD
-//#define PC_SEND_ROTATE_CORRECTION_ANGLE_SAME	0xBE
-//
-//#define ROBOT_REQUEST_MY_VECTOR					0xD6
-//#define ROBOT_RESPONSE_MY_VECTOR_PLEASE_WAIT	0xD7
-//#define ROBOT_RESPONSE_MY_VECTOR				0xD8
-//#define ROBOT_RESPONSE_MY_VECTOR_NOT_FOUND 		0xD9
-//#define ROBOT_REQUEST_VECTOR_AND_FLAG			0xDA
-//#define ROBOT_RESPONSE_VECTOR_AND_FLAG			0xDB
-//#define ROBOT_RESPONSE_PLEASE_WAIT				0xDC
-//#define ROBOT_RESPONSE_UNACTIVE					0xDD
-//#define ROBOT_REQUEST_VECTOR					0xDE
-//#define ROBOT_RESPONSE_VECTOR					0xDF
-//
-//#define ROBOT_REQUEST_TO_RUN				0x90
-//#define ROBOT_REQUEST_UPDATE_VECTOR			0x93
-//#define ROBOT_ALLOW_MOVE_TO_T_SHAPE			0x94
-//#define ROBOT_REPONSE_MOVE_COMPLETED		0x95
 //
 //// Format <SMART_PHONE_COMMAND><SP_SEND_...>
 //#define SMART_PHONE_COMMAND				0xF0

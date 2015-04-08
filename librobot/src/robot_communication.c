@@ -333,6 +333,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		transmitRobotIdentityToHost();
 		break;
 
+	case HOST_COMMAND_MOVE_WITH_PERIOD:
+		robotMoveCommandWithPeriod(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_ROTATE_WITH_PERIOD:
+		robotRotateCommandWithPeriod(pui8MessageData);
+		break;
+
 	default:
 		decodeBasicHostCommand(ui8Cmd);
 		break;

@@ -75,6 +75,9 @@ void initRobotProcess(void)
 	uint32_t ui32ReadEEPROMData;
 	float fTDOA_Intercept;
 	float fTDOA_Slope;
+	uint8_t ui8LeftMotorOffset;
+	uint8_t ui8RightMotorOffset;
+	uint16_t ui16PeriodMotorOffset;
 
 	//
 	// Initilize self ID in eeprom
@@ -92,6 +95,16 @@ void initRobotProcess(void)
 	}
 
 	resetRobotIdentity();
+
+	//
+	// Initilize motor parameters
+	//
+	if(getMotorParametersInEEPROM(&ui8LeftMotorOffset, &ui8RightMotorOffset, &ui16PeriodMotorOffset))
+	{
+		setLeftMotorOffset(ui8LeftMotorOffset);
+		setRightMotorOffset(ui8RightMotorOffset);
+		setPeriodMotorOffset(ui16PeriodMotorOffset);
+	}
 
 	//
 	// Initialize TDOA
@@ -2561,4 +2574,28 @@ void transmitRobotIdentityToHost(void)
 	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
 
 	sendDataToHost(pui8ResponseBuffer, 31);
+}
+
+void robotMoveCommandWithPeriod(uint8_t* pui8Data)
+{
+	bool bIsForward = ((e_RobotMoveDirection)pui8Data[0] == ROBOT_MOVE_FORWARD);
+	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
+
+	Robot_move(bIsForward);
+
+	delay_ms(ui16DelayMs);
+
+	stopMotors();
+}
+
+void robotRotateCommandWithPeriod(uint8_t* pui8Data)
+{
+	bool bIsClockwise = ((e_RobotRotateDirection)pui8Data[0] == ROBOT_ROTATE_CLOCKWISE);
+	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
+
+	Robot_rotate(bIsClockwise);
+
+	delay_ms(ui16DelayMs);
+
+	stopMotors();
 }

@@ -47,6 +47,22 @@ bool getTDOAParameterInEEPROM(float* pfIntercept, float* pfSlope)
 	return true;
 }
 
+bool getMotorParametersInEEPROM(uint8_t* pui8LeftMotor, uint8_t* pui8RightMotor, uint16_t* pui16MotorPeriod)
+{
+	uint32_t ui32ReadData;
+	EEPROMRead(&ui32ReadData, EEPROM_MOTOR_PARAMETERS_ADDRESS, sizeof(&ui32ReadData));
+	if(ui32ReadData == 0xFFFFFFFF)
+		return false;
+
+	*pui8LeftMotor = ui32ReadData & 0xFF;
+
+	*pui8RightMotor = (ui32ReadData >> 8) & 0xFF;
+
+	*pui16MotorPeriod = (ui32ReadData >> 16) & 0xFFFF;
+
+	return true;
+}
+
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data)
 {
 	ui32WordIndex <<= 2;

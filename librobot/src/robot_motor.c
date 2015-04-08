@@ -14,6 +14,67 @@ static bool bIsMotorRightEnable = false;
 
 static uint32_t ui32PWMPeriod;
 
+uint8_t g_ui8LeftMotorOffset = 100;
+uint8_t g_ui8RightMotorOffset = 100;
+uint16_t g_ui16PeriodMotorOffset = 1000;
+
+void setLeftMotorOffset(uint8_t ui8Parameter)
+{
+	g_ui8LeftMotorOffset = ui8Parameter;
+}
+
+void setRightMotorOffset(uint8_t ui8Parameter)
+{
+	g_ui8RightMotorOffset = ui8Parameter;
+}
+
+void setPeriodMotorOffset(uint16_t ui16Parameter)
+{
+	g_ui16PeriodMotorOffset = ui16Parameter;
+}
+
+void Robot_move(bool bIsForward)
+{
+	Motor_t mLeft, mRight;
+
+	mLeft.ui8Speed = g_ui8LeftMotorOffset;
+	mRight.ui8Speed = g_ui8RightMotorOffset;
+
+	if(bIsForward)
+	{
+		mLeft.eDirection = FORWARD;
+		mRight.eDirection = FORWARD;
+	}
+	else
+	{
+		mLeft.eDirection = REVERSE;
+		mRight.eDirection = REVERSE;
+	}
+
+	configureMotors(mLeft, mRight);
+}
+
+void Robot_rotate(bool bIsClockwise)
+{
+	Motor_t mLeft, mRight;
+
+	mLeft.ui8Speed = g_ui8LeftMotorOffset;
+	mRight.ui8Speed = g_ui8RightMotorOffset;
+
+	if(bIsClockwise)
+	{
+		mLeft.eDirection = REVERSE;
+		mRight.eDirection = FORWARD;
+	}
+	else
+	{
+		mLeft.eDirection = FORWARD;
+		mRight.eDirection = REVERSE;
+	}
+
+	configureMotors(mLeft, mRight);
+}
+
 void initMotors(void)
 {
 	// Initilize PWM generator module 0

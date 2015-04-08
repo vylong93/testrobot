@@ -71,17 +71,36 @@ extern "C"
 #define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT2_BIT        PWM_OUT_2_BIT
 
+typedef enum tag_RobotMoveDirection
+{
+  ROBOT_MOVE_FORWARD = 1,
+  ROBOT_MOVE_REVERSE = 0
+} e_RobotMoveDirection;
+
+typedef enum tag_RobotRotateDirection
+{
+  ROBOT_ROTATE_CLOCKWISE = 1,
+  ROBOT_ROTATE_COUNTERCLOSEWISE = 0
+} e_RobotRotateDirection;
+
 typedef enum tag_MotorDirection
 {
   FORWARD = 0,
-  REVERSE = 1,
+  REVERSE = 1
 } e_MotorDirection;
 
 typedef struct tag_Motor
 {
-	e_MotorDirection	eDirection;
+	e_MotorDirection eDirection;
 	uint8_t	ui8Speed;
 } Motor_t;
+
+void setLeftMotorOffset(uint8_t ui8Parameter);
+void setRightMotorOffset(uint8_t ui8Parameter);
+void setPeriodMotorOffset(uint16_t ui16Parameter);
+
+void Robot_move(bool bIsForward);
+void Robot_rotate(bool bIsClockwise);
 
 void initMotors(void);
 void stopMotors(void);

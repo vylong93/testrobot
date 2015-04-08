@@ -209,6 +209,9 @@ void selfCorrectLocationsTable(void);
 void selfCorrectLocationsTableExceptRotationHopID(void);
 void transmitRobotIdentityToHost(void);
 
+void robotMoveCommandWithPeriod(uint8_t* pui8Data);
+void robotRotateCommandWithPeriod(uint8_t* pui8Data);
+
 #ifdef __cplusplus
 }
 #endif
