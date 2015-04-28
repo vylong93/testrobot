@@ -38,6 +38,14 @@ static bool g_bSendToHost = false;
 static bool g_bNewBattVoltAvailable = false;
 static uint16_t g_ui16BatteryVoltage = 0;
 
+
+//*****************************************************************************
+// IR Proximity Sensor vairables
+//*****************************************************************************
+static bool g_bSendIrToHost = false;
+static bool g_bNewProxRawAvailable = false;
+static uint16_t g_ui16ProximityValue = 0;
+
 //*****************************************************************************
 // uDMA's vairables
 //*****************************************************************************
@@ -79,6 +87,13 @@ void initPeripheralsForAnalogFunction(void)
 	ROM_GPIOPinTypeADC(BATTERY_PORT, BATTERY_IN);
 
 	/*
+	 * Configure GPIO pin for Ir Proximity Sensing
+	 */
+//	ROM_SysCtlPeripheralEnable(PROXIMITY_PORT_CLOCK);
+//	ROM_SysCtlDelay(2);
+//	ROM_GPIOPinTypeADC(PROXIMITY_PORT, PROXIMITY_INPUT);
+
+	/*
 	 * Initialize ADC0
 	 *  Sequence Type 2 use for sampling battery level
 	 * 	Sequence Type 3 use for sampling microphone 1
@@ -102,6 +117,7 @@ void initPeripheralsForAnalogFunction(void)
 	/*
 	 * Initialize ADC1
 	 *  Sequence type 0 use for generate random number
+	 *  // Sequence type 2 use for proximity sensor
 	 *	Sequence Type 3 use for sampling microphone 2
 	 */
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
@@ -129,6 +145,12 @@ void initPeripheralsForAnalogFunction(void)
 	ROM_ADCSequenceEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 	ADCSequenceDMAEnable(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
 
+//	ROM_ADCSequenceConfigure(ADC_PROX_BASE, ADC_PROX_SEQUENCE_TYPE,
+//	ADC_TRIGGER_PROCESSOR, PROXIMITY_MEASURENMENT_PRIORITY);
+//	ROM_ADCSequenceStepConfigure(ADC_PROX_BASE, ADC_PROX_SEQUENCE_TYPE, 0,
+//	PROXIMITY_CHANNEL | ADC_CTL_IE | ADC_CTL_END);
+//	ROM_ADCSequenceEnable(ADC_PROX_BASE, ADC_PROX_SEQUENCE_TYPE);
+
 	ROM_ADCSequenceConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, ADC_TRIGGER_TIMER,
 	DISTANCE_SENSING_PRIORITY);
 	ROM_ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQUENCE_TYPE, 0,
@@ -141,6 +163,7 @@ void initPeripheralsForAnalogFunction(void)
 	 *  Channel 16 handle ADC0 Sequence type 2 - battery level
 	 *	Channel 17 handle ADC0 Sequence type 3 - microphone 1
 	 *	Channel 24 handle ADC1 Sequence type 0 - random number generator
+	 *	// Channel 26 handle ADC1 Sequence type 2 - proximity sensor
 	 *  Channel 27 handle ADC1 Sequence type 3 - microphone 2
 	 */
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
@@ -180,6 +203,17 @@ void initPeripheralsForAnalogFunction(void)
 			g_pui8RandomBuffer, 8);
 	ROM_uDMAChannelEnable(RANDOM_GEN_DMA_CHANNEL);
 
+//	ROM_uDMAChannelAssign(DMA_PROX_CHANNEL);
+//	ROM_uDMAChannelAttributeDisable(PROX_DMA_CHANNEL,
+//	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
+//	ROM_uDMAChannelControlSet(PROX_DMA_CHANNEL | UDMA_PRI_SELECT,
+//	UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_NONE | UDMA_ARB_1);
+//	ROM_uDMAChannelTransferSet(PROX_DMA_CHANNEL | UDMA_PRI_SELECT,
+//			UDMA_MODE_BASIC,
+//			(void *) (ADC_PROX_BASE + ADC_PROX_SEQUENCE_ADDRESS),
+//			&g_ui16ProximityValue, 1);
+//	ROM_uDMAChannelEnable(PROX_DMA_CHANNEL);
+
 	ROM_uDMAChannelAssign(DMA_ADC1_CHANNEL);
 	ROM_uDMAChannelAttributeDisable(ADC1_DMA_CHANNEL,
 	UDMA_ATTR_ALTSELECT | UDMA_ATTR_HIGH_PRIORITY | UDMA_ATTR_REQMASK);
@@ -198,17 +232,20 @@ void initPeripheralsForAnalogFunction(void)
 	ROM_IntPrioritySet(ADC1_INT, PRIORITY_DMA_MIC2);
 	ROM_IntPrioritySet(ADC_BATT_INT, PRIORITY_DMA_BATT);
 	ROM_IntPrioritySet(RANDOM_GEN_INT, PRIORITY_DMA_RANDOM_GEN);
+//	ROM_IntPrioritySet(ADC_PROX_INT, PRIORITY_DMA_PROX);
 
 	IntRegister(ADC0_INT, ADC0IntHandler);
 	IntRegister(ADC1_INT, ADC1IntHandler);
 	IntRegister(ADC_BATT_INT, BatterySequenceIntHandler);
 	IntRegister(RANDOM_GEN_INT, RandomGeneratorIntHandler);
+//	IntRegister(ADC_PROX_INT, ProximitySensingSequenceIntHandler);
 	IntRegister(INT_UDMAERR, uDMAErrorHandler);
 
 	ROM_IntEnable(ADC0_INT);
 	ROM_IntEnable(ADC1_INT);
 	ROM_IntEnable(ADC_BATT_INT);
 	ROM_IntEnable(RANDOM_GEN_INT);
+//	ROM_IntEnable(ADC_PROX_INT);
 	ROM_IntEnable(INT_UDMAERR);
 
 	/*
@@ -286,6 +323,25 @@ void triggerGenerateRandomByte(void)
 {
 	g_bIsGenerateRandomByteDone = false;
 	ROM_ADCProcessorTrigger(ADC_RANDOM_GEN_BASE, ADC_RANDOM_GEN_SEQUENCE_TYPE);
+}
+
+bool isNewProxRawAvailable(void)
+{
+	return g_bNewProxRawAvailable;
+}
+
+uint16_t getProximityRaw(void)
+{
+	return g_ui16ProximityValue;
+}
+
+void triggerSamplingIrProximitySensor(bool bIsSendToHost)
+{
+	g_bSendIrToHost = bIsSendToHost;
+
+	g_bNewProxRawAvailable = false;
+
+	ROM_ADCProcessorTrigger(ADC_PROX_BASE, ADC_PROX_SEQUENCE_TYPE);
 }
 
 void ADC0IntHandler(void)
@@ -412,6 +468,35 @@ void RandomGeneratorIntHandler(void)
 		else
 		{
 			g_bIsGenerateRandomByteDone = true;
+		}
+	}
+}
+
+void ProximitySensingSequenceIntHandler(void)
+{
+	uint32_t ui32Status;
+	uint32_t ui32Mode;
+
+	ui32Status = ROM_ADCIntStatus(ADC_PROX_BASE, ADC_PROX_SEQUENCE_TYPE, true);
+	ROM_ADCIntClear(ADC_PROX_BASE, ui32Status);
+
+	ui32Mode = ROM_uDMAChannelModeGet(PROX_DMA_CHANNEL | UDMA_PRI_SELECT);
+	if (ui32Mode == UDMA_MODE_STOP)
+	{
+		// Setup for a future request
+		ROM_uDMAChannelTransferSet(PROX_DMA_CHANNEL | UDMA_PRI_SELECT,
+		UDMA_MODE_BASIC, (void *) (ADC_PROX_BASE + ADC_PROX_SEQUENCE_ADDRESS),
+				&g_ui16ProximityValue, 1);
+		ROM_uDMAChannelEnable(PROX_DMA_CHANNEL);
+
+		g_bNewProxRawAvailable = true;
+
+		if (g_bSendIrToHost)
+		{
+			sendMessageToHost(MESSAGE_TYPE_ROBOT_RESPONSE, ROBOT_RESPONSE_TO_HOST_OK,
+					(uint8_t *) &g_ui16ProximityValue, 2);
+
+			g_bSendIrToHost = false;
 		}
 	}
 }

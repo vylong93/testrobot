@@ -93,6 +93,9 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_MOVE_WITH_DISTANCE			0x20
 #define HOST_COMMAND_ROTATE_WITH_ANGLE			0x21
 
+#define HOST_COMMAND_TOGGLE_IR_LED				0x22
+#define HOST_COMMAND_REQUEST_PROXIMITY_RAW		0x23
+
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT							0xB0

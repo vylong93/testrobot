@@ -38,6 +38,9 @@ typedef struct tagCircleEquation {
 #define MATH_PI_DIV_2_MUL_32768	51471.85404
 #define _180_DIV_PI				57.29577951
 
+#define MATH_RAD2DEG			57.29577951
+#define MATH_DEG2RAD			0.017453293
+
 //#define ANGLE_MIN_IN_RAD	0.15	// ~ 8.594366927 degree
 //#define COSINE_ANGLE_MIN	0.9887710779 // cos(ANGLE_MIN_IN_RAD)
 
@@ -47,7 +50,7 @@ typedef struct tagCircleEquation {
 //#define ANGLE_MIN_IN_RAD	0.1745329252 // ~ 10 degree
 //#define COSINE_ANGLE_MIN	0.9999953604 // cos(ANGLE_MIN_IN_RAD)
 
-float absFloatNumber(float x);
+float signFloatNumber(float a);
 
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c);
 bool isTriangle(uint32_t a, uint32_t b, uint32_t c);

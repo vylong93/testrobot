@@ -27,11 +27,30 @@
 #include "libstorage/inc/RobotIdentity.h"
 #include "libalgorithm/inc/Trilateration.h"
 #include "libalgorithm/inc/GradientDescentGlobal.h"
-#include "libmath/inc/Vector2.h"
+
+#include "libcontroller/inc/Controller.h"
+#include "libdynamic/inc/UnicycleModel.h"
+#include "libdynamic/inc/DifferentialDriveModel.h"
+#include "libdynamic/inc/DifferentialDriveConstant.h"
+
+#include "librobot/inc/robot_imu.h"
+
+#include "libcontroller/inc/RotateToAngleController.h"
 
 //extern void initData(uint8_t* pui8MessageData); // Test Only
 //extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
 //extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
+
+#define WHEEL_MAX_VEL 80
+#define WHEEL_MIN_VEL -80
+
+void ensure_w(UnicycleModel uni, DifferentialDriveModel &diff);
+void setWheelSpeeds(DifferentialDriveModel diffModel);
+void limitSpeeds(DifferentialDriveModel &diff);
+
+UnicycleModel g_UnicycleModel;
+DifferentialDriveModel g_DifferentialDriveModel;
+RotateToAngleController* g_pControllerRTA;
 
 RobotIdentity_t g_RobotIdentity;
 
@@ -49,8 +68,9 @@ void test(void) // Test Only
 	g_RobotIdentity.Self_ID = 0xBEAD08;
 	g_RobotIdentity.Self_NeighborsCount = 6;
 
-	g_RobotIdentity.x = 0;
-	g_RobotIdentity.y = 0;
+	g_RobotIdentity.x = 0.0f;
+	g_RobotIdentity.y = 0.0f;
+	g_RobotIdentity.theta = 0.0f;
 
 	g_RobotIdentity.Origin_ID = 0xBEAD01;
 	g_RobotIdentity.Origin_NeighborsCount = 6;
@@ -60,13 +80,11 @@ void test(void) // Test Only
 	g_RobotIdentity.RotationHop_x = 0;
 	g_RobotIdentity.RotationHop_y = 0;
 
-//	uint8_t* pui8MessageData = malloc(sizeof(*pui8MessageData) * 72);
 	uint8_t* pui8MessageData = new uint8_t[72];
 	initData(pui8MessageData);
 
 	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 72 / 12);
 
-//	free(pui8MessageData);
 	delete[] pui8MessageData;
 }
 
@@ -95,6 +113,7 @@ void initRobotProcess(void)
 	}
 
 	resetRobotIdentity();
+	g_pControllerRTA = new RotateToAngleController();
 
 	//
 	// Initilize motor parameters
@@ -142,6 +161,7 @@ void resetRobotIdentity(void)
 	g_RobotIdentity.RotationHop_ID = 0;
 	g_RobotIdentity.x = 0;
 	g_RobotIdentity.y = 0;
+	g_RobotIdentity.theta = 0;
 	g_RobotIdentity.RotationHop_x = 0;
 	g_RobotIdentity.RotationHop_y = 0;
 }
@@ -1591,13 +1611,6 @@ bool g_bIsGradientSearchStopFlag;
 bool g_bIsActiveCoordinatesFixing;
 uint32_t g_ui32LocalLoop;
 
-void StateSix_TestOnly(void)
-{
-	g_ui32LocalLoop = 1;
-	g_bIsActiveCoordinatesFixing = true;
-	StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition();
-}
-
 void StateSix_CorrectLocations(void)
 {
 	/* Pseudo code
@@ -2178,6 +2191,11 @@ void indicateBatteryVoltage(void)
 		turnOnLED(LED_GREEN);
 }
 
+void sendIrProximityValueToHost(void)
+{
+	triggerSamplingIrProximitySensor(true);
+}
+
 void modifyMotorsConfiguration(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Configure motors\n");
@@ -2476,31 +2494,43 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 }
 
 /* Test PID Controller only */
-float kP = 1;
-float kI = 0;
-float kD = 0;
-float r = 0;
-bool bIsRunPID = false;
 void testPIDController(uint8_t* pui8Data)
 {
+	if(g_pControllerRTA == 0)
+		return;
+
 	int32_t i32Data;
 
 	i32Data = construct4Byte(pui8Data);
-	kP = i32Data / 65536.0f;
+	g_pControllerRTA->kP = i32Data / 65536.0f;
 
 	i32Data = construct4Byte(&pui8Data[4]);
-	kI = i32Data / 65536.0f;
+	g_pControllerRTA->kI = i32Data / 65536.0f;
 
 	i32Data = construct4Byte(&pui8Data[8]);
-	kD = i32Data / 65536.0f;
+	g_pControllerRTA->kD = i32Data / 65536.0f;
 
 	i32Data = construct4Byte(&pui8Data[12]);
-	r = i32Data / 65536.0f;
+	float goalAngleInDeg = i32Data / 65536.0f;
 
-	if(pui8Data[16] == 1)
-		bIsRunPID = true;
-	else
-		bIsRunPID = false;
+//	if(pui8Data[16] == 1)
+
+	DEBUG_PRINTS4("PID grain: P %d, I %d, D %d, Goal: %d\n",
+			(int32_t)(g_pControllerRTA->kP * 1000),
+			(int32_t)(g_pControllerRTA->kI * 1000),
+			(int32_t)(g_pControllerRTA->kD * 1000),
+			(int32_t)(goalAngleInDeg));
+
+	g_pControllerRTA->StartTheta = IMU_getYawAngle();
+	g_pControllerRTA->EndTheta = g_pControllerRTA->StartTheta + goalAngleInDeg * MATH_DEG2RAD;
+	g_pControllerRTA->reset();
+
+	DEBUG_PRINTS("g_pControllerRTA->StartTheta = %d\n", (int32_t)(g_pControllerRTA->StartTheta * MATH_RAD2DEG));
+	DEBUG_PRINTS("g_pControllerRTA->EndTheta = %d\n", (int32_t)(g_pControllerRTA->EndTheta * MATH_RAD2DEG));
+
+	turnOnLED(LED_GREEN);
+	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE);
+	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE\n");
 }
 //-------------------------------
 
@@ -2613,4 +2643,168 @@ void robotRotateCommandWithAngle(uint8_t* pui8Data)
 	float fAngleInRadian = (i32AngleInDegree / 65536.0f) / _180_DIV_PI;
 
 	rotateClockwiseWithAngle(fAngleInRadian);
+}
+
+bool rotateToAngleUseControllerGTG(void)
+{
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+	DEBUG_PRINTS("Current angle = %d\n", (int32_t)(g_RobotIdentity.theta * MATH_RAD2DEG));
+
+	if(isTwoAngleOverlay(g_RobotIdentity.theta, g_pControllerRTA->EndTheta, CONTROLLER_ANGLE_ERROR_DEG))
+	{
+		DEBUG_PRINT("Arrived the goal!!!\n");
+		turnOffLED(LED_GREEN);
+		stopMotors();
+		g_pControllerRTA->reset();
+		return true;
+	}
+
+	g_pControllerRTA->execute(g_RobotIdentity, g_UnicycleModel);
+
+	ensure_w(g_UnicycleModel, g_DifferentialDriveModel);
+	setWheelSpeeds(g_DifferentialDriveModel);
+
+//	applyUnicycleToMotorCommand(uniModel.w);
+
+	return false;
+}
+
+bool isTwoAngleOverlay(float a, float b, float errorInDeg)
+{
+	float angle = a - b;
+	angle = atan2f(sinf(angle), cosf(angle));
+	if(fabsf(angle) < (errorInDeg * MATH_DEG2RAD))
+		return true;
+	return false;
+}
+
+void applyUnicycleToMotorCommand(float w)
+{
+	Motor_t m1_Left;
+	Motor_t m2_Right;
+
+	if(w < 0)
+	{
+		w = 0 - w;
+		m1_Left.eDirection = REVERSE;
+		m2_Right.eDirection = FORWARD;
+	}
+	else
+	{
+		m1_Left.eDirection = FORWARD;
+		m2_Right.eDirection = REVERSE;
+	}
+	uint8_t ui8NextPWM = w * 100;
+
+	if(ui8NextPWM < MOTOR_SPEED_MINIMUM)
+		ui8NextPWM = 0;
+
+	if(ui8NextPWM > MOTOR_SPEED_MAXIMUM)
+		ui8NextPWM = MOTOR_SPEED_MAXIMUM;
+
+	m1_Left.ui8Speed = ui8NextPWM;
+	m2_Right.ui8Speed = ui8NextPWM;
+
+	configureMotors(m1_Left, m2_Right);
+
+	DEBUG_PRINTS3("w = %d, L = %d, R = %d\n", (int32_t)(w), m1_Left.ui8Speed, m2_Right.ui8Speed);
+}
+
+void ensure_w(UnicycleModel uni, DifferentialDriveModel &diff)
+{
+	// This function ensures that w is respected as best as possible
+	// by scaling v.
+
+	float vel_max = WHEEL_MAX_VEL;
+	float vel_min = WHEEL_MIN_VEL;
+
+	if (fabsf(uni.v) > 0) {
+		// 1. Limit v,w to be possible in the range [vel_min, vel_max]
+		// (avoid stalling or exceeding motor limits)
+		UnicycleModel uni_lim;
+		float temp1 = (WHEEL_RADIUS / 2) * (2 * vel_max);
+		float temp2 = (WHEEL_RADIUS / 2) * (2 * vel_min);
+		uni_lim.v = fmaxf(fminf(fabsf(uni.v), temp1), temp2);
+		float temp3 = (WHEEL_RADIUS / WHEEL_BASE_LENGTH) * (vel_max - vel_min);
+		uni_lim.w = fmaxf(fminf(fabsf(uni.w), temp3), 0);
+
+		//2. Compute the desired curvature of the robot's motion
+		DifferentialDriveModel diff_d;
+		uni_lim.toDifferentialDrive(diff_d.vel_r, diff_d.vel_l);
+
+		// 3. Find the max and min vel_r/vel_l
+		float vel_rl_max = fmaxf(diff_d.vel_r, diff_d.vel_l);
+		float vel_rl_min = fminf(diff_d.vel_r, diff_d.vel_l);
+
+		// 4. Shift vel_r and vel_l if they exceed max/min vel
+		if (vel_rl_max > vel_max) {
+			diff.vel_r = diff_d.vel_r - (vel_rl_max - vel_max);
+			diff.vel_l = diff_d.vel_l - (vel_rl_max - vel_max);
+		}
+		else if (vel_rl_min < vel_min) {
+			diff.vel_r = diff_d.vel_r + (vel_min - vel_rl_min);
+			diff.vel_l = diff_d.vel_l + (vel_min - vel_rl_min);
+		}
+		else {
+			diff.vel_r = diff_d.vel_r;
+			diff.vel_l = diff_d.vel_l;
+		}
+
+		// 5. Fix signs (Always either both positive or negative)
+		UnicycleModel uniModelShift;
+		diff.toUnicycle(uniModelShift.v, uniModelShift.w);
+
+		uni.v = signFloatNumber(uni.v) * uniModelShift.v;
+		uni.w = signFloatNumber(uni.w) * uniModelShift.w;
+
+	} else {
+		// Robot is stationary, so we can either not rotate, or
+		// rotate with some minimum/maximum angular velocity
+		float w_min = WHEEL_RADIUS / WHEEL_BASE_LENGTH * (2 * vel_min);
+		float w_max = WHEEL_RADIUS / WHEEL_BASE_LENGTH * (2 * vel_max);
+
+		if (fabsf(uni.w) > w_min)
+			uni.w = signFloatNumber(uni.w) * fmaxf(fminf(fabsf(uni.w), w_max), w_min);
+		else
+			uni.w = 0;
+	}
+	uni.toDifferentialDrive(diff.vel_r, diff.vel_l);
+}
+
+void setWheelSpeeds(DifferentialDriveModel diffModel)
+{
+	Motor_t mLeft, mRight;
+
+	DEBUG_PRINTS2("diff vel_r %d vel_l %d\n", (int32_t)(diffModel.vel_r), (int32_t)(diffModel.vel_l));
+
+	limitSpeeds(diffModel);
+
+	mLeft.ui8Speed = (uint8_t)(fabsf(diffModel.vel_l));
+	mRight.ui8Speed = (uint8_t)(fabsf(diffModel.vel_r));
+
+	if(diffModel.vel_l < 0)
+		mLeft.eDirection = REVERSE;
+	else
+		mLeft.eDirection = FORWARD;
+
+	if(diffModel.vel_r < 0)
+		mRight.eDirection = REVERSE;
+	else
+		mRight.eDirection = FORWARD;
+
+	DEBUG_PRINTS4("MLeft %d %d, MRight %d %d\n", mLeft.eDirection, mLeft.ui8Speed, mRight.eDirection, mRight.ui8Speed);
+
+	//configureMotors(mLeft, mRight);
+	configureMotors(mRight, mLeft);
+}
+
+void limitSpeeds(DifferentialDriveModel &diff)
+{
+	// actuator hardware limits
+	diff.vel_r = fmaxf(fminf(diff.vel_r, WHEEL_MAX_VEL), -WHEEL_MAX_VEL);
+	diff.vel_l = fmaxf(fminf(diff.vel_l, WHEEL_MAX_VEL), -WHEEL_MAX_VEL);
+
+	diff.vel_r = (fabsf(diff.vel_r) >= WHEEL_MIN_VEL) ? (diff.vel_r) : (0);
+	diff.vel_l = (fabsf(diff.vel_l) >= WHEEL_MIN_VEL) ? (diff.vel_l) : (0);
 }

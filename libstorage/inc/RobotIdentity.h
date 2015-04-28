@@ -21,6 +21,7 @@ typedef struct tagRobotIdentity {
 	uint8_t Origin_Hopth;
 	float x;
 	float y;
+	float theta;
 	float RotationHop_x;
 	float RotationHop_y;
 } RobotIdentity_t;

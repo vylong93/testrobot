@@ -22,11 +22,12 @@ static signed char gyro_orientation[9] = { -1, 0, 0,
 											0, -1, 0,
 											0, 0, 1 };
 
-void initIMU(InvMPU* pMpu6050)
+bool initIMU(InvMPU* pMpu6050)
 {
 	g_mpu6050 = pMpu6050;
-	IMU_setup_mpu_dmp(pMpu6050);
+	bool bIsSuccess = IMU_setup_mpu_dmp(pMpu6050);
 	pMpu6050->mpu_reset_fifo();
+	return bIsSuccess;
 }
 
 
@@ -293,12 +294,15 @@ void IMU_run_self_test(InvMPU* pMpu6050)
 	}
 }
 
-void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
+bool IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 {
 	DEBUG_PRINT("Initialize MPU6050\n");
 
 	if (pMpu6050->mpu_init())
+	{
 		DEBUG_PRINT("Error in init!!");
+		return false;
+	}
 
 	DEBUG_PRINT("mpu initialization complete......\n");
 
@@ -309,7 +313,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL))
 		DEBUG_PRINT("mpu_set_sensor complete ......\n");
 	else
+	{
 		DEBUG_PRINT("mpu_set_sensor come across error ......\n");
+		return false;
+	}
 
 	//
 	// Push both gyro and accel data into the FIFO.
@@ -317,7 +324,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL))
 		DEBUG_PRINT("mpu_configure_fifo complete ......\n");
 	else
+	{
 		DEBUG_PRINT("mpu_configure_fifo come across error ......\n");
+		return false;
+	}
 
 	//
 	// mpu_set_sample_rate
@@ -325,7 +335,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->mpu_set_sample_rate(DEFAULT_MPU_HZ))
 		DEBUG_PRINT("mpu_set_sample_rate complete ......\n");
 	else
+	{
 		DEBUG_PRINT("mpu_set_sample_rate error ......\n");
+		return false;
+	}
 
 	DEBUG_PRINT("\nInitialize dmp\n\n");
 	/* To initialize the DMP:
@@ -365,7 +378,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->dmp_load_motion_driver_firmware())
 		DEBUG_PRINT("dmp_load_motion_driver_firmware complete ......\n");
 	else
+	{
 		DEBUG_PRINT("dmp_load_motion_driver_firmware come across error ......\n");
+		return false;
+	}
 
 	//
 	// dmp_set_orientation
@@ -373,7 +389,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->dmp_set_orientation(IMU_inv_orientation_matrix_to_scalar(gyro_orientation)))
 		DEBUG_PRINT("dmp_set_orientation complete ......\n");
 	else
+	{
 		DEBUG_PRINT("dmp_set_orientation come across error ......\n");
+		return false;
+	}
 
 	//
 	// dmp_enable_feature
@@ -383,7 +402,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	DMP_FEATURE_GYRO_CAL))
 		DEBUG_PRINT("dmp_enable_feature complete ......\n");
 	else
+	{
 		DEBUG_PRINT("dmp_enable_feature come across error ......\n");
+		return false;
+	}
 
 	//
 	// dmp_set_fifo_rate
@@ -391,7 +413,10 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->dmp_set_fifo_rate(DEFAULT_MPU_HZ))
 		DEBUG_PRINT("dmp_set_fifo_rate complete ......\n");
 	else
+	{
 		DEBUG_PRINT("dmp_set_fifo_rate come across error ......\n");
+		return false;
+	}
 
 	//
 	// mpu self test
@@ -400,9 +425,13 @@ void IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	if (!pMpu6050->mpu_set_dmp_state(1))
 		DEBUG_PRINT("mpu_set_dmp_state complete ......\n");
 	else
+	{
 		DEBUG_PRINT("mpu_set_dmp_state come across error ......\n");
+		return false;
+	}
 
 	DEBUG_PRINT("\nDMP initialization completed!\n\n");
+	return true;
 }
 
 unsigned short IMU_inv_row_2_scale(const signed char *row)

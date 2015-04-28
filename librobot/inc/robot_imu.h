@@ -21,7 +21,7 @@
 #define GYRO_ON         (0x02)
 #define q30  			1073741824.0f
 
-void initIMU(InvMPU* pMpu6050);
+bool initIMU(InvMPU* pMpu6050);
 
 float IMU_getYawAngle(void);
 float IMU_extractYawAngle(Quaternion q);
@@ -45,7 +45,7 @@ void IMU_convertAccelerationAndGravityToLinearAccel(Vector3<float> *pvect3Linear
 void IMU_convertLinearAccelAndQuaternionToWorldLinearAccel(Vector3<float> *pvect3WorldLinearAccel, Vector3<float> vect3LinearAccel, Quaternion q);
 
 void IMU_run_self_test(InvMPU* pMpu6050);
-void IMU_setup_mpu_dmp(InvMPU* pMpu6050);
+bool IMU_setup_mpu_dmp(InvMPU* pMpu6050);
 
 unsigned short IMU_inv_row_2_scale(const signed char *row);
 unsigned short IMU_inv_orientation_matrix_to_scalar(const signed char *mtx);

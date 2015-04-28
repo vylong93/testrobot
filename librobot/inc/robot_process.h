@@ -26,9 +26,8 @@ typedef enum tag_RobotState
 	ROBOT_STATE_ROTATE_COORDINATES = 4,		// State Four
 	ROBOT_STATE_AVERAGE_VECTOR = 5,			// State Five
 	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
-	ROBOT_STATE_TEST_ONLY = 7,
-	ROBOT_STATE_LOCOMOTION,
-	ROBOT_STATE_T_SHAPE,
+	ROBOT_STATE_LOCOMOTION = 7,				// State Seven (optional)
+	ROBOT_STATE_ROTATE_TO_ANGLE = 8,		// State Eight
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -53,7 +52,6 @@ typedef struct tagRobotRotationFlag{
 void test(void); // Test Only
 
 void initRobotProcess(void);
-
 void resetRobotIdentity(void);
 
 void setRobotState(e_RobotState eState);
@@ -161,8 +159,6 @@ void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId);
 
 
 //========= State 6 - Correct Locations Table ===================================
-void StateSix_TestOnly(void);
-
 void StateSix_CorrectLocations(void);
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void);
@@ -188,6 +184,7 @@ bool checkForCorrectRxDataStream(va_list argp);
 void testRfTransmister(uint8_t* pui8Data);
 void sendBatteryVoltageToHost(void);
 void indicateBatteryVoltage(void);
+void sendIrProximityValueToHost(void);
 void modifyMotorsConfiguration(uint8_t* pui8Data);
 void transmitADCResultsToHost(uint8_t* pui8Buffer);
 void transmitRequestDataInEeprom(uint8_t* pui8Data);
@@ -213,6 +210,9 @@ void robotMoveCommandWithPeriod(uint8_t* pui8Data);
 void robotRotateCommandWithPeriod(uint8_t* pui8Data);
 void robotMoveCommandWithDistance(uint8_t* pui8Data);
 void robotRotateCommandWithAngle(uint8_t* pui8Data);
+bool rotateToAngleUseControllerGTG(void);
+bool isTwoAngleOverlay(float a, float b, float errorInDeg);
+void applyUnicycleToMotorCommand(float w);
 
 #ifdef __cplusplus
 }

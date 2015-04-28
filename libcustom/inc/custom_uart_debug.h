@@ -28,15 +28,17 @@ extern "C"
 #ifdef DEBUG_UTILS
 extern void UARTprintf(const char *pcString, ...);
 #define DEBUG_PRINT(x)			UARTprintf(x)
-#define DEBUG_PRINTS(x, y)			UARTprintf(x, y)
-#define DEBUG_PRINTS2(x, y, z)		UARTprintf(x, y, z)
-#define DEBUG_PRINTS3(x, y, z, t)	UARTprintf(x, y, z, t)
+#define DEBUG_PRINTS(x, y)				UARTprintf(x, y)
+#define DEBUG_PRINTS2(x, y, z)			UARTprintf(x, y, z)
+#define DEBUG_PRINTS3(x, y, z, t)		UARTprintf(x, y, z, t)
+#define DEBUG_PRINTS4(x, y, z, t, d)	UARTprintf(x, y, z, t, d)
 #define DEBUG_PRINTF			UARTprintf
 #else
 #define DEBUG_PRINT(x)
 #define DEBUG_PRINTS(x, y)
 #define DEBUG_PRINTS2(x, y, z)
 #define DEBUG_PRINTS3(x, y, z, t)
+#define DEBUG_PRINTS4(x, y, z, t, d)
 #define DEBUG_PRINTF
 #endif
 

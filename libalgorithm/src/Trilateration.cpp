@@ -277,8 +277,8 @@ void Tri_calculateXYLocations(uint32_t ui32RobotXsId, uint32_t ui32RobotYsId, ui
 	Vector2<float> vectorXY1 = pointX - pointY1;
 	Vector2<float> vectorXY2 = pointX - pointY2;
 
-	float errorXY1 = absFloatNumber(fEdgeXY - vectorXY1.getMagnitude());
-	float errorXY2 = absFloatNumber(fEdgeXY - vectorXY2.getMagnitude());
+	float errorXY1 = fabsf(fEdgeXY - vectorXY1.getMagnitude());
+	float errorXY2 = fabsf(fEdgeXY - vectorXY2.getMagnitude());
 	if(errorXY1 < errorXY2)
 	{
 		RobotLocationsTable_add(ui32RobotYsId, pointY1.x, pointY1.y);
@@ -467,8 +467,8 @@ bool Tri_calculateRobotLocationBaseOnThreeLocatedPoint(float fEdgeIJ, float fEdg
 		Vector2<float> vectorPH2 = pointP - pointH2;
 
 		float fEdgePH = sqrtf(fEdgePJ * fEdgePJ - fHeightJH * fHeightJH);
-		float errorPH1 = absFloatNumber(fEdgePH - vectorPH1.getMagnitude());
-		float errorPH2 = absFloatNumber(fEdgePH - vectorPH2.getMagnitude());
+		float errorPH1 = fabsf(fEdgePH - vectorPH1.getMagnitude());
+		float errorPH2 = fabsf(fEdgePH - vectorPH2.getMagnitude());
 
 		if(errorPH1 < errorPH2)
 			pointH = pointH1;
@@ -496,8 +496,8 @@ bool Tri_calculateRobotLocationBaseOnThreeLocatedPoint(float fEdgeIJ, float fEdg
 	// (4) choose the smaller error compare with QJ to determine the correct J point
 	Vector2<float> vectorQJ1 = pointQ - pointJ1;
 	Vector2<float> vectorQJ2 = pointQ - pointJ2;
-	float errorQJ1 = absFloatNumber(fEdgeQJ - vectorQJ1.getMagnitude());
-	float errorQJ2 = absFloatNumber(fEdgeQJ - vectorQJ2.getMagnitude());
+	float errorQJ1 = fabsf(fEdgeQJ - vectorQJ1.getMagnitude());
+	float errorQJ2 = fabsf(fEdgeQJ - vectorQJ2.getMagnitude());
 
 	if(errorQJ1 < errorQJ2)
 		*pPointJ = pointJ1;
@@ -875,9 +875,9 @@ float Tri_calculateErrorOfVectorZ(Vector2<float> vectZ, Vector2<float> vectO, Ve
 	float errorXZ = vectXZ.getMagnitude() - fEdgeXZ;
 	float errorYZ = vectYZ.getMagnitude() - fEdgeYZ;
 
-	errorOZ = absFloatNumber(errorOZ);
-	errorXZ = absFloatNumber(errorXZ);
-	errorYZ = absFloatNumber(errorYZ);
+	errorOZ = fabsf(errorOZ);
+	errorXZ = fabsf(errorXZ);
+	errorYZ = fabsf(errorYZ);
 
 	return (errorOZ + errorXZ + errorYZ);
 }

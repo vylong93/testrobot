@@ -14,6 +14,7 @@
 #include "librobot/inc/robot_eeprom.h"
 
 #include "libcustom/inc/custom_led.h"
+#include "libcustom/inc/custom_ir.h"
 
 #include "libalgorithm/inc/TDOA.h"
 
@@ -347,6 +348,14 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 
 	case HOST_COMMAND_ROTATE_WITH_ANGLE:
 		robotRotateCommandWithAngle(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_TOGGLE_IR_LED:
+//		toggleIRLED(); // Not use yet
+		break;
+
+	case HOST_COMMAND_REQUEST_PROXIMITY_RAW:
+//		sendIrProximityValueToHost(); // Not use yet
 		break;
 
 	default:

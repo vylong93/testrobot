@@ -82,6 +82,19 @@ extern "C"
 #define DMA_RANDOM_GEN_CHANNEL			UDMA_CH24_ADC1_0
 #define RANDOM_GEN_INT                	INT_ADC1SS0
 
+// For proximity sensor
+#define PROXIMITY_PORT_CLOCK			SYSCTL_PERIPH_GPIOD
+#define PROXIMITY_PORT					GPIO_PORTD_BASE
+#define PROXIMITY_INPUT					GPIO_PIN_3
+#define PROXIMITY_CHANNEL 				ADC_CTL_CH4
+#define PROXIMITY_MEASURENMENT_PRIORITY	1
+#define ADC_PROX_BASE					ADC1_BASE
+#define ADC_PROX_SEQUENCE_TYPE     	 	2	// IMPORTANCE note: make sure this sequence type NOT equal ADC_SEQUENCE_TYPE
+#define ADC_PROX_SEQUENCE_ADDRESS    	ADC_O_SSFIFO2
+#define	ADC_PROX_INT	 				INT_ADC1SS2
+#define PROX_DMA_CHANNEL       			UDMA_SEC_CHANNEL_ADC12
+#define DMA_PROX_CHANNEL        		UDMA_CH26_ADC1_2
+
 uint16_t* getMicrophone0BufferPointer(void);
 uint16_t* getMicrophone1BufferPointer(void);
 
@@ -97,10 +110,15 @@ uint8_t generateRandomByte(void);
 float generateRandomFloatInRange(float min, float max);
 void triggerGenerateRandomByte(void);
 
+bool isNewProxRawAvailable(void);
+uint16_t getProximityRaw(void);
+void triggerSamplingIrProximitySensor(bool bIsSendToHost);
+
 void ADC0IntHandler(void);
 void ADC1IntHandler(void);
 void BatterySequenceIntHandler(void);
 void RandomGeneratorIntHandler(void);
+void ProximitySensingSequenceIntHandler(void);
 void uDMAErrorHandler(void);
 
 #ifdef __cplusplus

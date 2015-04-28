@@ -4,6 +4,8 @@
 #include "libcustom/inc/custom_clock.h"
 #include "libcustom/inc/custom_led.h"
 #include "libcustom/inc/custom_delay.h"
+#include "libcustom/inc/custom_ir.h"
+
 #include "libcustom/inc/custom_uart_debug.h"
 
 #include "librobot/inc/robot_lpm.h"
@@ -21,24 +23,15 @@
 #include "libmath/inc/custom_math.h"
 #include <math.h>
 
-//#define HAVE_IMU
+#define HAVE_IMU
 
 #ifdef HAVE_IMU
 #include "libcustom/inc/custom_i2c.h"
 #include "librobot/inc/robot_imu.h"
 #endif
 
-extern "C"
-{
-#ifdef HAVE_IMU
-extern float kP;
-extern float kI;
-extern float kD;
-extern float r;
-extern bool bIsRunPID;
-#endif
-
-void MCU_RF_IRQ_handler(void);
+extern "C" {
+	void MCU_RF_IRQ_handler(void);
 }
 
 void initSystem(void);
@@ -70,122 +63,119 @@ int main(void)
 //
 //	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
 //	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-
 //	test();
 
 #ifdef HAVE_IMU
-	InvMPU mpu6050;
-	initIMU(&mpu6050);
-
-	turnOnLED(LED_RED);
-
-	delay_ms(30000);	// delay 30 second for IMU output stable
-
-	turnOffLED(LED_RED);
 	turnOnLED(LED_GREEN);
 
-	DEBUG_PRINT("init IMU: OK\n");
+	DEBUG_PRINT("delay 30s for DMP output stablized...\n");
+	delay_ms(30000);
 
-	// System Variables
-	Motor_t m1_Left;
-	Motor_t m2_Right;
-	uint8_t ui8NextPWM;
+	turnOffLED(LED_GREEN);
+	turnOnLED(LED_RED);
 
-	// Memmory Storages
-	float fYawAngleInRad = 0;
-	float e_old = 0;
-	float E = 0;
-
-	// Controller Variables
-	Vector3<float> vect3YawPitchRoll(0, 0, 0);
-	float fOriginR = 0;
-	float fReferenceYawAngleInRad = 0;
-	float e = 0;
-	float e_dot = 0;
-	float u = 0;
-
-	// Initialize
-	// get reference for PID Controller
-//	fReferenceYawAngleInRad = IMU_getYawAngle();
-//	fOriginR = fReferenceYawAngleInRad;
-
-	// Setup motor
-	m1_Left.eDirection = FORWARD;
-	m2_Right.eDirection = REVERSE;
-	m1_Left.ui8Speed = u;
-	m2_Right.ui8Speed = u;
-
-	while(1)
-	{
-		stopMotors();
-		fReferenceYawAngleInRad = IMU_getYawAngle();
-		fOriginR = fReferenceYawAngleInRad;
-
-		while(!bIsRunPID);
-		e = 0;
-		e_old = 0;
-		e_dot = 0;
-		E = 0;
-		fReferenceYawAngleInRad = fOriginR + r;
-		while(bIsRunPID)
-		{
-			/* PID controll robot: moving forward in straight line */
-			// read current yaw angle
-			fYawAngleInRad = IMU_getYawAngle();
-
-			// calculate the error
-			e = fYawAngleInRad - fReferenceYawAngleInRad;
-
-			// Because e is an angle so need extra-handle
-			e = atan2f(sinf(e), cosf(e));
-
-			// calculate the error dynamic
-			e_dot = e - e_old;
-
-			// integral the error
-			E = E + e;
-
-			// compute the control input
-			u = kP*e + kI*E + kD*e_dot;
-
-			// save 'e' for the next loop
-			e_old = e;
-
-
-			/* PWM control signal */
-			if(u < 0)
-			{
-				u = 0 - u;
-				m1_Left.eDirection = REVERSE;
-				m2_Right.eDirection = FORWARD;
-			}
-			else
-			{
-				m1_Left.eDirection = FORWARD;
-				m2_Right.eDirection = REVERSE;
-			}
-			ui8NextPWM = u * 100;
-
-			if(ui8NextPWM < MOTOR_SPEED_MINIMUM)
-				ui8NextPWM = 0;
-
-			if(ui8NextPWM > MOTOR_SPEED_MAXIMUM)
-				ui8NextPWM = MOTOR_SPEED_MAXIMUM;
-
-			m1_Left.ui8Speed = ui8NextPWM;
-			m2_Right.ui8Speed = ui8NextPWM;
-
-			configureMotors(m1_Left, m2_Right);
-
-			DEBUG_PRINTS3("u = %d, %d %d \n", (int32_t)(u * 63356 + 0.5f),
-										  (int32_t)(m1_Left.eDirection),
-										  (int32_t)(m1_Left.ui8Speed));
-
-			delay_ms(10);
-		}
-	}
+	DEBUG_PRINT("IMU DMP: Ready\n");
 #endif
-#ifndef HAVE_IMU
+
+//	// System Variables
+//	Motor_t m1_Left;
+//	Motor_t m2_Right;
+//	uint8_t ui8NextPWM;
+//
+//	// Memmory Storages
+//	float fYawAngleInRad = 0;
+//	float e_old = 0;
+//	float E = 0;
+//
+//	// Controller Variables
+//	Vector3<float> vect3YawPitchRoll(0, 0, 0);
+//	float fOriginR = 0;
+//	float fReferenceYawAngleInRad = 0;
+//	float e = 0;
+//	float e_dot = 0;
+//	float u = 0;
+//
+//	// Initialize
+//	// get reference for PID Controller
+////	fReferenceYawAngleInRad = IMU_getYawAngle();
+////	fOriginR = fReferenceYawAngleInRad;
+//
+//	// Setup motor
+//	m1_Left.eDirection = FORWARD;
+//	m2_Right.eDirection = REVERSE;
+//	m1_Left.ui8Speed = u;
+//	m2_Right.ui8Speed = u;
+//
+//	while(1)
+//	{
+//		stopMotors();
+//		fReferenceYawAngleInRad = IMU_getYawAngle();
+//		fOriginR = fReferenceYawAngleInRad;
+//
+//		while(!bIsRunPID);
+//		e = 0;
+//		e_old = 0;
+//		e_dot = 0;
+//		E = 0;
+//		fReferenceYawAngleInRad = fOriginR + r;
+//		while(bIsRunPID)
+//		{
+//			/* PID controll robot: moving forward in straight line */
+//			// read current yaw angle
+//			fYawAngleInRad = IMU_getYawAngle();
+//
+//			// calculate the error
+//			e = fYawAngleInRad - fReferenceYawAngleInRad;
+//
+//			// Because e is an angle so need extra-handle
+//			e = atan2f(sinf(e), cosf(e));
+//
+//			// calculate the error dynamic
+//			e_dot = e - e_old;
+//
+//			// integral the error
+//			E = E + e;
+//
+//			// compute the control input
+//			u = kP*e + kI*E + kD*e_dot;
+//
+//			// save 'e' for the next loop
+//			e_old = e;
+//
+//
+//			/* PWM control signal */
+//			if(u < 0)
+//			{
+//				u = 0 - u;
+//				m1_Left.eDirection = REVERSE;
+//				m2_Right.eDirection = FORWARD;
+//			}
+//			else
+//			{
+//				m1_Left.eDirection = FORWARD;
+//				m2_Right.eDirection = REVERSE;
+//			}
+//			ui8NextPWM = u * 100;
+//
+//			if(ui8NextPWM < MOTOR_SPEED_MINIMUM)
+//				ui8NextPWM = 0;
+//
+//			if(ui8NextPWM > MOTOR_SPEED_MAXIMUM)
+//				ui8NextPWM = MOTOR_SPEED_MAXIMUM;
+//
+//			m1_Left.ui8Speed = ui8NextPWM;
+//			m2_Right.ui8Speed = ui8NextPWM;
+//
+//			configureMotors(m1_Left, m2_Right);
+//
+//			DEBUG_PRINTS3("u = %d, %d %d \n", (int32_t)(u * 63356 + 0.5f),
+//										  (int32_t)(m1_Left.eDirection),
+//										  (int32_t)(m1_Left.ui8Speed));
+//
+//			delay_ms(10);
+//		}
+//	}
+
 	while(true)
 	{
 		switch (getRobotState())
@@ -220,9 +210,14 @@ int main(void)
 				StateSix_CorrectLocations();
 				break;
 
-			case ROBOT_STATE_TEST_ONLY:
-				StateSix_TestOnly();
+			case ROBOT_STATE_LOCOMOTION:
+				//TODO: implement
 				setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_ROTATE_TO_ANGLE:
+				if(rotateToAngleUseControllerGTG())
+					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
 			default: // ROBOT_STATE_IDLE
@@ -231,7 +226,6 @@ int main(void)
 			break;
 		}
 	}
-#endif
 }
 
 void initSystem(void)
@@ -249,6 +243,9 @@ void initSystem(void)
 
 	initLeds();
 	DEBUG_PRINT("init LEDs: OK\n");
+
+//	initProximitySensor();
+//	DEBUG_PRINT("init IR LED: OK\n");
 
 	initPeripheralsForAnalogFunction();
 	DEBUG_PRINT("init Peripherals for analog feature: OK\n");
@@ -271,6 +268,15 @@ void initSystem(void)
 #ifdef HAVE_IMU
 	initI2C();
 	DEBUG_PRINT("init I2C: OK\n");
+
+	InvMPU mpu6050;
+	if(initIMU(&mpu6050))
+		DEBUG_PRINT("init IMU: OK\n");
+	else
+	{
+		DEBUG_PRINT("CPU trapped! Please unplug VDD signal of IMU module then replug and try again...\n");
+		while(true);
+	}
 #endif
 }
 

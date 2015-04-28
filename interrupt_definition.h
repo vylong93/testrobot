@@ -28,6 +28,7 @@ extern "C"
 
 //#define PRIORITY_CC2500_IRQ		LEVEL_0 // CANNOT change this priority in here!
 #define PRIORITY_DMA_BATT			LEVEL_0
+#define PRIORITY_DMA_PROX			LEVEL_0
 
 #define PRIORITY_DMA_RANDOM_GEN		LEVEL_2
 #define PRIORITY_DMA_MIC1			LEVEL_2

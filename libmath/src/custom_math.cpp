@@ -8,12 +8,11 @@
 #include "libmath/inc/custom_math.h"
 #include <math.h>
 
-float absFloatNumber(float x)
+float signFloatNumber(float a)
 {
-	if (x > 0)
-		return x;
-	else
-		return (-x);
+	if (a >= 0)
+		return 1;
+	return -1;
 }
 
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c)

@@ -25,8 +25,8 @@ extern "C"
 #include "driverlib\pwm.h"
 #include "driverlib\gpio.h"
 
-#define MOTOR_SPEED_MINIMUM		50
-#define MOTOR_SPEED_MAXIMUM		150		//	250
+#define MOTOR_SPEED_MINIMUM		60
+#define MOTOR_SPEED_MAXIMUM		130
 
 #define MIN_MOTOR_DUTYCYCLE		1
 #define MAX_MOTOR_DUTYCYCLE		90
