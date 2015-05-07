@@ -44,6 +44,7 @@ int main(void)
 
 	turnOffLED(LED_ALL);
 
+#ifdef REGION_COMMENT
 //	NeighborsTable_clear();
 //	OneHopNeighborsTable_clear();
 //	RobotLocationsTable_clear();
@@ -64,6 +65,7 @@ int main(void)
 //	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
 //	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
 //	test();
+#endif
 
 #ifdef HAVE_IMU
 	turnOnLED(LED_GREEN);
@@ -77,6 +79,7 @@ int main(void)
 	DEBUG_PRINT("IMU DMP: Ready\n");
 #endif
 
+#ifdef REGION_COMMENT
 //	// System Variables
 //	Motor_t m1_Left;
 //	Motor_t m2_Right;
@@ -175,6 +178,7 @@ int main(void)
 //			delay_ms(10);
 //		}
 //	}
+#endif
 
 	while(true)
 	{
@@ -215,19 +219,14 @@ int main(void)
 				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
+			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP:
+				if(rotateToAngleUseStepController())
+					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+//================================================================================
 			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID:
 				if(rotateToAngleUseControllerRTA())
-					setRobotState(ROBOT_STATE_IDLE);
-				break;
-
-			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL:
-				if(rotateToAngleUseCalibrateController())
-					//setRobotState(ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE);
-					setRobotState(ROBOT_STATE_IDLE);
-				break;
-
-			case ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE:
-				if(commandTwoMotors())
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
@@ -235,18 +234,12 @@ int main(void)
 				if(moveForwardUseControllerFW())
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
-
-			case ROBOT_STATE_TEST_MOROT_LEFT:
-				testMotorLeft();
-				break;
-
-			case ROBOT_STATE_TEST_MOROT_RIGHT:
-				testMotorRight();
-				break;
+//================================================================================
 
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
-				ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000) * 750); // ~750ms
+				ROM_SysCtlDelay(12500000);
+				//ROM_SysCtlDelay(ROM_SysCtlClockGet() / (3 * 1000) * 750); // ~750ms
 			break;
 		}
 	}
@@ -337,6 +330,7 @@ void MCU_RF_IRQ_handler(void)
 		returnToSleep();
 }
 
+#ifdef REGION_COMMENT
 //void StateSix_Locomotion()
 //{
 //	vector2_t vectZero;
@@ -847,3 +841,4 @@ void MCU_RF_IRQ_handler(void)
 //
 //	ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
 //	ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+#endif

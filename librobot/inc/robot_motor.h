@@ -24,6 +24,8 @@ extern "C"
 #include "driverlib\rom.h"
 #include "driverlib\pwm.h"
 #include "driverlib\gpio.h"
+#include "driverlib\timer.h"
+#include "timers_definition.h"
 
 #define MOTOR_SPEED_MINIMUM		1
 #define MOTOR_SPEED_MAXIMUM		250
@@ -71,6 +73,14 @@ extern "C"
 #define RIGHT_MOTOR_PWM_OUT2            PWM_OUT_2
 #define RIGHT_MOTOR_PWM_OUT2_BIT        PWM_OUT_2_BIT
 
+typedef enum tag_RobotMovement
+{
+	ROBOT_MOVEMENT_COUNTERCLOSEWISE = 0,
+	ROBOT_MOVEMENT_CLOCKWISE = 1,
+	ROBOT_MOVEMENT_REVERSE = 2,
+	ROBOT_MOVEMENT_FORWARD = 3,
+} e_RobotMovement;
+
 typedef enum tag_RobotMoveDirection
 {
 	ROBOT_MOVE_REVERSE = 0,
@@ -97,6 +107,37 @@ typedef struct tag_Motor
 	uint8_t	ui8Speed;
 } Motor_t;
 
+// Basic Motor interface ======================
+void initMotors(void);
+void Motors_stop(void);
+void MotorLeft_stop(void);
+void MotorRight_stop(void);
+void MotorDriver_enable(void);
+void MotorDriver_disable(void);
+
+void Motors_configure(Motor_t mLeftMotor, Motor_t mRightMotor);
+void MotorLeft_assignActiveParameter(Motor_t motor);
+void MotorRight_assignActiveParameter(Motor_t motor);
+
+// Timer monitor interface ====================
+#define STEP_ACTIVE_MOTORS_MS 	50
+#define STEP_PAUSE_MOTORS_MS 	50
+
+#define STEP_MAX_SPEED 			250
+
+void initRobotMotorPairTimer(void);
+void Motor_delay_timerA_ms(uint32_t ui32PeriodInMs);
+void Motor_delay_timerA_us(uint32_t ui32PeriodInUs);
+void Robot_activeMotorsTask(uint32_t ui32PeriodInMs, e_RobotMovement eRobotMovement, bool (*pfnTask)(e_RobotMovement eMovement));
+
+void Robot_stepRotate_tunning(e_RobotRotateDirection eRotateDirection, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
+void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
+void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
+
+void Robot_stepMovementWithPeriod(uint16_t ui16PeriodMs, e_RobotMovement eRobotMovement);
+bool Robot_stepMovementTask(e_RobotMovement eRobotMovement);
+
+// Test only ==================================
 void setLeftMotorOffset(uint8_t ui8Parameter);
 void setRightMotorOffset(uint8_t ui8Parameter);
 void setPeriodMotorOffset(uint16_t ui16Parameter);
@@ -109,18 +150,6 @@ void applyWheelSpeedsToRotate(float vel_l, float vel_r, uint8_t *pui8LeftSpeed, 
 
 void rotateClockwiseWithAngle(float fAngleInRadian);
 void runForwardWithDistance(float fDistanceInCm);
-
-void initMotors(void);
-void stopMotors(void);
-void enableMOTOR(void);
-void disableMOTOR(void);
-
-void configureMotors(Motor_t mLeftMotor, Motor_t mRightMotor);
-void MotorLeft_assignActiveParameter(Motor_t motor);
-void MotorRight_assignActiveParameter(Motor_t motor);
-
-void MotorLeft_stop(void);
-void MotorRight_stop(void);
 
 #ifdef __cplusplus
 }

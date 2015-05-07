@@ -6,7 +6,6 @@
  */
 
 #include "libmath/inc/custom_math.h"
-#include <math.h>
 
 float signFloatNumber(float a)
 {

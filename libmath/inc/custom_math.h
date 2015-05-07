@@ -16,6 +16,7 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 #include "arm_math.h"
 
 typedef struct tagLineEquation {

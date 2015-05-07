@@ -44,12 +44,10 @@ typedef enum tag_RobotState
 	ROBOT_STATE_AVERAGE_VECTOR = 5,			// State Five
 	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
 	ROBOT_STATE_LOCOMOTION = 7,				// State Seven (optional)
-	ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID = 8,	// PID Controller
-	ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL = 9,	// Calibrate Controller
-	ROBOT_STATE_MOVE_FORWARD_USE_PID = 10,
-	ROBOT_STATE_TEST_MOROT_LEFT = 11,
-	ROBOT_STATE_TEST_MOROT_RIGHT = 12,
-	ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE = 13,
+
+	ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP = 8,	// Step Controller
+	ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID = 9,	// PID Controller
+	ROBOT_STATE_MOVE_FORWARD_USE_PID = 10,		// PID Controller
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -239,25 +237,20 @@ void transmitRobotIdentityToHost(void);
 #endif
 
 #ifdef REGION_CONTOLLER_CALIBRATE
+//===============================================
 void testPIDControllerForward(uint8_t* pui8Data);
 void testPIDController(uint8_t* pui8Data);
-void testCalibrateController(uint8_t* pui8Data);
-
 bool moveForwardUseControllerFW(void);
 bool rotateToAngleUseControllerRTA(void);
-bool rotateToAngleUseCalibrateController(void);
-void commandMotorLeftFast(e_MotorDirection leftD, e_MotorDirection rightD);
-void commandMotorRightFast(e_MotorDirection leftD, e_MotorDirection rightD);
+//===============================================
 
-bool commandTwoMotors(void);
-void commandMotorLeft(e_MotorDirection leftD, e_MotorDirection rightD);
-void commandMotorRight(e_MotorDirection leftD, e_MotorDirection rightD);
+void testStepController(uint8_t* pui8Data);
+bool rotateToAngleUseStepController(void);
+bool detectedRotateCollision(float fCurrentAngle);
+
 bool isTwoAngleOverlay(float a, float b, float errorInDeg);
 void applyUnicycleToMotorCommand(float w);
 #endif
-
-void testMotorLeft(void);
-void testMotorRight(void);
 
 #ifdef __cplusplus
 }

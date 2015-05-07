@@ -354,17 +354,19 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 //		sendIrProximityValueToHost(); // Not use yet
 		break;
 
-	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
-		testPIDController(pui8MessageData);
+	case HOST_COMMAND_CONFIG_STEP_CONTROLLER:
+		testStepController(pui8MessageData);
 		break;
 
-	case HOST_COMMAND_CONFIG_CALIBRATE_CONTROLLER:
-		testCalibrateController(pui8MessageData);
+//====================================================
+	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
+		testPIDController(pui8MessageData);
 		break;
 
 	case HOST_COMMAND_CONFIG_PID_CONTROLLER_FORWRAD:
 		testPIDControllerForward(pui8MessageData);
 		break;
+//====================================================
 
 	default:
 		decodeBasicHostCommand(ui8Cmd);

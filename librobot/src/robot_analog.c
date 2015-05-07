@@ -267,7 +267,7 @@ bool isSamplingCompleted(void)
 
 void triggerSamplingMicSignalsWithPreDelay(uint32_t ui32DelayUs)
 {
-	disableMOTOR();
+	MotorDriver_disable();
 
 	g_bIsSamplingMic0Done = false;
 	g_bIsSamplingMic1Done = false;
@@ -366,7 +366,7 @@ void ADC0IntHandler(void)
 		g_bIsSamplingMic0Done = true;
 		if (g_bIsSamplingMic1Done)
 		{
-			enableMOTOR();
+			MotorDriver_enable();
 		}
 	}
 }
@@ -394,7 +394,7 @@ void ADC1IntHandler(void)
 
 		if (g_bIsSamplingMic0Done)
 		{
-			enableMOTOR();
+			MotorDriver_enable();
 		}
 	}
 }
