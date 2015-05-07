@@ -1,25 +1,26 @@
 /*
- * RotateToAngleController.cpp
+ * ForwardController.cpp
  *
- *  Created on: Apr 28, 2015
+ *  Created on: May 4, 2015
  *      Author: VyLong
  */
 
-#include "libcontroller/inc/RotateToAngleController.h"
+#include "libcontroller/inc/ForwardController.h"
 #include <math.h>
 
-RotateToAngleController::RotateToAngleController() {
+ForwardController::ForwardController() {
 	E = 0;
 	e_old = 0;
+	RunStep = 0;
 }
 
-void RotateToAngleController::execute(RobotIdentity_t input, UnicycleModel &output)
+void ForwardController::execute(RobotIdentity_t input, UnicycleModel &output)
 {
 	// Compute the v, w that will get you to the goal
-	output.v = 0;
+	output.v = Speed;
 
 	// 1. Calculate the heading error.
-	float e_k = input.theta - EndTheta;
+	float e_k = input.theta - TrackTheta;
 
 	// Hint: Use ATAN2 to make sure this stays in [-pi, pi].
 	e_k = atan2f(sinf(e_k), cosf(e_k));
@@ -35,14 +36,19 @@ void RotateToAngleController::execute(RobotIdentity_t input, UnicycleModel &outp
 
 	// save 'e' for the next loop
 	e_old = e_k;
+
+	RunStep--;
 }
 
-void RotateToAngleController::reset()
+void ForwardController::reset()
 {
 	E = 0;
 	e_old = 0;
-	StartTheta = 0;
-	EndTheta = 0;
+	RunStep = 0;
 }
+
+
+
+
 
 

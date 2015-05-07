@@ -23,6 +23,7 @@
 
 bool initIMU(InvMPU* pMpu6050);
 
+float IMU_getYawAngleAndTapValue(float* piTapValue);
 float IMU_getYawAngle(void);
 float IMU_extractYawAngle(Quaternion q);
 

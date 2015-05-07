@@ -38,19 +38,22 @@ void setPeriodMotorOffset(uint16_t ui16Parameter)
 	g_fPeriodMotorOffset = ui16Parameter * 1.0f;
 }
 
-void Robot_move(bool bIsForward)
+void Robot_move(e_RobotMoveDirection eMoveDirection)
 {
 	Motor_t mLeft, mRight;
 
 	mLeft.ui8Speed = g_ui8LeftMotorOffset;
 	mRight.ui8Speed = g_ui8RightMotorOffset;
 
-	if(bIsForward)
+	if (eMoveDirection == ROBOT_MOVE_MAINTAIN)
+		return;
+
+	if (eMoveDirection == ROBOT_MOVE_FORWARD)
 	{
 		mLeft.eDirection = FORWARD;
 		mRight.eDirection = FORWARD;
 	}
-	else
+	else if (eMoveDirection == ROBOT_MOVE_REVERSE)
 	{
 		mLeft.eDirection = REVERSE;
 		mRight.eDirection = REVERSE;
@@ -59,25 +62,93 @@ void Robot_move(bool bIsForward)
 	configureMotors(mLeft, mRight);
 }
 
-void Robot_rotate(bool bIsClockwise)
+void Robot_rotate(e_RobotRotateDirection eRotateDirection)
 {
 	Motor_t mLeft, mRight;
 
-	mLeft.ui8Speed = g_ui8LeftMotorOffset;
-	mRight.ui8Speed = g_ui8RightMotorOffset;
+	mLeft.ui8Speed = (uint8_t)(g_ui8LeftMotorOffset);
+	mRight.ui8Speed = (uint8_t)(g_ui8RightMotorOffset);
 
-	if(bIsClockwise)
+	if(eRotateDirection == ROBOT_ROTATE_MAINTAIN)
+		return;
+
+	if (eRotateDirection == ROBOT_ROTATE_CLOCKWISE)
 	{
 		mLeft.eDirection = REVERSE;
 		mRight.eDirection = FORWARD;
 	}
-	else
+	else if (eRotateDirection == ROBOT_ROTATE_COUNTERCLOSEWISE)
 	{
 		mLeft.eDirection = FORWARD;
 		mRight.eDirection = REVERSE;
 	}
 
 	configureMotors(mLeft, mRight);
+}
+
+void Robot_rotate_tuning(e_RobotRotateDirection eRotateDirection, uint8_t ui8LeftM, uint8_t ui8RightM)
+{
+	static char flag = 1;
+	flag ^= 1;
+
+	Motor_t mLeft, mRight;
+
+	if(flag)
+	{
+		mLeft.ui8Speed = 0;
+		mRight.ui8Speed = ui8RightM;
+	}
+	else
+	{
+		mLeft.ui8Speed = ui8LeftM;
+		mRight.ui8Speed = 0;
+	}
+
+	if(eRotateDirection == ROBOT_ROTATE_MAINTAIN)
+		return;
+
+	if (eRotateDirection == ROBOT_ROTATE_CLOCKWISE)
+	{
+		mLeft.eDirection = REVERSE;
+		mRight.eDirection = FORWARD;
+	}
+	else if (eRotateDirection == ROBOT_ROTATE_COUNTERCLOSEWISE)
+	{
+		mLeft.eDirection = FORWARD;
+		mRight.eDirection = REVERSE;
+	}
+
+	configureMotors(mLeft, mRight);
+}
+
+void applyWheelSpeedsToRotate(float vel_l, float vel_r, uint8_t *pui8LeftSpeed, uint8_t *pui8RightSpeed)
+{
+// Attemp 0:
+	*pui8LeftSpeed = g_ui8LeftMotorOffset;
+	*pui8RightSpeed = g_ui8RightMotorOffset;
+	
+// Attemp 1:
+//	int32_t diff = g_ui8LeftMotorOffset - g_ui8RightMotorOffset;
+//	diff = abs(diff) / 2;
+//
+//	if(g_ui8LeftMotorOffset > g_ui8RightMotorOffset)
+//	{
+//		*pui8LeftSpeed = (uint8_t)((int32_t)(fabsf(vel_l) + diff + 0.5f));
+//
+//		if (vel_r > diff)
+//			*pui8RightSpeed = (uint8_t)((int32_t)(fabsf(vel_r) - diff + 0.5f));
+//		else
+//			*pui8RightSpeed = (uint8_t)((int32_t)(fabsf(vel_r) + 0.5f));
+//	}
+//	else
+//	{
+//		if (vel_l > diff)
+//			*pui8LeftSpeed = (uint8_t)((int32_t)(fabsf(vel_l) - diff + 0.5f));
+//		else
+//			*pui8LeftSpeed = (uint8_t)((int32_t)(fabsf(vel_l) + 0.5f));
+//
+//		*pui8RightSpeed = (uint8_t)((int32_t)(fabsf(vel_r) + diff + 0.5f));
+//	}
 }
 
 void rotateClockwiseWithAngle(float fAngleInRadian)
@@ -89,11 +160,11 @@ void rotateClockwiseWithAngle(float fAngleInRadian)
 
 	if (fAngleInRadian > 0)
 	{
-		Robot_rotate(true);
+		Robot_rotate(ROBOT_ROTATE_CLOCKWISE);
 	}
 	else
 	{
-		Robot_rotate(false);
+		Robot_rotate(ROBOT_ROTATE_COUNTERCLOSEWISE);
 		fAngleInRadian = 0 - fAngleInRadian;
 	}
 
@@ -111,11 +182,11 @@ void runForwardWithDistance(float fDistanceInCm)
 
 	if (fDistanceInCm > 0)
 	{
-		Robot_move(true);
+		Robot_move(ROBOT_MOVE_FORWARD);
 	}
 	else
 	{
-		Robot_move(false);
+		Robot_move(ROBOT_MOVE_REVERSE);
 
 		fDistanceInCm = 0 - fDistanceInCm;
 	}

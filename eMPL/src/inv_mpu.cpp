@@ -425,14 +425,16 @@ int InvMPU::mpu_init(void)
     rev = ((data[5] & 0x01) << 2) | ((data[3] & 0x01) << 1) |
         (data[1] & 0x01);
 
+    DEBUG_PRINTS("Software product rev: %d\n", rev);
+
     if (rev) {
         /* Congrats, these parts are better. */
         if (rev == 1)
             st.chip_cfg.accel_half = 1;
-        else if (rev == 2)
+        else if (rev == 2 || rev == 4)
             st.chip_cfg.accel_half = 0;
         else {
-        	DEBUG_PRINT("Unsupported software product rev \n");
+        	DEBUG_PRINT("Unsupported software product rev\n");
             return -1;
         }
     }
@@ -440,10 +442,13 @@ int InvMPU::mpu_init(void)
     {
         if (i2c_read(st.hw->addr, st.reg->prod_id, 1, data))
             return -1;
+
+        DEBUG_PRINTS("Software product unmask: %d\n", data[0]);
+
         rev = data[0] & 0x0F;
         if (!rev)
         {
-        	DEBUG_PRINT("Unsupported software product rev \n");
+        	DEBUG_PRINT("Unsupported software product rev\n");
             return -1;
         }
         else if (rev == 4) {

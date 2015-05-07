@@ -215,9 +215,33 @@ int main(void)
 				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_ROTATE_TO_ANGLE:
-				if(rotateToAngleUseControllerGTG())
+			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID:
+				if(rotateToAngleUseControllerRTA())
 					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL:
+				if(rotateToAngleUseCalibrateController())
+					//setRobotState(ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE);
+					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE:
+				if(commandTwoMotors())
+					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_MOVE_FORWARD_USE_PID:
+				if(moveForwardUseControllerFW())
+					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_TEST_MOROT_LEFT:
+				testMotorLeft();
+				break;
+
+			case ROBOT_STATE_TEST_MOROT_RIGHT:
+				testMotorRight();
 				break;
 
 			default: // ROBOT_STATE_IDLE

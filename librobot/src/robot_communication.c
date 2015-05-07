@@ -298,10 +298,6 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		writeBulkToEeprom(pui8MessageData);
 		break;
 
-	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
-		testPIDController(pui8MessageData);
-		break;
-
 	case HOST_COMMAND_CALIBRATE_TDOA_TX:
 		triggerResponseState(ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
 		break;
@@ -356,6 +352,18 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 
 	case HOST_COMMAND_REQUEST_PROXIMITY_RAW:
 //		sendIrProximityValueToHost(); // Not use yet
+		break;
+
+	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
+		testPIDController(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_CONFIG_CALIBRATE_CONTROLLER:
+		testCalibrateController(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_CONFIG_PID_CONTROLLER_FORWRAD:
+		testPIDControllerForward(pui8MessageData);
 		break;
 
 	default:

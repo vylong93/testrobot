@@ -7,6 +7,7 @@
 
 #include "librobot/inc/robot_imu.h"
 #include "libcustom/inc/custom_uart_debug.h"
+#include <math.h>
 
 InvMPU* g_mpu6050;
 
@@ -22,6 +23,12 @@ static signed char gyro_orientation[9] = { -1, 0, 0,
 											0, -1, 0,
 											0, 0, 1 };
 
+static void IMU_tap_cb(unsigned char direction, unsigned char count)
+{
+    DEBUG_PRINTS2("IMU_tap_cb:: direction %d, count %d\n", direction, count);
+}
+
+
 bool initIMU(InvMPU* pMpu6050)
 {
 	g_mpu6050 = pMpu6050;
@@ -30,6 +37,21 @@ bool initIMU(InvMPU* pMpu6050)
 	return bIsSuccess;
 }
 
+float IMU_getYawAngleAndTapValue(float* piTapValue)
+{
+	Quaternion q;
+	Vector3<float> vect3RawAccel;
+
+	//NOTE: this function below spin about 60-100ms
+	IMU_updateNewRaw();
+
+	IMU_extractQuaternion(&q);
+	IMU_extractRawAccel(&vect3RawAccel);
+
+	*piTapValue = fabsf(fabsf(vect3RawAccel.x) + fabsf(vect3RawAccel.y) + fabsf(vect3RawAccel.z) - 0.9f);
+
+	return IMU_extractYawAngle(q);
+}
 
 float IMU_getYawAngle(void)
 {
@@ -300,7 +322,7 @@ bool IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 
 	if (pMpu6050->mpu_init())
 	{
-		DEBUG_PRINT("Error in init!!");
+		DEBUG_PRINT("Error in init!!!\n");
 		return false;
 	}
 
@@ -380,6 +402,17 @@ bool IMU_setup_mpu_dmp(InvMPU* pMpu6050)
 	else
 	{
 		DEBUG_PRINT("dmp_load_motion_driver_firmware come across error ......\n");
+		return false;
+	}
+
+	//
+	// dmp_register_tap_cb
+	//
+	if(!pMpu6050->dmp_register_tap_cb(IMU_tap_cb))
+		DEBUG_PRINT("dmp_register_tap_cb complete ......\n");
+	else
+	{
+		DEBUG_PRINT("dmp_register_tap_cb come across error ......\n");
 		return false;
 	}
 

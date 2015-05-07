@@ -96,6 +96,9 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_TOGGLE_IR_LED				0x22
 #define HOST_COMMAND_REQUEST_PROXIMITY_RAW		0x23
 
+#define HOST_COMMAND_CONFIG_CALIBRATE_CONTROLLER	0x24
+#define HOST_COMMAND_CONFIG_PID_CONTROLLER_FORWRAD	0x25
+
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT							0xB0

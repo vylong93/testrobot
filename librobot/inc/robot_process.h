@@ -17,6 +17,23 @@ extern "C"
 {
 #endif
 
+#include "librobot/inc/robot_motor.h"
+
+// Region definition =========================
+#define REGION_ROBOT_VARIABLES_AND_FUNCTIONS
+#define REGION_STATE_PERIOD_PARAMETERS
+#define REGION_STATE_ONE_MEASURE_DISTANCE
+#define REGION_STATE_TWO_EXCHANGE_TABLE
+#define REGION_STATE_THREE_VOTE_ORIGIN
+#define REGION_STATE_FOUR_ROTATE_NETWORK
+#define REGION_STATE_FIVE_CORRECT_COORDINATES
+#define REGION_STATE_SIX_SYNCH_LOCS_TABLE
+#define REGION_BASIC_CALIBRATE
+#define REGION_DEBUG
+#define REGION_CONTOLLER_CALIBRATE
+//============================================
+
+#ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
 typedef enum tag_RobotState
 {
 	ROBOT_STATE_IDLE = 0,
@@ -27,7 +44,12 @@ typedef enum tag_RobotState
 	ROBOT_STATE_AVERAGE_VECTOR = 5,			// State Five
 	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
 	ROBOT_STATE_LOCOMOTION = 7,				// State Seven (optional)
-	ROBOT_STATE_ROTATE_TO_ANGLE = 8,		// State Eight
+	ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID = 8,	// PID Controller
+	ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL = 9,	// Calibrate Controller
+	ROBOT_STATE_MOVE_FORWARD_USE_PID = 10,
+	ROBOT_STATE_TEST_MOROT_LEFT = 11,
+	ROBOT_STATE_TEST_MOROT_RIGHT = 12,
+	ROBOT_STATE_CORRECT_ROTATE_TO_ANGLE = 13,
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -65,8 +87,9 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 
 void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
+#endif
 
-//========= STATES PERIOD PARAMETER ====================================
+#ifdef REGION_STATE_PERIOD_PARAMETERS
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1000000		// 1s
@@ -91,8 +114,9 @@ void handleNeighborResponseSamplingCollision(void);
 #define CORRECT_LOCATIONS_STATE_MAINTASK2_LIFE_TIME_IN_MS		2000	// 2s
 #define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MIN		10000		// 10ms
 #define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX		100000		// 100ms
+#endif
 
-//========= State 1 - Measure Distances ================================
+#ifdef REGION_STATE_ONE_MEASURE_DISTANCE
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);
 bool StateOne_MeasureDistance_MainTask(va_list argp);
@@ -103,9 +127,9 @@ void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageDa
 bool tryToRequestLocalNeighborsForDistanceMeasurement(void);
 void broadcastMeasureDistanceCommandToLocalNeighbors(uint8_t ui8Command, int16_t i16Intercept, int16_t i16Slope);
 bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
+#endif
 
-
-//========= State 2 - Exchange Table ===================================
+#ifdef REGION_STATE_TWO_EXCHANGE_TABLE
 void StateTwo_ExchangeTable(void);
 void StateTwo_ExchangeTable_ResetFlag(void);
 bool StateTwo_ExchangeTable_MainTask(va_list argp);
@@ -114,9 +138,9 @@ void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestDa
 void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
 void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId);
+#endif
 
-
-//========= State 3 - Vote The Origin ===================================
+#ifdef REGION_STATE_THREE_VOTE_ORIGIN
 #define BROADCAST_VOTE_TIMES 	3
 
 void StateThree_VoteTheOrigin(void);
@@ -127,9 +151,9 @@ void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData);
 
 void broadcastVoteTheOriginCommandToLocalNeighbors(void);
 void indicatesOriginIdToLEDs(uint32_t ui32Id);
+#endif
 
-
-//========= State 4 - Rotate Network Coordinates ===================================
+#ifdef REGION_STATE_FOUR_ROTATE_NETWORK
 void StateFour_RotateCoordinates(void);
 bool StateFour_RotateCoordinates_ResetFlag(void);
 bool StateFour_RotateCoordinates_MainTask(va_list argp);
@@ -143,9 +167,9 @@ void prepareLocationsTableBuffer(void);
 bool sendRequestRotateCoordinatesCommandToNeighbor(uint32_t ui32NeighborID);
 void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag);
 bool getRotationFlagOfRobot(uint32_t ui32RobotID);
+#endif
 
-
-//========= State 5 - Average Vector ===================================
+#ifdef REGION_STATE_FIVE_CORRECT_COORDINATES
 void StateFive_AverageVector(void);
 void StateFive_AverageVector_ResetFlag(void);
 bool StateFive_AverageVector_MainTask(va_list argp);
@@ -156,8 +180,9 @@ void StateFive_AverageVector_NotFoundSelfVectorHandler(uint8_t* pui8MessageData,
 
 void sendRequestNeighborVectorCommandToNeighbor(uint32_t ui32NeighborId);
 void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId);
+#endif
 
-
+#ifdef REGION_STATE_SIX_SYNCH_LOCS_TABLE
 //========= State 6 - Correct Locations Table ===================================
 void StateSix_CorrectLocations(void);
 
@@ -177,7 +202,9 @@ void StateSix_CorrectLocations_UnActiveHandler(uint8_t* pui8MessageData, uint32_
 void sendRequestSelfVectorAndFlagCommandToNeighbor(uint32_t ui32NeighborId);
 void responseSelfVectorAndFlagToRequestRobot(uint32_t ui32NeighborId);
 void indicatesLocalLoopToLEDs(void);
+#endif
 
+#ifdef REGION_BASIC_CALIBRATE
 //========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
@@ -197,7 +224,11 @@ bool tryToCalibrateLocalNeighborsForDistanceMeasurement(void);
 bool isCorrectTDOAResponse(va_list argp);
 void handleCalibrateSamplingMicsRequest(uint8_t* pui8RequestData);
 bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float fPeakB);
-void testPIDController(uint8_t* pui8Data);
+
+void robotMoveCommandWithPeriod(uint8_t* pui8Data);
+void robotRotateCommandWithPeriod(uint8_t* pui8Data);
+void robotMoveCommandWithDistance(uint8_t* pui8Data);
+void robotRotateCommandWithAngle(uint8_t* pui8Data);
 
 void sendNeighborsTableToHost(void);
 void sendOneHopNeighborsTableToHost(void);
@@ -205,14 +236,28 @@ void sendRobotLocationsTableToHost(void);
 void selfCorrectLocationsTable(void);
 void selfCorrectLocationsTableExceptRotationHopID(void);
 void transmitRobotIdentityToHost(void);
+#endif
 
-void robotMoveCommandWithPeriod(uint8_t* pui8Data);
-void robotRotateCommandWithPeriod(uint8_t* pui8Data);
-void robotMoveCommandWithDistance(uint8_t* pui8Data);
-void robotRotateCommandWithAngle(uint8_t* pui8Data);
-bool rotateToAngleUseControllerGTG(void);
+#ifdef REGION_CONTOLLER_CALIBRATE
+void testPIDControllerForward(uint8_t* pui8Data);
+void testPIDController(uint8_t* pui8Data);
+void testCalibrateController(uint8_t* pui8Data);
+
+bool moveForwardUseControllerFW(void);
+bool rotateToAngleUseControllerRTA(void);
+bool rotateToAngleUseCalibrateController(void);
+void commandMotorLeftFast(e_MotorDirection leftD, e_MotorDirection rightD);
+void commandMotorRightFast(e_MotorDirection leftD, e_MotorDirection rightD);
+
+bool commandTwoMotors(void);
+void commandMotorLeft(e_MotorDirection leftD, e_MotorDirection rightD);
+void commandMotorRight(e_MotorDirection leftD, e_MotorDirection rightD);
 bool isTwoAngleOverlay(float a, float b, float errorInDeg);
 void applyUnicycleToMotorCommand(float w);
+#endif
+
+void testMotorLeft(void);
+void testMotorRight(void);
 
 #ifdef __cplusplus
 }

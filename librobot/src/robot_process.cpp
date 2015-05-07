@@ -36,21 +36,12 @@
 #include "librobot/inc/robot_imu.h"
 
 #include "libcontroller/inc/RotateToAngleController.h"
+#include "libcontroller/inc/ForwardController.h"
 
-//extern void initData(uint8_t* pui8MessageData); // Test Only
-//extern bool Tri_tryToCalculateRobotLocationsTable(uint32_t ui32RobotOsId);
-//extern bool Tri_tryToRotateLocationsTable(RobotIdentity_t* pRobotIdentity, uint8_t* pui8OriLocsTableBufferPointer, int32_t ui32SizeOfOriLocsTable);
+#ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
 
-#define WHEEL_MAX_VEL 80
-#define WHEEL_MIN_VEL -80
-
-void ensure_w(UnicycleModel uni, DifferentialDriveModel &diff);
-void setWheelSpeeds(DifferentialDriveModel diffModel);
-void limitSpeeds(DifferentialDriveModel &diff);
-
-UnicycleModel g_UnicycleModel;
-DifferentialDriveModel g_DifferentialDriveModel;
 RotateToAngleController* g_pControllerRTA;
+ForwardController* g_pControllerFW;
 
 RobotIdentity_t g_RobotIdentity;
 
@@ -114,6 +105,7 @@ void initRobotProcess(void)
 
 	resetRobotIdentity();
 	g_pControllerRTA = new RotateToAngleController();
+	g_pControllerFW = new ForwardController();
 
 	//
 	// Initilize motor parameters
@@ -168,6 +160,7 @@ void resetRobotIdentity(void)
 
 void setRobotState(e_RobotState eState)
 {
+	stopMotors();
 	g_eRobotState = eState;
 }
 e_RobotState getRobotState(void)
@@ -248,7 +241,10 @@ void handleNeighborResponseSamplingCollision(void)
 	}
 }
 
-//========= State 1 - Measure Distances ================================
+#endif
+
+#ifdef REGION_STATE_ONE_MEASURE_DISTANCE
+
 static bool g_bIsSuccessMeasuredDistances;
 
 void StateOne_MeasureDistance(void)
@@ -514,8 +510,10 @@ bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_DISTANCE_RESULT, pui8ResponseData, 6);
 }
 
+#endif
 
-//========= State 2 - Exchange Table ===================================
+#ifdef REGION_STATE_TWO_EXCHANGE_TABLE
+
 static bool g_bIsNewLocationsTableAvailable;
 
 void StateTwo_ExchangeTable(void)
@@ -784,8 +782,10 @@ void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId)
 	sendMessageToNeighbor(ui32NeighborId, ROBOT_REQUEST_NEIGHBORS_TABLE, pui8MessageData, 4);
 }
 
+#endif
 
-//========= State 3 - Vote The Origin ===================================
+#ifdef REGION_STATE_THREE_VOTE_ORIGIN
+
 static uint8_t g_ui8BroadcastVoteCommandCounter;
 
 void StateThree_VoteTheOrigin(void)
@@ -995,8 +995,9 @@ void indicatesOriginIdToLEDs(uint32_t ui32Id)
 		turnOffLED(LED_RED);
 }
 
+#endif
 
-//========= State 4 - Rotate Network Coordinates ===================================
+#ifdef REGION_STATE_FOUR_ROTATE_NETWORK
 RobotRotationFlag_t* g_pCoordinatesRotationFlagTable;
 //RobotRotationFlag_t g_pCoordinatesRotationFlagTable[NEIGHBORS_TABLE_LENGTH];
 int32_t g_i32FlagTableLength;
@@ -1387,8 +1388,9 @@ bool getRotationFlagOfRobot(uint32_t ui32RobotID)
 	return false;
 }
 
+#endif
 
-//========= State 5 - Correct Coordinates ===================================
+#ifdef REGION_STATE_FIVE_CORRECT_COORDINATES
 uint8_t g_ui8NeighborsTablePointer;
 uint8_t g_ui8NeighborsResponseVectorCounter;
 bool g_bIsCalculatedAverageVector;
@@ -1604,8 +1606,9 @@ void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId)
 	}
 }
 
+#endif
 
-//========= State 6 - Synchronous Locations Table ===================================
+#ifdef REGION_STATE_SIX_SYNCH_LOCS_TABLE
 uint8_t g_ui8TargetNeighborPointer;
 bool g_bIsGradientSearchStopFlag;
 bool g_bIsActiveCoordinatesFixing;
@@ -2051,7 +2054,9 @@ void indicatesLocalLoopToLEDs(void)
 		turnOffLED(LED_GREEN);
 }
 
-//========= Calibration Tab ============================================
+#endif
+
+#ifdef REGION_BASIC_CALIBRATE
 
 void testRfReceiver(uint8_t* pui8Data)
 {
@@ -2493,7 +2498,61 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_TDOA_RESULT, pui8ResponseData, 8);
 }
 
-/* Test PID Controller only */
+#endif
+
+#ifdef REGION_CONTOLLER_CALIBRATE
+
+#define WHEEL_MAX_VEL 100
+#define WHEEL_MIN_VEL 90
+
+void ensure_w(UnicycleModel uni, DifferentialDriveModel &diff);
+void setWheelSpeeds(DifferentialDriveModel diffModel);
+void limitSpeeds(DifferentialDriveModel &diff);
+
+UnicycleModel g_UnicycleModel;
+DifferentialDriveModel g_DifferentialDriveModel;
+
+float g_fEndThetaOfCalibrateController;
+uint8_t g_ui8LeftM;
+uint8_t g_ui8RightM;
+
+void testPIDControllerForward(uint8_t* pui8Data)
+{
+	if(g_pControllerFW == 0)
+		return;
+
+	int32_t i32Data;
+
+	i32Data = construct4Byte(pui8Data);
+	g_pControllerRTA->kP = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[4]);
+	g_pControllerRTA->kI = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[8]);
+	g_pControllerRTA->kD = i32Data / 65536.0f;
+
+	g_pControllerFW->RunStep = construct4Byte(&pui8Data[12]);
+
+	g_pControllerFW->Speed = pui8Data[16];
+
+	DEBUG_PRINTS4("FW PID grain: P %d, I %d, D %d, RunStep: %d\n",
+			(int32_t)(g_pControllerFW->kP * 1000),
+			(int32_t)(g_pControllerFW->kI * 1000),
+			(int32_t)(g_pControllerFW->kD * 1000),
+			(int32_t)(g_pControllerFW->RunStep));
+
+	g_pControllerFW->TrackTheta = IMU_getYawAngle();
+	g_pControllerFW->reset();
+
+	DEBUG_PRINTS("g_pControllerFW->StartTheta = %d\n", (int32_t)(g_pControllerFW->StartTheta * MATH_RAD2DEG));
+
+	turnOffLED(LED_BLUE);
+	turnOnLED(LED_GREEN);
+	setRobotState(ROBOT_STATE_MOVE_FORWARD_USE_PID);
+	DEBUG_PRINT("goto state ROBOT_STATE_MOVE_FORWARD_USE_PID\n");
+}
+
 void testPIDController(uint8_t* pui8Data)
 {
 	if(g_pControllerRTA == 0)
@@ -2528,128 +2587,80 @@ void testPIDController(uint8_t* pui8Data)
 	DEBUG_PRINTS("g_pControllerRTA->StartTheta = %d\n", (int32_t)(g_pControllerRTA->StartTheta * MATH_RAD2DEG));
 	DEBUG_PRINTS("g_pControllerRTA->EndTheta = %d\n", (int32_t)(g_pControllerRTA->EndTheta * MATH_RAD2DEG));
 
+	turnOffLED(LED_BLUE);
 	turnOnLED(LED_GREEN);
-	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE);
-	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE\n");
-}
-//-------------------------------
-
-
-// ======================= Debug Tab ===============================
-void sendNeighborsTableToHost(void)
-{
-	uint8_t pui8DataBuffer[60] = {0};
-
-	NeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 60);
-
-	sendDataToHost(pui8DataBuffer, 60);
+	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID);
+	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID\n");
 }
 
-void sendOneHopNeighborsTableToHost(void)
+void testCalibrateController(uint8_t* pui8Data)
 {
-	uint8_t pui8DataBuffer[640] = {0};
+	g_ui8LeftM = pui8Data[0];
+	g_ui8RightM = pui8Data[1];
+	int32_t i32Angle = construct4Byte(&pui8Data[2]);
+	float goalAngleInDeg = i32Angle / 65536.0f;
 
-	OneHopNeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 640);
+	float startAngle = IMU_getYawAngle();
+	g_fEndThetaOfCalibrateController = startAngle + goalAngleInDeg * MATH_DEG2RAD;
 
-	sendDataToHost(pui8DataBuffer, 640);
+	turnOffLED(LED_BLUE);
+	turnOnLED(LED_GREEN);
+	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL);
+	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE_USE_CAL\n");
 }
 
-void sendRobotLocationsTableToHost(void)
+bool moveForwardUseControllerFW(void)
 {
-	uint8_t pui8DataBuffer[120] = {0};
+	float tapValue;
+	g_RobotIdentity.theta = IMU_getYawAngleAndTapValue(&tapValue);
 
-	turnOnLED(LED_ALL);
+	DEBUG_PRINTS2("Current angle = %d, tapValue = %d\n", (int32_t)(g_RobotIdentity.theta * MATH_RAD2DEG), (int32_t)(tapValue * 1000));
 
-	RobotLocationsTable_fillContentToByteBuffer(pui8DataBuffer, 120);
+//	//TODO: collision detection
+//	if(tapValue > 1.0f)
+//	{
+//		DEBUG_PRINT("detected collision...\n");
+//		turnOnLED(LED_BLUE);
+//		stopMotors();
+//		g_pControllerRTA->reset();
+//		return true;
+//	}
 
-	sendDataToHost(pui8DataBuffer, 120);
+	if(g_pControllerFW->RunStep <= 0)
+	{
+		DEBUG_PRINT("detected collision...\n");
+		turnOnLED(LED_BLUE);
+		stopMotors();
+		g_pControllerRTA->reset();
+		return true;
+	}
 
-	turnOffLED(LED_ALL);
+	g_pControllerFW->execute(g_RobotIdentity, g_UnicycleModel);
+
+	ensure_w(g_UnicycleModel, g_DifferentialDriveModel);
+	setWheelSpeeds(g_DifferentialDriveModel);
+
+//	applyUnicycleToMotorCommand(uniModel.w);
+
+	return false;
 }
 
-void selfCorrectLocationsTable(void)
+bool rotateToAngleUseControllerRTA(void)
 {
-	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, 0);
-}
+	float tapValue;
+	g_RobotIdentity.theta = IMU_getYawAngleAndTapValue(&tapValue);
 
-void selfCorrectLocationsTableExceptRotationHopID(void)
-{
-	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
-}
+	DEBUG_PRINTS2("Current angle = %d, tapValue = %d\n", (int32_t)(g_RobotIdentity.theta * MATH_RAD2DEG), (int32_t)(tapValue * 1000));
 
-void transmitRobotIdentityToHost(void)
-{
-	uint8_t pui8ResponseBuffer[31] = { 0 };
-
-	parse32bitTo4Bytes(pui8ResponseBuffer, g_RobotIdentity.Self_ID);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[4], g_RobotIdentity.Origin_ID);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[8], g_RobotIdentity.RotationHop_ID);
-
-	pui8ResponseBuffer[12] = g_RobotIdentity.Self_NeighborsCount;
-	pui8ResponseBuffer[13] = g_RobotIdentity.Origin_NeighborsCount;
-	pui8ResponseBuffer[14] = g_RobotIdentity.Origin_Hopth;
-
-	int32_t i32Template;
-	i32Template = (int32_t)(g_RobotIdentity.x * 65535 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
-
-	i32Template = (int32_t)(g_RobotIdentity.y * 65535 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
-
-	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65535 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[23], i32Template);
-
-	i32Template = (int32_t)(g_RobotIdentity.RotationHop_y * 65535 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
-
-	sendDataToHost(pui8ResponseBuffer, 31);
-}
-
-void robotMoveCommandWithPeriod(uint8_t* pui8Data)
-{
-	bool bIsForward = ((e_RobotMoveDirection)pui8Data[0] == ROBOT_MOVE_FORWARD);
-	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
-
-	Robot_move(bIsForward);
-
-	delay_ms(ui16DelayMs);
-
-	stopMotors();
-}
-
-void robotRotateCommandWithPeriod(uint8_t* pui8Data)
-{
-	bool bIsClockwise = ((e_RobotRotateDirection)pui8Data[0] == ROBOT_ROTATE_CLOCKWISE);
-	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
-
-	Robot_rotate(bIsClockwise);
-
-	delay_ms(ui16DelayMs);
-
-	stopMotors();
-}
-
-void robotMoveCommandWithDistance(uint8_t* pui8Data)
-{
-	int32_t i32DistanceInCm = construct4Byte(pui8Data);
-	float fDistanceInCm = i32DistanceInCm / 65536.0f;
-
-	runForwardWithDistance(fDistanceInCm);
-}
-
-void robotRotateCommandWithAngle(uint8_t* pui8Data)
-{
-	int32_t i32AngleInDegree = construct4Byte(pui8Data);
-	float fAngleInRadian = (i32AngleInDegree / 65536.0f) / _180_DIV_PI;
-
-	rotateClockwiseWithAngle(fAngleInRadian);
-}
-
-bool rotateToAngleUseControllerGTG(void)
-{
-	g_RobotIdentity.theta = IMU_getYawAngle();
-
-	DEBUG_PRINTS("Current angle = %d\n", (int32_t)(g_RobotIdentity.theta * MATH_RAD2DEG));
+	//TODO: collision detection
+	if(tapValue > 1.0f)
+	{
+		DEBUG_PRINT("detected collision...\n");
+		turnOnLED(LED_BLUE);
+		stopMotors();
+		g_pControllerRTA->reset();
+		return true;
+	}
 
 	if(isTwoAngleOverlay(g_RobotIdentity.theta, g_pControllerRTA->EndTheta, CONTROLLER_ANGLE_ERROR_DEG))
 	{
@@ -2668,6 +2679,287 @@ bool rotateToAngleUseControllerGTG(void)
 //	applyUnicycleToMotorCommand(uniModel.w);
 
 	return false;
+}
+
+#define DELAY_MOTORS_FAST_MS	30
+#define DELAY_MOTORS_MS 		50
+#define MIN_PWM 10
+#define MAX_PWM 250
+
+bool rotateToAngleUseCalibrateController(void)
+{
+//	static e_RobotRotateDirection rotateDirection = ROBOT_ROTATE_MAINTAIN;
+//
+//	float tapValue;
+//	g_RobotIdentity.theta = IMU_getYawAngleAndTapValue(&tapValue);
+//
+////	//TODO: collision detection
+////	if(tapValue > 1.0f)
+////	{
+////		DEBUG_PRINT("detected collision...\n");
+////		turnOnLED(LED_BLUE);
+////		stopMotors();
+////		g_pControllerRTA->reset();
+////		return true;
+////	}
+//
+//	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+//	{
+//		stopMotors();
+//		turnOffLED(LED_GREEN);
+//		DEBUG_PRINT("Arrived the goal!!!\n");
+//
+//		rotateDirection = ROBOT_ROTATE_MAINTAIN;
+//		return true;
+//	}
+//
+//	float fAngleInRadian = g_fEndThetaOfCalibrateController - g_RobotIdentity.theta;
+//	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+//
+//	if (fAngleInRadian > 0)
+//	{
+////		if(rotateDirection != ROBOT_ROTATE_CLOCKWISE)
+////		{
+//			rotateDirection = ROBOT_ROTATE_CLOCKWISE;
+//			Robot_rotate_tuning(rotateDirection, g_ui8LeftM, g_ui8RightM);
+////		}
+//	}
+//	else
+//	{
+////		if(rotateDirection != ROBOT_ROTATE_COUNTERCLOSEWISE)
+////		{
+//			rotateDirection = ROBOT_ROTATE_COUNTERCLOSEWISE;
+//			Robot_rotate_tuning(rotateDirection, g_ui8LeftM, g_ui8RightM);
+////		}
+//	}
+//
+////	delay_ms(10);
+//
+//	return false;
+
+//	static char flagM = 1;
+//	flagM ^= 1;
+//
+//	e_MotorDirection leftD, rightD;
+//
+//	g_RobotIdentity.theta = IMU_getYawAngle();
+//
+////	//TODO: collision detection
+////	if(tapValue > 1.0f)
+////	{
+////		DEBUG_PRINT("detected collision...\n");
+////		turnOnLED(LED_BLUE);
+////		stopMotors();
+////		g_pControllerRTA->reset();
+////		return true;
+////	}
+//
+//	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+//	{
+//		stopMotors();
+//		turnOffLED(LED_GREEN);
+//		DEBUG_PRINT("Arrived the goal!!!\n");
+//		return true;
+//	}
+//
+//	float fAngleInRadian = g_fEndThetaOfCalibrateController - g_RobotIdentity.theta;
+//	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+//
+//	if (fAngleInRadian > 0)
+//	{
+//		// rotateDirection = ROBOT_ROTATE_CLOCKWISE;
+//		leftD = REVERSE;
+//		rightD = FORWARD;
+//	}
+//	else
+//	{
+//		// rotateDirection = ROBOT_ROTATE_COUNTERCLOSEWISE;
+//		leftD = FORWARD;
+//		rightD = REVERSE;
+//	}
+//
+//	if(flagM)
+//		commandMotorLeftFast(leftD, rightD);
+//	else
+//		commandMotorRightFast(leftD, rightD);
+//
+//	return false;
+
+	static char flagM = 1;
+	flagM ^= 1;
+
+	e_MotorDirection leftD, rightD;
+
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+//	//TODO: collision detection
+//	if(tapValue > 1.0f)
+//	{
+//		DEBUG_PRINT("detected collision...\n");
+//		turnOnLED(LED_BLUE);
+//		stopMotors();
+//		g_pControllerRTA->reset();
+//		return true;
+//	}
+
+	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+	{
+		stopMotors();
+		turnOffLED(LED_GREEN);
+		DEBUG_PRINT("Arrived the goal!!!\n");
+		return true;
+	}
+
+	float fAngleInRadian = g_fEndThetaOfCalibrateController - g_RobotIdentity.theta;
+	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+
+	if (fAngleInRadian > 0)
+	{
+		// rotateDirection = ROBOT_ROTATE_CLOCKWISE;
+		leftD = REVERSE;
+		rightD = FORWARD;
+	}
+	else
+	{
+		// rotateDirection = ROBOT_ROTATE_COUNTERCLOSEWISE;
+		leftD = FORWARD;
+		rightD = REVERSE;
+	}
+
+	if(flagM)
+		commandMotorLeft(leftD, rightD);
+	else
+		commandMotorRight(leftD, rightD);
+
+	return false;
+
+}
+
+void commandMotorLeftFast(e_MotorDirection leftD, e_MotorDirection rightD)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_GREEN);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = leftD;
+	mRight.eDirection = rightD;
+
+	mLeft.ui8Speed = MAX_PWM;
+	mRight.ui8Speed = MIN_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_FAST_MS);
+
+//	stopMotors();
+//	delay_ms(10);
+}
+
+void commandMotorRightFast(e_MotorDirection leftD, e_MotorDirection rightD)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_BLUE);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = leftD;
+	mRight.eDirection = rightD;
+
+	mLeft.ui8Speed = MIN_PWM;
+	mRight.ui8Speed = MAX_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_FAST_MS);
+
+//	stopMotors();
+//	delay_ms(5);
+}
+
+bool commandTwoMotors(void)
+{
+	static char flagM = 1;
+	flagM ^= 1;
+
+	e_MotorDirection leftD, rightD;
+
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+//	//TODO: collision detection
+//	if(tapValue > 1.0f)
+//	{
+//		DEBUG_PRINT("detected collision...\n");
+//		turnOnLED(LED_BLUE);
+//		stopMotors();
+//		g_pControllerRTA->reset();
+//		return true;
+//	}
+
+	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+	{
+		stopMotors();
+		turnOffLED(LED_GREEN);
+		DEBUG_PRINT("Arrived the goal!!!\n");
+		return true;
+	}
+
+	float fAngleInRadian = g_fEndThetaOfCalibrateController - g_RobotIdentity.theta;
+	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+
+	if (fAngleInRadian > 0)
+	{
+		// rotateDirection = ROBOT_ROTATE_CLOCKWISE;
+		leftD = REVERSE;
+		rightD = FORWARD;
+	}
+	else
+	{
+		// rotateDirection = ROBOT_ROTATE_COUNTERCLOSEWISE;
+		leftD = FORWARD;
+		rightD = REVERSE;
+	}
+
+	if(flagM)
+		commandMotorLeft(leftD, rightD);
+	else
+		commandMotorRight(leftD, rightD);
+
+	return false;
+}
+
+void commandMotorLeft(e_MotorDirection leftD, e_MotorDirection rightD)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_GREEN);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = leftD;
+	mRight.eDirection = rightD;
+
+	mLeft.ui8Speed = MAX_PWM;
+	mRight.ui8Speed = MIN_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_MS);
+
+	stopMotors();
+	delay_ms(50);
+}
+
+void commandMotorRight(e_MotorDirection leftD, e_MotorDirection rightD)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_BLUE);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = leftD;
+	mRight.eDirection = rightD;
+
+	mLeft.ui8Speed = MIN_PWM;
+	mRight.ui8Speed = MAX_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_MS);
+
+	stopMotors();
+	delay_ms(50);
 }
 
 bool isTwoAngleOverlay(float a, float b, float errorInDeg)
@@ -2776,13 +3068,9 @@ void setWheelSpeeds(DifferentialDriveModel diffModel)
 {
 	Motor_t mLeft, mRight;
 
-	DEBUG_PRINTS2("diff vel_r %d vel_l %d\n", (int32_t)(diffModel.vel_r), (int32_t)(diffModel.vel_l));
-
 	limitSpeeds(diffModel);
 
-	mLeft.ui8Speed = (uint8_t)(fabsf(diffModel.vel_l));
-	mRight.ui8Speed = (uint8_t)(fabsf(diffModel.vel_r));
-
+	// chose the motor directions
 	if(diffModel.vel_l < 0)
 		mLeft.eDirection = REVERSE;
 	else
@@ -2793,7 +3081,13 @@ void setWheelSpeeds(DifferentialDriveModel diffModel)
 	else
 		mRight.eDirection = FORWARD;
 
-	DEBUG_PRINTS4("MLeft %d %d, MRight %d %d\n", mLeft.eDirection, mLeft.ui8Speed, mRight.eDirection, mRight.ui8Speed);
+//	DEBUG_PRINTS2("Before MLeft %d, MRight %d\n", (int32_t)(diffModel.vel_l), (int32_t)(diffModel.vel_r));
+
+	 mLeft.ui8Speed = (uint8_t)(fabsf(diffModel.vel_l));
+	 mRight.ui8Speed = (uint8_t)(fabsf(diffModel.vel_r));
+//	applyWheelSpeedsToRotate(diffModel.vel_l, diffModel.vel_r, &(mLeft.ui8Speed), &(mRight.ui8Speed));
+
+//	DEBUG_PRINTS2("After MLeft %d, MRight %d\n", mLeft.ui8Speed, mRight.ui8Speed);
 
 	//configureMotors(mLeft, mRight);
 	configureMotors(mRight, mLeft);
@@ -2807,4 +3101,166 @@ void limitSpeeds(DifferentialDriveModel &diff)
 
 	diff.vel_r = (fabsf(diff.vel_r) >= WHEEL_MIN_VEL) ? (diff.vel_r) : (0);
 	diff.vel_l = (fabsf(diff.vel_l) >= WHEEL_MIN_VEL) ? (diff.vel_l) : (0);
+}
+
+#endif
+
+#ifdef REGION_DEBUG
+
+void sendNeighborsTableToHost(void)
+{
+	uint8_t pui8DataBuffer[60] = {0};
+
+	NeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 60);
+
+	sendDataToHost(pui8DataBuffer, 60);
+}
+
+void sendOneHopNeighborsTableToHost(void)
+{
+	uint8_t pui8DataBuffer[640] = {0};
+
+	OneHopNeighborsTable_fillContentToByteBuffer(pui8DataBuffer, 640);
+
+	sendDataToHost(pui8DataBuffer, 640);
+}
+
+void sendRobotLocationsTableToHost(void)
+{
+	uint8_t pui8DataBuffer[120] = {0};
+
+	turnOnLED(LED_ALL);
+
+	RobotLocationsTable_fillContentToByteBuffer(pui8DataBuffer, 120);
+
+	sendDataToHost(pui8DataBuffer, 120);
+
+	turnOffLED(LED_ALL);
+}
+
+void selfCorrectLocationsTable(void)
+{
+	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, 0);
+}
+
+void selfCorrectLocationsTableExceptRotationHopID(void)
+{
+	RobotLocationsTable_selfCorrectByGradientDescent(g_RobotIdentity.Self_ID, g_RobotIdentity.RotationHop_ID);
+}
+
+void transmitRobotIdentityToHost(void)
+{
+	uint8_t pui8ResponseBuffer[35] = { 0 };
+
+	parse32bitTo4Bytes(pui8ResponseBuffer, g_RobotIdentity.Self_ID);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[4], g_RobotIdentity.Origin_ID);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[8], g_RobotIdentity.RotationHop_ID);
+
+	pui8ResponseBuffer[12] = g_RobotIdentity.Self_NeighborsCount;
+	pui8ResponseBuffer[13] = g_RobotIdentity.Origin_NeighborsCount;
+	pui8ResponseBuffer[14] = g_RobotIdentity.Origin_Hopth;
+
+	int32_t i32Template;
+	i32Template = (int32_t)(g_RobotIdentity.x * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.y * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[23], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.RotationHop_y * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
+
+	//remove:
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+	i32Template = (int32_t)(g_RobotIdentity.theta * 65535 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[31], i32Template);
+
+	sendDataToHost(pui8ResponseBuffer, 35);
+}
+
+void robotMoveCommandWithPeriod(uint8_t* pui8Data)
+{
+	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
+
+	Robot_move((e_RobotMoveDirection)pui8Data[0]);
+
+	delay_ms(ui16DelayMs);
+
+	stopMotors();
+}
+
+void robotRotateCommandWithPeriod(uint8_t* pui8Data)
+{
+	uint16_t ui16DelayMs = construct2Byte(&pui8Data[1]);
+
+	Robot_rotate((e_RobotRotateDirection)pui8Data[0]);
+
+	delay_ms(ui16DelayMs);
+
+	stopMotors();
+}
+
+void robotMoveCommandWithDistance(uint8_t* pui8Data)
+{
+	int32_t i32DistanceInCm = construct4Byte(pui8Data);
+	float fDistanceInCm = i32DistanceInCm / 65536.0f;
+
+	runForwardWithDistance(fDistanceInCm);
+}
+
+void robotRotateCommandWithAngle(uint8_t* pui8Data)
+{
+	int32_t i32AngleInDegree = construct4Byte(pui8Data);
+	float fAngleInRadian = (i32AngleInDegree / 65536.0f) / _180_DIV_PI;
+
+	rotateClockwiseWithAngle(fAngleInRadian);
+}
+
+#endif
+
+
+void testMotorLeft(void)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_GREEN);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = REVERSE;
+	mRight.eDirection = FORWARD;
+
+	mLeft.ui8Speed = MAX_PWM;
+	mRight.ui8Speed = MIN_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_MS);
+
+	stopMotors();
+	delay_ms(50);
+
+	setRobotState(ROBOT_STATE_TEST_MOROT_RIGHT);
+}
+
+void testMotorRight(void)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_BLUE);
+
+	Motor_t mLeft, mRight;
+	mLeft.eDirection = REVERSE;
+	mRight.eDirection = FORWARD;
+
+	mLeft.ui8Speed = MIN_PWM;
+	mRight.ui8Speed = MAX_PWM;
+
+	configureMotors(mLeft, mRight);
+	delay_ms(DELAY_MOTORS_MS);
+
+	stopMotors();
+	delay_ms(100);
+
+	setRobotState(ROBOT_STATE_TEST_MOROT_LEFT);
 }

@@ -25,8 +25,8 @@ extern "C"
 #include "driverlib\pwm.h"
 #include "driverlib\gpio.h"
 
-#define MOTOR_SPEED_MINIMUM		60
-#define MOTOR_SPEED_MAXIMUM		130
+#define MOTOR_SPEED_MINIMUM		1
+#define MOTOR_SPEED_MAXIMUM		250
 
 #define MIN_MOTOR_DUTYCYCLE		1
 #define MAX_MOTOR_DUTYCYCLE		90
@@ -73,14 +73,16 @@ extern "C"
 
 typedef enum tag_RobotMoveDirection
 {
-  ROBOT_MOVE_FORWARD = 1,
-  ROBOT_MOVE_REVERSE = 0
+	ROBOT_MOVE_REVERSE = 0,
+	ROBOT_MOVE_FORWARD = 1,
+	ROBOT_MOVE_MAINTAIN = 2
 } e_RobotMoveDirection;
 
 typedef enum tag_RobotRotateDirection
 {
-  ROBOT_ROTATE_CLOCKWISE = 1,
-  ROBOT_ROTATE_COUNTERCLOSEWISE = 0
+	ROBOT_ROTATE_COUNTERCLOSEWISE = 0,
+	ROBOT_ROTATE_CLOCKWISE = 1,
+	ROBOT_ROTATE_MAINTAIN = 2
 } e_RobotRotateDirection;
 
 typedef enum tag_MotorDirection
@@ -99,8 +101,11 @@ void setLeftMotorOffset(uint8_t ui8Parameter);
 void setRightMotorOffset(uint8_t ui8Parameter);
 void setPeriodMotorOffset(uint16_t ui16Parameter);
 
-void Robot_move(bool bIsForward);
-void Robot_rotate(bool bIsClockwise);
+void Robot_move(e_RobotMoveDirection eMoveDirection);
+void Robot_rotate(e_RobotRotateDirection eRotateDirection);
+void Robot_rotate_tuning(e_RobotRotateDirection eRotateDirection, uint8_t ui8LeftM, uint8_t ui8RightM);
+
+void applyWheelSpeedsToRotate(float vel_l, float vel_r, uint8_t *pui8LeftSpeed, uint8_t *pui8RightSpeed);
 
 void rotateClockwiseWithAngle(float fAngleInRadian);
 void runForwardWithDistance(float fDistanceInCm);
