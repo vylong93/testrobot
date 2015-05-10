@@ -46,8 +46,11 @@ typedef enum tag_RobotState
 	ROBOT_STATE_LOCOMOTION = 7,				// State Seven (optional)
 
 	ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP = 8,	// Step Controller
-	ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID = 9,	// PID Controller
-	ROBOT_STATE_MOVE_FORWARD_USE_PID = 10,		// PID Controller
+	ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP = 9,	// Step Controller
+
+	ROBOT_STATE_TEST_MOROT_LEFT = 10,
+	ROBOT_STATE_TEST_MOROT_RIGHT = 11,
+
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -203,7 +206,6 @@ void indicatesLocalLoopToLEDs(void);
 #endif
 
 #ifdef REGION_BASIC_CALIBRATE
-//========= Calibration Tab ============================================
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
 void testRfTransmister(uint8_t* pui8Data);
@@ -225,31 +227,40 @@ bool responseTDOAResultsToNeighbor(uint32_t ui32NeighborId, float fPeakA, float 
 
 void robotMoveCommandWithPeriod(uint8_t* pui8Data);
 void robotRotateCommandWithPeriod(uint8_t* pui8Data);
-void robotMoveCommandWithDistance(uint8_t* pui8Data);
-void robotRotateCommandWithAngle(uint8_t* pui8Data);
+#endif
 
+#ifdef REGION_CONTOLLER_CALIBRATE
+
+void testStepRotateController(uint8_t* pui8Data);
+void testStepForwardController(uint8_t* pui8Data);
+
+bool rotateToAngleUseStepController(void);
+bool detectedRotateCollision(float fCurrentAngle);
+bool isTwoAngleOverlay(float a, float b, float errorInDeg);
+
+bool forwardInPeriodUseStepController(void);
+
+#define TESTONLY_MIN_PWN				10
+#define TESTONLY_MAX_PWN				200
+#define TESTONLY_ACTIVE_MOTORS_LEFT_MS	20
+#define TESTONLY_ACTIVE_MOTORS_RIGHT_MS	20
+#define TESTONLY_PAUSE_MOTORS_MS	0
+
+void testMotorLeft(bool autoSwitchState, int offset);
+void testMotorRight(bool autoSwitchState, int offset);
+
+#endif
+
+#ifdef REGION_DEBUG
 void sendNeighborsTableToHost(void);
 void sendOneHopNeighborsTableToHost(void);
 void sendRobotLocationsTableToHost(void);
 void selfCorrectLocationsTable(void);
 void selfCorrectLocationsTableExceptRotationHopID(void);
 void transmitRobotIdentityToHost(void);
-#endif
 
-#ifdef REGION_CONTOLLER_CALIBRATE
-//===============================================
-void testPIDControllerForward(uint8_t* pui8Data);
-void testPIDController(uint8_t* pui8Data);
-bool moveForwardUseControllerFW(void);
-bool rotateToAngleUseControllerRTA(void);
-//===============================================
-
-void testStepController(uint8_t* pui8Data);
-bool rotateToAngleUseStepController(void);
-bool detectedRotateCollision(float fCurrentAngle);
-
-bool isTwoAngleOverlay(float a, float b, float errorInDeg);
-void applyUnicycleToMotorCommand(float w);
+void robotMoveCommandWithDistance(uint8_t* pui8Data);
+void robotRotateCommandWithAngle(uint8_t* pui8Data);
 #endif
 
 #ifdef __cplusplus

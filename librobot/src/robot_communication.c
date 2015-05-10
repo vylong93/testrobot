@@ -249,12 +249,16 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		triggerSamplingMicSignalsWithPreDelay(DELAY_SAMPING_MICS_US);
 		break;
 
-	case HOST_COMMAND_REQUEST_BATT_VOLT:
-		sendBatteryVoltageToHost();
+	case HOST_COMMAND_DATA_ADC0_TO_HOST:
+		transmitADCResultsToHost((uint8_t*)getMicrophone0BufferPointer());
 		break;
 
-	case HOST_COMMAND_INDICATE_BATT_VOLT:
-		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_BATTERY, 0, 0);
+	case HOST_COMMAND_DATA_ADC1_TO_HOST:
+		transmitADCResultsToHost((uint8_t*)getMicrophone1BufferPointer());
+		break;
+
+	case HOST_COMMAND_REQUEST_BATT_VOLT:
+		sendBatteryVoltageToHost();
 		break;
 
 	case HOST_COMMAND_START_SPEAKER:
@@ -274,14 +278,6 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		MotorRight_stop();
 		break;
 
-	case HOST_COMMAND_DATA_ADC0_TO_HOST:
-		transmitADCResultsToHost((uint8_t*)getMicrophone0BufferPointer());
-		break;
-
-	case HOST_COMMAND_DATA_ADC1_TO_HOST:
-		transmitADCResultsToHost((uint8_t*)getMicrophone1BufferPointer());
-		break;
-
 	case HOST_COMMAND_EEPROM_DATA_READ:
 		transmitRequestDataInEeprom(pui8MessageData);
 		break;
@@ -298,8 +294,32 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		writeBulkToEeprom(pui8MessageData);
 		break;
 
+	case HOST_COMMAND_INDICATE_BATT_VOLT:
+		triggerResponseState(ROBOT_RESPONSE_STATE_SAMPLING_BATTERY, 0, 0);
+		break;
+
 	case HOST_COMMAND_CALIBRATE_TDOA_TX:
 		triggerResponseState(ROBOT_RESPONSE_STATE_CALIBRATE_TRIGGER_SPEAKER, pui8MessageData, ui32DataSize);
+		break;
+
+	case HOST_COMMAND_MOVE_WITH_PERIOD:
+		robotMoveCommandWithPeriod(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_ROTATE_WITH_PERIOD:
+		robotRotateCommandWithPeriod(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_TOGGLE_IR_LED:
+//		toggleIRLED(); // Not use yet
+		break;
+
+	case HOST_COMMAND_REQUEST_PROXIMITY_RAW:
+//		sendIrProximityValueToHost(); // Not use yet
+		break;
+
+	case HOST_COMMAND_READ_ROBOT_IDENTITY:
+		transmitRobotIdentityToHost();
 		break;
 
 	case HOST_COMMAND_READ_NEIGHBORS_TABLE:
@@ -326,18 +346,6 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		setRobotState((e_RobotState)pui8MessageData[0]);
 		break;
 
-	case HOST_COMMAND_READ_ROBOT_IDENTITY:
-		transmitRobotIdentityToHost();
-		break;
-
-	case HOST_COMMAND_MOVE_WITH_PERIOD:
-		robotMoveCommandWithPeriod(pui8MessageData);
-		break;
-
-	case HOST_COMMAND_ROTATE_WITH_PERIOD:
-		robotRotateCommandWithPeriod(pui8MessageData);
-		break;
-
 	case HOST_COMMAND_MOVE_WITH_DISTANCE:
 		robotMoveCommandWithDistance(pui8MessageData);
 		break;
@@ -346,27 +354,13 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		robotRotateCommandWithAngle(pui8MessageData);
 		break;
 
-	case HOST_COMMAND_TOGGLE_IR_LED:
-//		toggleIRLED(); // Not use yet
-		break;
-
-	case HOST_COMMAND_REQUEST_PROXIMITY_RAW:
-//		sendIrProximityValueToHost(); // Not use yet
-		break;
-
 	case HOST_COMMAND_CONFIG_STEP_CONTROLLER:
-		testStepController(pui8MessageData);
+		testStepRotateController(pui8MessageData);
 		break;
 
-//====================================================
-	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
-		testPIDController(pui8MessageData);
+	case HOST_COMMAND_CONFIG_STEP_FORWARD_CONTROLLER:
+		testStepForwardController(pui8MessageData);
 		break;
-
-	case HOST_COMMAND_CONFIG_PID_CONTROLLER_FORWRAD:
-		testPIDControllerForward(pui8MessageData);
-		break;
-//====================================================
 
 	default:
 		decodeBasicHostCommand(ui8Cmd);

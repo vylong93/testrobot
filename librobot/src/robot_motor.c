@@ -262,12 +262,12 @@ void initRobotMotorPairTimer(void)
 	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 }
 
-void Motor_delay_timerA_ms(uint32_t ui32PeriodInMs)
+void Motor_delay_timer_ms(uint32_t ui32PeriodInMs)
 {
-	Motor_delay_timerA_us(ui32PeriodInMs * 1000);
+	Motor_delay_timer_us(ui32PeriodInMs * 1000);
 }
 
-void Motor_delay_timerA_us(uint32_t ui32PeriodInUs)
+void Motor_delay_timer_us(uint32_t ui32PeriodInUs)
 {
 	if (ui32PeriodInUs == 0)
 		return;
@@ -308,6 +308,33 @@ void Motor_delay_timerA_us(uint32_t ui32PeriodInUs)
 	// Clear timer interrupt flag
 	//
 	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+void Motor_task_timer_start(uint32_t ui32PeriodInMs)
+{
+	if (ui32PeriodInMs == 0)
+		return;
+
+	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * ui32PeriodInMs;
+
+	ROM_TimerLoadSet(MOTOR_TIMER_BASE, TIMER_B, delayPeriod);
+
+	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+	ROM_TimerEnable(MOTOR_TIMER_BASE, TIMER_B);
+}
+
+bool Motor_task_timer_isExpired(void)
+{
+	uint32_t ui32Status = ROM_TimerIntStatus(MOTOR_TIMER_BASE, false);
+
+	if (ui32Status & TIMER_TIMB_TIMEOUT)
+	{
+		ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+		return true;
+	}
+
+	return false;
 }
 
 void Robot_activeMotorsTask(uint32_t ui32PeriodInMs, e_RobotMovement eRobotMovement, bool (*pfnTask)(e_RobotMovement eMovement))
@@ -377,17 +404,21 @@ void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32Act
 
 //	Motor_t mLeft, mRight;
 //	mLeft.eDirection = directionLeftMotor;
-//	mRight.eDirection = FORWARD; // No effect
+//	mRight.eDirection = (directionLeftMotor == FORWARD) ? (REVERSE) : (FORWARD);
 //
-//	mLeft.ui8Speed = STEP_MAX_SPEED;
-//	mRight.ui8Speed = 0;
+//	mLeft.ui8Speed = 230;
+//	mRight.ui8Speed = 10;
 //
 //	Motors_configure(mLeft, mRight);
 
-	Motor_delay_timerA_ms(ui32ActivePeriod);
+	if(ui32ActivePeriod > 0)
+		Motor_delay_timer_ms(ui32ActivePeriod);
 
-	Motors_stop();
-	Motor_delay_timerA_ms(ui32PausePeriod);
+	if(ui32PausePeriod > 0)
+	{
+		Motors_stop();
+		Motor_delay_timer_ms(ui32PausePeriod);
+	}
 }
 
 void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod)
@@ -402,24 +433,28 @@ void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32A
 	MotorDriver_enable();
 
 //	Motor_t mLeft, mRight;
-//	mLeft.eDirection = FORWARD; // No effect
+//	mLeft.eDirection = (directionRightMotor == FORWARD) ? (REVERSE) : (FORWARD);
 //	mRight.eDirection = directionRightMotor;
 //
-//	mLeft.ui8Speed = 0;
-//	mRight.ui8Speed = STEP_MAX_SPEED;
+//	mLeft.ui8Speed = 10;
+//	mRight.ui8Speed = 210;
 //
 //	Motors_configure(mLeft, mRight);
 
-	Motor_delay_timerA_ms(ui32ActivePeriod);
+	if(ui32ActivePeriod > 0)
+		Motor_delay_timer_ms(ui32ActivePeriod);
 
-	Motors_stop();
-	Motor_delay_timerA_ms(ui32PausePeriod);
+	if(ui32PausePeriod > 0)
+	{
+		Motors_stop();
+		Motor_delay_timer_ms(ui32PausePeriod);
+	}
 }
 
 //==================================================================
-void Robot_stepMovementWithPeriod(uint16_t ui16PeriodMs, e_RobotMovement eRobotMovement)
+void Robot_stepMovementWithPeriod(uint32_t ui32PeriodMs, e_RobotMovement eRobotMovement)
 {
-	Robot_activeMotorsTask(ui16PeriodMs, eRobotMovement, Robot_stepMovementTask);
+	Robot_activeMotorsTask(ui32PeriodMs, eRobotMovement, Robot_stepMovementTask);
 }
 
 bool Robot_stepMovementTask(e_RobotMovement eRobotRotateMovement)

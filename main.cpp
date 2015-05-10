@@ -224,17 +224,18 @@ int main(void)
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-//================================================================================
-			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_PID:
-				if(rotateToAngleUseControllerRTA())
+			case ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP:
+				if(forwardInPeriodUseStepController())
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_MOVE_FORWARD_USE_PID:
-				if(moveForwardUseControllerFW())
-					setRobotState(ROBOT_STATE_IDLE);
+			case ROBOT_STATE_TEST_MOROT_LEFT:
+				testMotorLeft(true, 0);
 				break;
-//================================================================================
+
+			case ROBOT_STATE_TEST_MOROT_RIGHT:
+				testMotorRight(true, 0);
+				break;
 
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
@@ -331,127 +332,281 @@ void MCU_RF_IRQ_handler(void)
 }
 
 #ifdef REGION_COMMENT
-//void StateSix_Locomotion()
-//{
-//	vector2_t vectZero;
-//	vector2_t vectOne;
-//	vector2_t vectDiff;
+void StateSix_Locomotion()
+{
+	vector2_t vectZero;
+	vector2_t vectOne;
+	vector2_t vectDiff;
+
+//	float fAngleOffer = 0.2094395102; // ~12 degree
+	float fRotateAngle = MATH_PI_DIV_2; // ~90 degree
+//	float fThetaOne;
+//	float fThetaTwo;
+
+	float alphaP;
+	float alphaQ;
+
+	uint16_t ui16RandomValue;
+
+	g_bIsNewTDOAResults = false;
+
+	turnOffLED(LED_ALL);
+
+	// save my old vector for initialize position V0
+	vectZero.x = g_vector.x;
+	vectZero.y = g_vector.y;
+
+	// delay random
+//	generateRandomByte();
+//	while (g_ui8RandomNumber == 0)
+//		;
+//	g_ui8RandomNumber =
+//			(g_ui8RandomNumber < 100) ?
+//					(g_ui8RandomNumber + 100) :
+//					(g_ui8RandomNumber);
+
+//	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
 //
-////	float fAngleOffer = 0.2094395102; // ~12 degree
-//	float fRotateAngle = MATH_PI_DIV_2; // ~90 degree
-////	float fThetaOne;
-////	float fThetaTwo;
-//
-//	float alphaP;
-//	float alphaQ;
-//
-//	uint16_t ui16RandomValue;
-//
-//	g_bIsNewTDOAResults = false;
-//
-//	turnOffLED(LED_ALL);
-//
-//	// save my old vector for initialize position V0
-//	vectZero.x = g_vector.x;
-//	vectZero.y = g_vector.y;
-//
-//	// delay random
-////	generateRandomByte();
-////	while (g_ui8RandomNumber == 0)
-////		;
-////	g_ui8RandomNumber =
-////			(g_ui8RandomNumber < 100) ?
-////					(g_ui8RandomNumber + 100) :
-////					(g_ui8RandomNumber);
-//
-////	ui16RandomValue = (g_ui32RobotID << 10) | (g_ui8RandomNumber << 2);
-////
-////	ui16RandomValue = g_ui8RandomNumber * 10;
-//
-//	ui16RandomValue = (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
-//
-//	delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
-//										// if received neighbor run command then redelay and wait
-//
-//	// delay timeout
-//	g_bIsValidVector = false;
-//
-//	runForwardAndCalculatteNewPosition(7.0); // g_vector may be modified to new position
-//	if (g_ui8NeighborsCounter < 3)
-//	{
-//		//TODO: reserved
-//		runForwardWithDistance(-7.0);
-//
-//		// WARNING!!! This vector may be not correct
-//		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
-//		g_bIsValidVector = true;
-//		g_eProcessState = IDLE;
-//		return;
-//	}
-//
-//	vectOne.x = g_vector.x;
-//	vectOne.y = g_vector.y;
-//
-//	rotateClockwiseWithAngle(fRotateAngle);
-//
-//	runForwardAndCalculatteNewPosition(6.0); // g_vector may be modified to new position
-//	if (g_ui8NeighborsCounter < 3)
-//	{
-//		//TODO: reserved
-//		runForwardWithDistance(-6.0);
-//
-//		// WARNING!!! This vector may be not correct
-//		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
-//		g_bIsValidVector = true;
-//		g_eProcessState = IDLE;
-//		return; // Not enough neighbors
-//	}
-//
-//	g_bIsValidVector = true;
-//
-//	notifyNewVectorToNeigbors();
-//
-////	vectDiff.x = vectOne.x - vectZero.x;
-////	vectDiff.y = vectOne.y - vectZero.y;
-////	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
-////
-////	vectDiff.x = g_vector.x - vectOne.x;
-////	vectDiff.y = g_vector.y - vectOne.y;
-////	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
+//	ui16RandomValue = g_ui8RandomNumber * 10;
+
+	ui16RandomValue = (g_ui32RobotID & 0xFF) * DELAY_LOCOMOTION_PERIOD;
+
+	delayTimerB(ui16RandomValue, true); // maybe Received ROBOT_REQUEST_TO_RUN command here!
+										// if received neighbor run command then redelay and wait
+
+	// delay timeout
+	g_bIsValidVector = false;
+
+	runForwardAndCalculatteNewPosition(7.0); // g_vector may be modified to new position
+	if (g_ui8NeighborsCounter < 3)
+	{
+		//TODO: reserved
+		runForwardWithDistance(-7.0);
+
+		// WARNING!!! This vector may be not correct
+		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_bIsValidVector = true;
+		g_eProcessState = IDLE;
+		return;
+	}
+
+	vectOne.x = g_vector.x;
+	vectOne.y = g_vector.y;
+
+	rotateClockwiseWithAngle(fRotateAngle);
+
+	runForwardAndCalculatteNewPosition(6.0); // g_vector may be modified to new position
+	if (g_ui8NeighborsCounter < 3)
+	{
+		//TODO: reserved
+		runForwardWithDistance(-6.0);
+
+		// WARNING!!! This vector may be not correct
+		Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+		g_bIsValidVector = true;
+		g_eProcessState = IDLE;
+		return; // Not enough neighbors
+	}
+
+	g_bIsValidVector = true;
+
+	notifyNewVectorToNeigbors();
+
+//	vectDiff.x = vectOne.x - vectZero.x;
+//	vectDiff.y = vectOne.y - vectZero.y;
+//	fThetaOne = calculateRobotAngleWithXAxis(vectDiff);
 //
 //	vectDiff.x = g_vector.x - vectOne.x;
 //	vectDiff.y = g_vector.y - vectOne.y;
-//	g_fRobotOrientedAngle = calculateRobotAngleWithXAxis(vectDiff);
-//
-////	if (fRotateAngle < 0)
-////		fRotateAngle = fThetaOne - fRotateAngle;
-////	else
-////		fRotateAngle += fThetaOne;
-////
-////	while(fRotateAngle > MATH_PI_MUL_2)
-////		fRotateAngle -= MATH_PI_MUL_2;
-//
-//	// one - zero = P
-//	vectDiff.x = vectOne.x - vectZero.x;
-//	vectDiff.y = vectOne.y - vectZero.y;
-//	alphaP = calculateRobotAngleWithXAxis(vectDiff);
-//
-//	// g_vector - zero = Q
-//	vectDiff.x = g_vector.x - vectZero.x;
-//	vectDiff.y = g_vector.y - vectZero.y;
-//	alphaQ = calculateRobotAngleWithXAxis(vectDiff);
-//
-////	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
-//	if (((alphaP > alphaQ) && ((alphaP - alphaQ) < MATH_PI))
-//			|| ((alphaQ - alphaP) > MATH_PI))
-//		g_bIsCounterClockwiseOriented = false; // DIFFERENT
+//	fThetaTwo = calculateRobotAngleWithXAxis(vectDiff);
+
+	vectDiff.x = g_vector.x - vectOne.x;
+	vectDiff.y = g_vector.y - vectOne.y;
+	g_fRobotOrientedAngle = calculateRobotAngleWithXAxis(vectDiff);
+
+//	if (fRotateAngle < 0)
+//		fRotateAngle = fThetaOne - fRotateAngle;
 //	else
-//		g_bIsCounterClockwiseOriented = true; // SAME
+//		fRotateAngle += fThetaOne;
 //
-//	turnOnLED(LED_GREEN);
+//	while(fRotateAngle > MATH_PI_MUL_2)
+//		fRotateAngle -= MATH_PI_MUL_2;
+
+	// one - zero = P
+	vectDiff.x = vectOne.x - vectZero.x;
+	vectDiff.y = vectOne.y - vectZero.y;
+	alphaP = calculateRobotAngleWithXAxis(vectDiff);
+
+	// g_vector - zero = Q
+	vectDiff.x = g_vector.x - vectZero.x;
+	vectDiff.y = g_vector.y - vectZero.y;
+	alphaQ = calculateRobotAngleWithXAxis(vectDiff);
+
+//	if(fRotateAngle <= (fThetaTwo + fAngleOffer) && (fRotateAngle >= (fThetaTwo - fAngleOffer)))
+	if (((alphaP > alphaQ) && ((alphaP - alphaQ) < MATH_PI))
+			|| ((alphaQ - alphaP) > MATH_PI))
+		g_bIsCounterClockwiseOriented = false; // DIFFERENT
+	else
+		g_bIsCounterClockwiseOriented = true; // SAME
+
+	turnOnLED(LED_GREEN);
+
+	g_eProcessState = IDLE;
+}
+
+void runForwardAndCalculatteNewPosition(float distance)
+{
+	/* Pseudo-code:
+		clear locations table
+		clear neighbors table
+		delete onehop neighbors table
+
+		broadcast RF signal REQUEST TO RUN
+
+		IF no rejection THEN
+			command move 5cm
+		ELSE
+			return FALSE TO RUN;
+
+		activeRobotTask TASK
+		-> TASK
+		--{
+			successFlag = FALSE;
+			DO {
+	   	   	   generate random values
+			   clear isFlagAssert flag
+			   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+				   handlerInDelayRandom()
+				   -- {
+							call RF handler()
+							-- {
+								-> call handleDistanceResultAndVectorResponse:
+								-- storeDistanceAndVectorOfResponseNeighbor();
+							-- }
+							return true; // alway return true to reset task timer
+				    -- }
+			   if (isFlagAssert == true)
+			   	   reset Robot timer delay();
+		    } WHILE (isFlagAssert == true);
+
+		    IF !successFlag THEN
+	   	   		IF tryToRequestLocalNeighborsForDistanceMeasurement(VECTOR_AND_MEASUREMENT) success THEN
+	   	   			set successFlag = TRUE
+	   	   		END
+	   	   	ELSE
+
+	   	   	END
+		--}
+
+	 */
+
+//	uint8_t length;
+//	uint8_t i;
 //
-//	g_eProcessState = IDLE;
-//}
+//	vector2_t vectEstimatePosNew;
+//	vector2_t vectEstimatePosOld;
+//	vector2_t vectGradienNew;
+//	vector2_t vectGradienOld;
+//
+//	distance = (distance > 5) ? (5) : distance;
+//
+//	clearNeighborTable(NeighborsTable, &g_ui8NeighborsCounter);
+//	clearOneHopNeighborTable(OneHopNeighborsTable);
+//
+//	for (i = 0; i < LOCATIONS_TABLE_LENGTH; i++)
+//	{
+//		locs[i].ID = 0;
+//		locs[i].vector.x = 0;
+//		locs[i].vector.y = 0;
+//	}
+//	g_ui8LocsCounter = 0;
+//
+//	RF24_TX_buffer[0] = ROBOT_REQUEST_TO_RUN;
+//	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+//	broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
+//
+//	runForwardWithDistance(distance);
+//
+//	SysCtlDelay(2500);
+//
+//	// send request measure distance command
+//	RF24_TX_buffer[0] = ROBOT_REQUEST_SAMPLING_MIC;
+//	parse32BitTo4Bytes(g_ui32RobotID, &RF24_TX_buffer[1]); // 1->4
+//	broadcastLocalNeighbor((uint8_t*) RF24_TX_buffer, 5);
+//	// WARING!!! DO NOT INSERT ANY CODE IN HERE!
+//	ROM_SysCtlDelay(DELAY_START_SPEAKER);
+//	// WARING!!! DO NOT INSERT ANY CODE IN HERE!
+//	startSpeaker();
+//
+//	RF24_RX_activate();
+//
+//	disableRF24Interrupt();
+//
+//	RF24_clearIrqFlag(RF24_IRQ_MASK);
+//
+//	g_ui8NeighborsCounter = 0;
+//
+//	// start state timer wait for new neighbor response
+//	delayTimerA(DELAY_NEIGHBOR_RESPONSE_PERIOD, false); // may received ROBOT_RESPONSE_TDOA_DISTANCE command at here!
+//
+//	while (!g_bDelayTimerAFlagAssert)
+//	{
+//		if (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) == 0)
+//		{
+//			toggleLED(LED_GREEN);
+//
+//			reloadDelayTimerA();
+//
+//			if (RF24_getIrqFlag(RF24_IRQ_RX))
+//			{
+//				length = RF24_RX_getPayloadWidth();
+//
+//				RF24_RX_getPayloadData(length, RF24_RX_buffer);
+//
+//				RF24_clearIrqFlag(RF24_IRQ_RX);
+//
+//				if (RF24_RX_buffer[0] == ROBOT_RESPONSE_TDOA_DISTANCE
+//							&& length == 15)
+//				{
+//					storeNeighorVectorAndDistanceToTables(RF24_RX_buffer);
+//				}
+//			}
+//		}
+//	}
+//
+//	turnOffLED(LED_GREEN);
+//
+//	enableRF24Interrupt();
+//
+//	if (g_ui8NeighborsCounter < 3)
+//		return;
+//
+//	// active gradient descent to calculate new position
+//
+//	vectEstimatePosNew.x = g_vector.x;
+//	vectEstimatePosNew.y = g_vector.y;
+//
+//	vectGradienNew.x = 0;
+//	vectGradienNew.y = 0;
+//
+//	g_bIsGradientSearchStop = false;
+//
+//	while(!g_bIsGradientSearchStop)
+//	{
+//		toggleLED(LED_BLUE);
+//
+//		updateGradient(&vectGradienNew, false);
+//
+//		updatePosition(&g_vector, &vectEstimatePosNew, &vectEstimatePosOld, &vectGradienNew, &vectGradienOld, g_fStepSize);
+//		synchronousLocsTableAndMyVector();
+//
+//		g_bIsGradientSearchStop = checkVarianceCondition(vectEstimatePosNew, vectEstimatePosOld, g_fStopCondition);
+//	}
+//
+//	Tri_addLocation(g_ui32RobotID, g_vector.x, g_vector.y);
+//
+//	turnOffLED(LED_BLUE);
+}
 
 //void SwarmStateOne_TShape()	// WARNING!!! This state only use for 5 robot and their all have 4 neigbors coordinates
 //{

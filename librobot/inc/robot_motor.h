@@ -123,18 +123,20 @@ void MotorRight_assignActiveParameter(Motor_t motor);
 #define STEP_ACTIVE_MOTORS_MS 	50
 #define STEP_PAUSE_MOTORS_MS 	50
 
-#define STEP_MAX_SPEED 			250
+#define STEP_MAX_SPEED 			240
 
 void initRobotMotorPairTimer(void);
-void Motor_delay_timerA_ms(uint32_t ui32PeriodInMs);
-void Motor_delay_timerA_us(uint32_t ui32PeriodInUs);
+void Motor_delay_timer_ms(uint32_t ui32PeriodInMs);
+void Motor_delay_timer_us(uint32_t ui32PeriodInUs);
+void Motor_task_timer_start(uint32_t ui32PeriodInMs);
+bool Motor_task_timer_isExpired(void);
 void Robot_activeMotorsTask(uint32_t ui32PeriodInMs, e_RobotMovement eRobotMovement, bool (*pfnTask)(e_RobotMovement eMovement));
 
 void Robot_stepRotate_tunning(e_RobotRotateDirection eRotateDirection, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 
-void Robot_stepMovementWithPeriod(uint16_t ui16PeriodMs, e_RobotMovement eRobotMovement);
+void Robot_stepMovementWithPeriod(uint32_t ui32PeriodMs, e_RobotMovement eRobotMovement);
 bool Robot_stepMovementTask(e_RobotMovement eRobotMovement);
 
 // Test only ==================================

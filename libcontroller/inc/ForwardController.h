@@ -18,7 +18,7 @@ private:
 	float e_old;
 
 public:
-	int RunStep;
+	unsigned int RunStep;
 	char Speed;
 	float TrackTheta;
 

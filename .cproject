@@ -85,7 +85,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="backup|librobot/src/robot_math.c|librobot/src/MainBoardDriver.c|tm4c123gh6pm.lds|libalgorithm/src/Trilateration.c|librobot/src/robot_smartphone.c|librobot/src/Trilateration.c|tm4c123gh6pm_startup_ccs_gcc.c|Backup|main1.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="libcontroller/src/RotateToAngleController.cpp|libcontroller/src/ForwardController.cpp|libdynamic/src/UnicycleModel.cpp|libdynamic/src/DifferentialDriveModel.cpp|backup|librobot/src/robot_math.c|librobot/src/MainBoardDriver.c|tm4c123gh6pm.lds|libalgorithm/src/Trilateration.c|librobot/src/robot_smartphone.c|librobot/src/Trilateration.c|tm4c123gh6pm_startup_ccs_gcc.c|Backup|main1.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
