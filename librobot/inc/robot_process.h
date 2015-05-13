@@ -266,6 +266,17 @@ void transmitRobotIdentityToHost(void);
 
 void robotMoveCommandWithDistance(uint8_t* pui8Data);
 void robotRotateCommandWithAngle(uint8_t* pui8Data);
+
+#define GRADIENT_MAP_PACKET_HEADER_LENGTH		6
+#define GRADIENT_MAP_PACKET_FULL_DATA_LENGTH 	8
+#define GRADIENT_MAP_PACKET_FULL_LENGTH			14 // GRADIENT_MAP_PACKET_HEADER_LENGTH + GRADIENT_MAP_PACKET_FULL_DATA_LENGTH
+#define SINGLE_PACKET_TIMEOUT_US				1000000
+#define UPDATE_PACKET_WAIT_TIMES				15
+
+void updateGradientMap(uint8_t* pui8Data);
+bool GradientMapUpdater_identifyPacket(va_list argp);
+void GradientMapUpdater_sendNACK(void);
+
 #endif
 
 #ifdef __cplusplus

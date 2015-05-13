@@ -99,6 +99,8 @@ typedef struct tag_MessageHeader
 #define HOST_COMMAND_CONFIG_STEP_FORWARD_IN_ROTATE_CONTOLLER	0x25
 #define HOST_COMMAND_CONFIG_PID_CONTROLLER						0x26
 
+#define HOST_COMMAND_UPDATE_GRADIENT_MAP		0x27
+
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A
 #define ROBOT_RESPONSE_TDOA_RESULT							0xB0

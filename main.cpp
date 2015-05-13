@@ -20,6 +20,8 @@
 #include "libstorage/inc/robot_data.h"
 
 #include "libalgorithm/inc/Trilateration.h"
+#include "libalgorithm/inc/GradientMap.h"
+
 #include "libmath/inc/custom_math.h"
 #include <math.h>
 
@@ -39,6 +41,20 @@ void initSystem(void);
 int main(void)
 {
 	initSystem();
+
+#ifdef HAVE_IMU
+	initI2C();
+	DEBUG_PRINT("init I2C: OK\n");
+
+	InvMPU mpu6050;
+	if(initIMU(&mpu6050))
+		DEBUG_PRINT("init IMU: OK\n");
+	else
+	{
+		DEBUG_PRINT("CPU trapped! Please unplug VDD signal of IMU module then replug and try again...\n");
+		while(true);
+	}
+#endif
 
 	initRobotProcess();
 
@@ -180,7 +196,6 @@ int main(void)
 //	}
 #endif
 
-
 	while(true)
 	{
 		switch (getRobotState())
@@ -290,20 +305,6 @@ void initSystem(void)
 
 	initRobotTaskTimer();
 	DEBUG_PRINT("init Robot task timer: OK\n");
-
-#ifdef HAVE_IMU
-	initI2C();
-	DEBUG_PRINT("init I2C: OK\n");
-
-	InvMPU mpu6050;
-	if(initIMU(&mpu6050))
-		DEBUG_PRINT("init IMU: OK\n");
-	else
-	{
-		DEBUG_PRINT("CPU trapped! Please unplug VDD signal of IMU module then replug and try again...\n");
-		while(true);
-	}
-#endif
 }
 
 void MCU_RF_IRQ_handler(void)

@@ -12,25 +12,26 @@
 #include "librobot/inc/robot_analog.h"
 #include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_eeprom.h"
+#include "librobot/inc/robot_task_timer.h"
+#include "librobot/inc/robot_imu.h"
 
 #include "libcustom/inc/custom_uart_debug.h"
-
 #include "libcustom/inc/custom_led.h"
 #include "libcustom/inc/custom_delay.h"
-#include "libalgorithm/inc/TDOA.h"
-#include "libprotocol/inc/network.h"
-#include "libstorage/inc/robot_data.h"
-#include "librobot/inc/robot_task_timer.h"
-#include "interrupt_definition.h"
-#include "data_manipulation.h"
 
+#include "libprotocol/inc/network.h"
+
+#include "libstorage/inc/robot_data.h"
 #include "libstorage/inc/RobotIdentity.h"
+
+#include "libalgorithm/inc/TDOA.h"
 #include "libalgorithm/inc/Trilateration.h"
 #include "libalgorithm/inc/GradientDescentGlobal.h"
+#include "libalgorithm/inc/GradientMap.h"
 
 #include "libcontroller/inc/Controller.h"
-
-#include "librobot/inc/robot_imu.h"
+#include "interrupt_definition.h"
+#include "data_manipulation.h"
 
 #ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
 
@@ -40,6 +41,8 @@ static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
 static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
 static uint8_t* g_pui8RequestData;
+
+static GradientMap* g_pGradientMap;
 
 void test(void) // Test Only
 {
@@ -120,6 +123,12 @@ void initRobotProcess(void)
 	// Initialize Data Storages
 	//
 	initLinkedList();
+
+	//
+	// Initialize Gradient Map
+	//
+	g_pGradientMap = new GradientMap();
+	DEBUG_PRINTS3("init DASH::Gradient Map [%d][%d] at 0x%08x\n", g_pGradientMap->Height, g_pGradientMap->Width, g_pGradientMap->pGradientMap);
 
 	//==============================================
 	// IMPORTANCE: Configure Software Interrupt
@@ -3044,6 +3053,177 @@ void robotRotateCommandWithAngle(uint8_t* pui8Data)
 	float fAngleInRadian = (i32AngleInDegree / 65536.0f) / _180_DIV_PI;
 
 	rotateClockwiseWithAngle(fAngleInRadian);
+}
+
+int8_t* g_pui8GradientMapBuffer = 0;
+uint32_t g_ui32GradientMapExpectedUpdatePacketId;
+
+void updateGradientMap(uint8_t* pui8Data)
+{
+	DEBUG_PRINT("Update Gradient Map\n");
+
+	// Get ten bytes program header
+	uint32_t ui32Row = construct4Byte(pui8Data);
+	uint32_t ui32Column = construct4Byte(&pui8Data[4]);
+	int8_t i8OffsetHeight = pui8Data[8];
+	int8_t i8OffsetWidth = pui8Data[9];
+
+	uint64_t ui64NewMapSize = ui32Row * ui32Column;
+//	if(g_pui8GradientMapBuffer != 0)
+//		delete[] g_pui8GradientMapBuffer;
+	g_pui8GradientMapBuffer = new int8_t[ui64NewMapSize];
+	if(g_pui8GradientMapBuffer == 0)
+		return;
+
+	g_ui32GradientMapExpectedUpdatePacketId = 0;
+	uint8_t ui8FailedToUpdateCounter = 0;
+	do
+	{
+		if (RfTryToCaptureRfSignal(SINGLE_PACKET_TIMEOUT_US, GradientMapUpdater_identifyPacket, ui64NewMapSize) == false)
+		{
+			ui8FailedToUpdateCounter++;
+			if(ui8FailedToUpdateCounter > UPDATE_PACKET_WAIT_TIMES)
+				break;
+		}
+	} while (g_ui32GradientMapExpectedUpdatePacketId < ui64NewMapSize);
+
+	if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
+		g_pGradientMap->modifyGradientMap(ui32Row, ui32Column, g_pui8GradientMapBuffer, i8OffsetHeight, i8OffsetWidth);
+	else
+		g_pGradientMap->reset();
+
+	// Clean up heap
+	if(g_pui8GradientMapBuffer != 0)
+	{
+		delete[] g_pui8GradientMapBuffer;
+		g_pui8GradientMapBuffer = 0;
+	}
+
+	/* Pseudo-code
+
+	   --> calculate the End Packet ID: {
+	   	   IF (ui64NewMapSize % PACKET_FULL_LENGTH == 0)
+	   	   	   ui32LastPacketID = ((int32_t)(ui64NewMapSize / PACKET_FULL_LENGTH) - 1) * PACKET_FULL_LENGTH;
+	   	   ELSE
+	   	   	   ui32LastPacketID = (int32_t)(ui64NewMapSize / PACKET_FULL_LENGTH) * PACKET_FULL_LENGTH;
+	   	   END
+	   }
+
+	   uint8_t ui8FailedToUpdateCounter = 0;
+	   DO {
+		   if (RfTryToCaptureRfSignal(SINGLE_PACKET_TIMEOUT_US, identifyPacket, ui32LastPacketID) == false) {
+				   --> identifyPacket(uint32_t ui32LastPacketID) {
+							IF valid length THEN
+								get packet ID (uint32_t)
+								get byte_count (uint8_t) to pui8GradientMapBuffer
+								IF received ID match with expected ID THEN
+									IF checksum (uint8_t) failed THEN
+										call NACK()
+										return true;
+									END
+									get Data (int8_t * byte_count)
+									calculate next expected ID
+								END
+								IF received ID > expected ID THEN
+									call NACK()
+									return true;
+								ELSE
+									IF expected ID equal ui32LastPacketID THEN
+										g_pGradientMap->isUpdated = true; // UPDATE SUCCESS!!!
+										return true;
+									END
+								END
+							END
+							return false;
+					-- }
+				ui8FailedToUpdateCounter++;
+				if(ui8FailedToUpdateCounter > UPDATE_PACKET_WAIT_TIMES)
+					break;
+			}
+		} WHILE (!g_pGradientMap->isUpdated);
+
+		IF g_pGradientMap->isUpdated is False THEN
+			g_pGradientMap->reset();
+		ELSE
+			g_pGradientMap->modifyGradientMap(ui32Row, ui32Column, pui8GradientMapBuffer, i8OffsetHeight, i8OffsetWidth);
+		END
+
+		if(pui8GradientMapBuffer != 0)
+			delete[] pui8GradientMapBuffer;
+	 */
+}
+
+bool GradientMapUpdater_identifyPacket(va_list argp)
+{
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt one argument in order:
+	//				1/ uint32_t ui64NewMapSize
+
+	// Get the input arguments
+	uint32_t ui64NewMapSize;
+	ui64NewMapSize = va_arg(argp, uint32_t);
+
+	uint32_t ui32ReceivedDataSize = 0;
+	uint8_t* pui8DataHolder = 0;
+
+	if (Network_receivedMessage(&pui8DataHolder, &ui32ReceivedDataSize))
+	{
+		//NOTE: Total packet lenght is ui32ReceivedDataSize
+		// Entire packet located at pui8DataHolder
+
+		//TODO: Process data in here:  <4-byte packet ID><1-byte byte_count><1-byte checksum><data...>
+		if (ui32ReceivedDataSize > 6 && ui32ReceivedDataSize <= GRADIENT_MAP_PACKET_FULL_LENGTH)
+		{
+			uint32_t ui32PacketId = construct4Byte(pui8DataHolder);
+			uint8_t ui8ByteCount = pui8DataHolder[4];
+
+			if (ui32PacketId == g_ui32GradientMapExpectedUpdatePacketId)
+			{
+				uint8_t ui8Checksum = 0;
+				int i;
+				for(i = 0; i < ui32ReceivedDataSize; i++)
+					ui8Checksum += pui8DataHolder[i];
+
+				if(ui8Checksum != 0)
+				{
+					GradientMapUpdater_sendNACK();
+					Network_deleteBuffer(pui8DataHolder);
+					return false;
+				}
+
+				for(i = 0; i < ui8ByteCount; i++)
+					g_pui8GradientMapBuffer[ui32PacketId + i] = pui8DataHolder[GRADIENT_MAP_PACKET_HEADER_LENGTH + i];
+
+				g_ui32GradientMapExpectedUpdatePacketId += ui8ByteCount;
+
+				if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
+				{
+					// UPDATE SUCCESS!!!
+					Network_deleteBuffer(pui8DataHolder);
+					return true;
+				}
+			}
+			else if (ui32PacketId > g_ui32GradientMapExpectedUpdatePacketId)
+			{
+				GradientMapUpdater_sendNACK();
+				Network_deleteBuffer(pui8DataHolder);
+				return false;
+			}
+			// else ui32PacketId < g_ui32GradientMapExpectedUpdatePacketId then do nothing!!!
+		}
+	}
+	else
+	{
+		DEBUG_PRINT("Network_receivedMessage: Timeout...\n");
+	}
+	Network_deleteBuffer(pui8DataHolder);
+	return false;
+}
+
+void GradientMapUpdater_sendNACK(void)
+{
+	//TODO: implement
 }
 
 #endif
