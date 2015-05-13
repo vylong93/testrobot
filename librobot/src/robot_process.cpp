@@ -2535,28 +2535,28 @@ void testStepRotateController(uint8_t* pui8Data)
 	g_i32LastIMUAngle = (int32_t)(startAngle * MATH_RAD2DEG);
 	DEBUG_PRINTS2("Collision test: alpha = %d, collapse %d\n", g_i32LastIMUAngle, g_ui8RepeatIMUAngleCounter);
 
-	turnOffLED(LED_BLUE);
-	turnOnLED(LED_GREEN);
 	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP);
 	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP\n");
 }
 
 bool rotateToAngleUseStepController(void)
 {
+	turnOffLED(LED_ALL);
+
 	g_RobotIdentity.theta = IMU_getYawAngle();
 
-//	if(detectedRotateCollision(g_RobotIdentity.theta))
-//	{
-//		Motors_stop();
-//		turnOnLED(LED_BLUE);
-//		DEBUG_PRINT("Detected collision...\n");
-//		return true;
-//	}
+	if(detectedRotateCollision(g_RobotIdentity.theta, 16))
+	{
+		Motors_stop();
+		turnOnLED(LED_BLUE);
+		DEBUG_PRINT("Detected collision...\n");
+		return true;
+	}
 
 	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
 	{
 		Motors_stop();
-		turnOffLED(LED_GREEN);
+		turnOffLED(LED_GREEN | LED_BLUE);
 		DEBUG_PRINT("Arrived the goal!!!\n");
 		return true;
 	}
@@ -2565,14 +2565,20 @@ bool rotateToAngleUseStepController(void)
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
 	if(fAngleInRadian > 0)
+	{
+		turnOnLED(LED_BLUE);
 		Robot_stepRotate_tunning(ROBOT_ROTATE_CLOCKWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+	}
 	else
+	{
+		turnOnLED(LED_GREEN);
 		Robot_stepRotate_tunning(ROBOT_ROTATE_COUNTERCLOSEWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+	}
 
 	return false;
 }
 
-bool detectedRotateCollision(float fCurrentAngle)
+bool detectedRotateCollision(float fCurrentAngle, int times)
 {
 	int32_t i32CurrentAngle = (int32_t)(fCurrentAngle * MATH_RAD2DEG);
 
@@ -2581,7 +2587,7 @@ bool detectedRotateCollision(float fCurrentAngle)
 	if(i32CurrentAngle == g_i32LastIMUAngle)
 	{
 		g_ui8RepeatIMUAngleCounter++;
-		if(g_ui8RepeatIMUAngleCounter > 8)
+		if(g_ui8RepeatIMUAngleCounter > times)
 			return true;
 		else
 			return false;
@@ -2606,8 +2612,6 @@ void testStepForwardInPeriodController(uint8_t* pui8Data)
 	uint32_t ui32StepFwPeriodInMs = construct4Byte(&pui8Data[2]);
 	Motor_task_timer_start(ui32StepFwPeriodInMs);
 
-	turnOffLED(LED_GREEN);
-	turnOnLED(LED_BLUE);
 	setRobotState(ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP);
 	DEBUG_PRINT("goto state ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP\n");
 }
@@ -2692,6 +2696,14 @@ bool forwardInRotateUseStepController(void)
 	turnOffLED(LED_ALL);
 
 	g_RobotIdentity.theta = IMU_getYawAngle();
+
+	if(detectedRotateCollision(g_RobotIdentity.theta, 6))
+	{
+		Motors_stop();
+		turnOnLED(LED_BLUE | LED_GREEN);
+		DEBUG_PRINT("Detected collision...\n");
+		return true;
+	}
 
 	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_pfTrackingAngle[g_ui8TrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
 	{

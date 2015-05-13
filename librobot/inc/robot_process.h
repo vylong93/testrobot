@@ -234,7 +234,7 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data);
 
 void testStepRotateController(uint8_t* pui8Data);
 bool rotateToAngleUseStepController(void);
-bool detectedRotateCollision(float fCurrentAngle);
+bool detectedRotateCollision(float fCurrentAngle, int times);
 
 void testStepForwardInPeriodController(uint8_t* pui8Data);
 bool forwardInPeriodUseStepController(void);
