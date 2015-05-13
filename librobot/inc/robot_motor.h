@@ -123,7 +123,8 @@ void MotorRight_assignActiveParameter(Motor_t motor);
 #define STEP_ACTIVE_MOTORS_MS 	50
 #define STEP_PAUSE_MOTORS_MS 	50
 
-#define STEP_MAX_SPEED 			240
+#define STEP_MAX_SPEED 			254
+#define STEP_MIN_SPEED 			10
 
 void initRobotMotorPairTimer(void);
 void Motor_delay_timer_ms(uint32_t ui32PeriodInMs);

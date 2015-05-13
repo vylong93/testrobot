@@ -393,23 +393,15 @@ void Robot_stepRotate_tunning(e_RobotRotateDirection eRotateDirection, uint32_t 
 
 void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod)
 {
-	MotorRight_stop();
+	Motor_t mRightMotor;
+	mRightMotor.eDirection = (directionLeftMotor == FORWARD) ? (REVERSE) : (FORWARD);
+	mRightMotor.ui8Speed = STEP_MIN_SPEED;
 
 	Motor_t mLeftMotor;
 	mLeftMotor.eDirection = directionLeftMotor;
 	mLeftMotor.ui8Speed = STEP_MAX_SPEED;
-	MotorLeft_assignActiveParameter(mLeftMotor);
 
-	MotorDriver_enable();
-
-//	Motor_t mLeft, mRight;
-//	mLeft.eDirection = directionLeftMotor;
-//	mRight.eDirection = (directionLeftMotor == FORWARD) ? (REVERSE) : (FORWARD);
-//
-//	mLeft.ui8Speed = 230;
-//	mRight.ui8Speed = 10;
-//
-//	Motors_configure(mLeft, mRight);
+	Motors_configure(mLeftMotor, mRightMotor);
 
 	if(ui32ActivePeriod > 0)
 		Motor_delay_timer_ms(ui32ActivePeriod);
@@ -423,23 +415,15 @@ void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32Act
 
 void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod)
 {
-	MotorLeft_stop();
+	Motor_t mLeftMotor;
+	mLeftMotor.eDirection = (directionRightMotor == FORWARD) ? (REVERSE) : (FORWARD);
+	mLeftMotor.ui8Speed = STEP_MIN_SPEED;
 
 	Motor_t mRightMotor;
 	mRightMotor.eDirection = directionRightMotor;
 	mRightMotor.ui8Speed = STEP_MAX_SPEED;
-	MotorRight_assignActiveParameter(mRightMotor);
 
-	MotorDriver_enable();
-
-//	Motor_t mLeft, mRight;
-//	mLeft.eDirection = (directionRightMotor == FORWARD) ? (REVERSE) : (FORWARD);
-//	mRight.eDirection = directionRightMotor;
-//
-//	mLeft.ui8Speed = 10;
-//	mRight.ui8Speed = 210;
-//
-//	Motors_configure(mLeft, mRight);
+	Motors_configure(mLeftMotor, mRightMotor);
 
 	if(ui32ActivePeriod > 0)
 		Motor_delay_timer_ms(ui32ActivePeriod);

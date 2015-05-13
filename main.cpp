@@ -180,6 +180,7 @@ int main(void)
 //	}
 #endif
 
+
 	while(true)
 	{
 		switch (getRobotState())
@@ -229,12 +230,19 @@ int main(void)
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_TEST_MOROT_LEFT:
-				testMotorLeft(true, 0);
+			case ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP:
+				if(forwardInRotateUseStepController())
+					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_TEST_MOROT_RIGHT:
-				testMotorRight(true, 0);
+			case ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE:
+				if(forwardInRotatePureController())
+					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_TEST_PID_CONTROLLER:
+				if(testPIDController())
+					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
 			default: // ROBOT_STATE_IDLE

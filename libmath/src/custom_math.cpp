@@ -14,6 +14,15 @@ float signFloatNumber(float a)
 	return -1;
 }
 
+bool isTwoAngleOverlay(float a, float b, float errorInDeg)
+{
+	float angle = a - b;
+	angle = atan2f(sinf(angle), cosf(angle));
+	if(fabsf(angle) < (errorInDeg * MATH_DEG2RAD))
+		return true;
+	return false;
+}
+
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c)
 {
 	float cosA;

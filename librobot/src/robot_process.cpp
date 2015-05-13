@@ -2513,13 +2513,14 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data)
 
 #ifdef REGION_CONTOLLER_CALIBRATE
 
-int32_t g_i32LastIMUAngle;
-uint8_t g_ui8RepeatIMUAngleCounter;
-
+  //========================//
+ // Step Rotate Controller //
+//========================//
 uint8_t g_ui8StepActivateInMs;
 uint8_t g_ui8StepPauseInMs;
 float g_fEndThetaOfCalibrateController;
-
+int32_t g_i32LastIMUAngle;
+uint8_t g_ui8RepeatIMUAngleCounter;
 void testStepRotateController(uint8_t* pui8Data)
 {
 	g_ui8StepActivateInMs = pui8Data[0];
@@ -2538,23 +2539,6 @@ void testStepRotateController(uint8_t* pui8Data)
 	turnOnLED(LED_GREEN);
 	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP);
 	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP\n");
-}
-
-uint8_t g_ui8StepFwLeftActiveMs;
-uint8_t g_ui8StepFwRightActiveMs;
-
-void testStepForwardController(uint8_t* pui8Data)
-{
-	g_ui8StepFwLeftActiveMs = pui8Data[0];
-	g_ui8StepFwRightActiveMs = pui8Data[1];
-
-	uint32_t ui32StepFwPeriodInMs = construct4Byte(&pui8Data[2]);
-	Motor_task_timer_start(ui32StepFwPeriodInMs);
-
-	turnOffLED(LED_GREEN);
-	turnOnLED(LED_BLUE);
-	setRobotState(ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP);
-	DEBUG_PRINT("goto state ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP\n");
 }
 
 bool rotateToAngleUseStepController(void)
@@ -2609,13 +2593,23 @@ bool detectedRotateCollision(float fCurrentAngle)
 	return false;
 }
 
-bool isTwoAngleOverlay(float a, float b, float errorInDeg)
+  //=========================//
+ // Step Forward Controller //
+//=========================//
+uint8_t g_ui8StepFwLeftActiveMs;
+uint8_t g_ui8StepFwRightActiveMs;
+void testStepForwardInPeriodController(uint8_t* pui8Data)
 {
-	float angle = a - b;
-	angle = atan2f(sinf(angle), cosf(angle));
-	if(fabsf(angle) < (errorInDeg * MATH_DEG2RAD))
-		return true;
-	return false;
+	g_ui8StepFwLeftActiveMs = pui8Data[0];
+	g_ui8StepFwRightActiveMs = pui8Data[1];
+
+	uint32_t ui32StepFwPeriodInMs = construct4Byte(&pui8Data[2]);
+	Motor_task_timer_start(ui32StepFwPeriodInMs);
+
+	turnOffLED(LED_GREEN);
+	turnOnLED(LED_BLUE);
+	setRobotState(ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP);
+	DEBUG_PRINT("goto state ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP\n");
 }
 
 bool forwardInPeriodUseStepController(void)
@@ -2634,8 +2628,8 @@ bool forwardInPeriodUseStepController(void)
 	{
 		turnOnLED(LED_GREEN);
 
-		mLeft.ui8Speed = TESTONLY_MAX_PWN;
-		mRight.ui8Speed = TESTONLY_MIN_PWN;
+		mLeft.ui8Speed = STEP_MAX_SPEED;
+		mRight.ui8Speed = STEP_MIN_SPEED;
 
 		Motors_configure(mLeft, mRight);
 
@@ -2646,8 +2640,8 @@ bool forwardInPeriodUseStepController(void)
 	{
 		turnOnLED(LED_BLUE);
 
-		mLeft.ui8Speed = TESTONLY_MIN_PWN;
-		mRight.ui8Speed = TESTONLY_MAX_PWN;
+		mLeft.ui8Speed = STEP_MIN_SPEED;
+		mRight.ui8Speed = STEP_MAX_SPEED;
 
 		Motors_configure(mLeft, mRight);
 
@@ -2658,62 +2652,291 @@ bool forwardInPeriodUseStepController(void)
 	return Motor_task_timer_isExpired();
 }
 
-void testMotorLeft(bool autoSwitchState, int offset)
+  //======================//
+ // Step Step Controller //
+//======================//
+uint8_t g_ui8StepFwRtActivateInMs;
+uint8_t g_ui8StepFwRtPauseInMs;
+uint8_t g_ui8StepFwRt;
+float g_pfTrackingAngle[4];
+uint8_t g_ui8TrackingPoint;
+void testStepForwardInRotateController(uint8_t* pui8Data)
 {
-	turnOffLED(LED_ALL);
-	turnOnLED(LED_GREEN);
+	g_ui8StepFwRtActivateInMs = pui8Data[0];
+	g_ui8StepFwRtPauseInMs = pui8Data[1];
+	g_ui8StepFwRt = pui8Data[2];
 
-	Motor_t mLeft, mRight;
-	mLeft.eDirection = FORWARD;
-	mRight.eDirection = FORWARD;
+	int32_t i32Angle = construct4Byte(&pui8Data[3]);
+	float goalAngleInDeg = i32Angle / 65536.0f;
 
-	mLeft.ui8Speed = TESTONLY_MAX_PWN;
-	mRight.ui8Speed = TESTONLY_MIN_PWN;
+	float fCurrentAngle = IMU_getYawAngle();
 
-	Motors_configure(mLeft, mRight);
-	if((TESTONLY_ACTIVE_MOTORS_LEFT_MS + offset) > 0)
-		delay_ms(TESTONLY_ACTIVE_MOTORS_LEFT_MS + offset);
+	g_pfTrackingAngle[0] = fCurrentAngle - (goalAngleInDeg * MATH_DEG2RAD);
+	g_pfTrackingAngle[1] = fCurrentAngle;
+	g_pfTrackingAngle[2] = fCurrentAngle + (goalAngleInDeg * MATH_DEG2RAD);
+	g_pfTrackingAngle[3] = fCurrentAngle;
 
-	if(TESTONLY_PAUSE_MOTORS_MS > 0)
-	{
-		Motors_stop();
-		delay_ms(TESTONLY_PAUSE_MOTORS_MS);
-	}
+	g_ui8TrackingPoint = 2;
 
-	if(autoSwitchState)
-	{
-		if(getRobotState() == ROBOT_STATE_TEST_MOROT_LEFT)
-			setRobotState(ROBOT_STATE_TEST_MOROT_RIGHT);
-	}
+	setRobotState(ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP);
+	DEBUG_PRINT("goto state ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP\n");
 }
 
-void testMotorRight(bool autoSwitchState, int offset)
+bool forwardInRotateUseStepController(void)
 {
-	turnOffLED(LED_ALL);
-	turnOnLED(LED_BLUE);
-
 	Motor_t mLeft, mRight;
+
 	mLeft.eDirection = FORWARD;
 	mRight.eDirection = FORWARD;
 
-	mLeft.ui8Speed = TESTONLY_MIN_PWN;
-	mRight.ui8Speed = TESTONLY_MAX_PWN;
+	turnOffLED(LED_ALL);
 
-	Motors_configure(mLeft, mRight);
-	if((TESTONLY_ACTIVE_MOTORS_RIGHT_MS + offset) > 0)
-		delay_ms(TESTONLY_ACTIVE_MOTORS_RIGHT_MS + offset);
+	g_RobotIdentity.theta = IMU_getYawAngle();
 
-	if(TESTONLY_PAUSE_MOTORS_MS > 0)
+	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_pfTrackingAngle[g_ui8TrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
+	{
+		g_ui8TrackingPoint++;
+		if(g_ui8TrackingPoint >= 4)
+			g_ui8TrackingPoint = 0;
+
+		g_ui8StepFwRt--;
+		if(g_ui8StepFwRt == 0)
+			return true; // idle
+		return false; // continue
+	}
+
+	float fAngleInRadian = g_pfTrackingAngle[g_ui8TrackingPoint] - g_RobotIdentity.theta;
+	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+
+	if (fAngleInRadian > 0) // Lock left, move right
+	{
+		turnOnLED(LED_BLUE);
+		mLeft.ui8Speed = STEP_MIN_SPEED;
+		mRight.ui8Speed = STEP_MAX_SPEED;
+	}
+	else // Lock right, move left
+	{
+		turnOnLED(LED_GREEN);
+		mLeft.ui8Speed = STEP_MAX_SPEED;
+		mRight.ui8Speed = STEP_MIN_SPEED;
+	}
+
+	if(g_ui8StepFwRtActivateInMs > 0)
+	{
+		Motors_configure(mLeft, mRight);
+		Motor_delay_timer_ms(g_ui8StepFwRtActivateInMs);
+	}
+
+	if(g_ui8StepFwRtPauseInMs > 0)
 	{
 		Motors_stop();
-		delay_ms(TESTONLY_PAUSE_MOTORS_MS);
+		Motor_delay_timer_ms(g_ui8StepFwRtPauseInMs);
 	}
 
-	if(autoSwitchState)
+	return false;
+}
+
+//void testMotorLeft(bool autoSwitchState, int offset)
+//{
+//	turnOffLED(LED_ALL);
+//	turnOnLED(LED_GREEN);
+//
+//	Motor_t mLeft, mRight;
+//	mLeft.eDirection = FORWARD;
+//	mRight.eDirection = FORWARD;
+//
+//	mLeft.ui8Speed = TESTONLY_MAX_PWN;
+//	mRight.ui8Speed = TESTONLY_MIN_PWN;
+//
+//	Motors_configure(mLeft, mRight);
+//	if((TESTONLY_ACTIVE_MOTORS_LEFT_MS + offset) > 0)
+//		delay_ms(TESTONLY_ACTIVE_MOTORS_LEFT_MS + offset);
+//
+//	if(TESTONLY_PAUSE_MOTORS_MS > 0)
+//	{
+//		Motors_stop();
+//		delay_ms(TESTONLY_PAUSE_MOTORS_MS);
+//	}
+//
+//	if(autoSwitchState)
+//	{
+//		if(getRobotState() == ROBOT_STATE_TEST_MOROT_LEFT)
+//			setRobotState(ROBOT_STATE_TEST_MOROT_RIGHT);
+//	}
+//}
+//
+//void testMotorRight(bool autoSwitchState, int offset)
+//{
+//	turnOffLED(LED_ALL);
+//	turnOnLED(LED_BLUE);
+//
+//	Motor_t mLeft, mRight;
+//	mLeft.eDirection = FORWARD;
+//	mRight.eDirection = FORWARD;
+//
+//	mLeft.ui8Speed = TESTONLY_MIN_PWN;
+//	mRight.ui8Speed = TESTONLY_MAX_PWN;
+//
+//	Motors_configure(mLeft, mRight);
+//	if((TESTONLY_ACTIVE_MOTORS_RIGHT_MS + offset) > 0)
+//		delay_ms(TESTONLY_ACTIVE_MOTORS_RIGHT_MS + offset);
+//
+//	if(TESTONLY_PAUSE_MOTORS_MS > 0)
+//	{
+//		Motors_stop();
+//		delay_ms(TESTONLY_PAUSE_MOTORS_MS);
+//	}
+//
+//	if(autoSwitchState)
+//	{
+//		if(getRobotState() == ROBOT_STATE_TEST_MOROT_RIGHT)
+//			setRobotState(ROBOT_STATE_TEST_MOROT_LEFT);
+//	}
+//}
+
+//=======================//
+// Pure FwRT Controller //
+//=====================//
+bool g_bIsTrackingAngleOutOfDate = true;
+float g_fTrackingAngle = 0;
+
+bool forwardInRotatePureController(void)
+{
+	if(g_bIsTrackingAngleOutOfDate)
 	{
-		if(getRobotState() == ROBOT_STATE_TEST_MOROT_RIGHT)
-			setRobotState(ROBOT_STATE_TEST_MOROT_LEFT);
+		g_bIsTrackingAngleOutOfDate = false;
+		g_fTrackingAngle = IMU_getYawAngle();
 	}
+
+	Motor_t mLeft, mRight;
+
+	mLeft.eDirection = FORWARD;
+	mRight.eDirection = FORWARD;
+
+	turnOffLED(LED_ALL);
+
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+	float fAngleInRadian = g_fTrackingAngle - g_RobotIdentity.theta;
+	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
+
+	if(fAngleInRadian > 0)
+	{
+		//Lock left, move right
+		turnOnLED(LED_BLUE);
+
+		mLeft.ui8Speed = STEP_MIN_SPEED;
+		mRight.ui8Speed = STEP_MAX_SPEED;
+	}
+	else
+	{
+		//Lock right, move left
+		turnOnLED(LED_GREEN);
+
+		mLeft.ui8Speed = STEP_MAX_SPEED;
+		mRight.ui8Speed = STEP_MIN_SPEED;
+	}
+
+	Motors_configure(mLeft, mRight);
+	Motor_delay_timer_ms(50);
+
+	Motors_stop();
+	Motor_delay_timer_ms(75);
+
+	if(getRobotState() == ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE)
+	{
+		g_bIsTrackingAngleOutOfDate = false;
+		return false;
+	}
+
+	g_bIsTrackingAngleOutOfDate = true;
+	return true;
+}
+
+//=================//
+// PID Controller //
+//===============//
+float fReferenceYawAngleInRad;
+float kP, kI, kD;
+float e_old, E;
+void testPIDControllerSetup(uint8_t* pui8Data)
+{
+	int32_t i32Data;
+
+	i32Data = construct4Byte(pui8Data);
+	kP = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[4]);
+	kI = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8Data[8]);
+	kD = i32Data / 65536.0f;
+
+	// Init PID tracking references
+	fReferenceYawAngleInRad = IMU_getYawAngle();
+
+	// PID reset memory storages
+	e_old = 0;
+	E = 0;
+
+	turnOnLED(LED_BLUE | LED_GREEN);
+	setRobotState(ROBOT_STATE_TEST_PID_CONTROLLER);
+}
+
+bool testPIDController(void)
+{
+	// System Variables
+	Motor_t m1_Left;
+	Motor_t m2_Right;
+	uint8_t ui8NextPWM;
+	static int16_t u = 80;
+
+	m2_Right.eDirection = FORWARD;
+	m2_Right.ui8Speed = 80;
+
+	// read current yaw angle
+	g_RobotIdentity.theta = IMU_getYawAngle();
+
+	// calculate the error
+	float e = g_RobotIdentity.theta - fReferenceYawAngleInRad;
+	e = atan2f(sinf(e), cosf(e));
+
+	// calculate the error dynamic
+	float e_dot = e - e_old;
+
+	// integral the error
+	E = E + e;
+
+	// compute the control input
+	u = u + kP*e + kI*E + kD*e_dot;
+
+	// save 'e' for the next loop
+	e_old = e;
+
+	/* PWM control signal */
+	if(u < 0)
+	{
+		u = 0 - u;
+		m1_Left.eDirection = REVERSE;
+	}
+	else
+	{
+		m1_Left.eDirection = FORWARD;
+	}
+	ui8NextPWM = u * m2_Right.ui8Speed;
+
+	if(ui8NextPWM < 60)
+		ui8NextPWM = 60;
+	else if(ui8NextPWM > 100)
+		ui8NextPWM = 100;
+
+	m1_Left.ui8Speed = ui8NextPWM;
+
+	Motors_configure(m1_Left, m2_Right);
+
+	if(getRobotState() == ROBOT_STATE_TEST_PID_CONTROLLER)
+		return false;
+	return true;
 }
 
 #endif

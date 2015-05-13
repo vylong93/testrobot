@@ -358,8 +358,16 @@ void decodeAdvanceHostCommand(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_t
 		testStepRotateController(pui8MessageData);
 		break;
 
-	case HOST_COMMAND_CONFIG_STEP_FORWARD_CONTROLLER:
-		testStepForwardController(pui8MessageData);
+	case HOST_COMMAND_CONFIG_STEP_FORWARD_IN_PERIOD_CONTROLLER:
+		testStepForwardInPeriodController(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_CONFIG_STEP_FORWARD_IN_ROTATE_CONTOLLER:
+		testStepForwardInRotateController(pui8MessageData);
+		break;
+
+	case HOST_COMMAND_CONFIG_PID_CONTROLLER:
+		testPIDControllerSetup(pui8MessageData);
 		break;
 
 	default:

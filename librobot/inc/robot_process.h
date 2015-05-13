@@ -45,11 +45,12 @@ typedef enum tag_RobotState
 	ROBOT_STATE_CORRECT_LOCATIONS = 6,  	// State Six
 	ROBOT_STATE_LOCOMOTION = 7,				// State Seven (optional)
 
-	ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP = 8,	// Step Controller
-	ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP = 9,	// Step Controller
+	ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP = 8,	 // Step Controller
+	ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP = 9,	 // Step Controller
+	ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP = 10, // Step Controller
 
-	ROBOT_STATE_TEST_MOROT_LEFT = 10,
-	ROBOT_STATE_TEST_MOROT_RIGHT = 11,
+	ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE = 11,
+	ROBOT_STATE_TEST_PID_CONTROLLER = 12
 
 } e_RobotState;
 
@@ -232,22 +233,26 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data);
 #ifdef REGION_CONTOLLER_CALIBRATE
 
 void testStepRotateController(uint8_t* pui8Data);
-void testStepForwardController(uint8_t* pui8Data);
-
 bool rotateToAngleUseStepController(void);
 bool detectedRotateCollision(float fCurrentAngle);
-bool isTwoAngleOverlay(float a, float b, float errorInDeg);
 
+void testStepForwardInPeriodController(uint8_t* pui8Data);
 bool forwardInPeriodUseStepController(void);
 
-#define TESTONLY_MIN_PWN				10
-#define TESTONLY_MAX_PWN				200
+void testStepForwardInRotateController(uint8_t* pui8Data);
+bool forwardInRotateUseStepController(void);
+
+//void testMotorLeft(bool autoSwitchState, int offset);
+//void testMotorRight(bool autoSwitchState, int offset);
+
+void testForwardInRotatePureController(uint8_t* pui8Data);
+bool forwardInRotatePureController(void);
+
 #define TESTONLY_ACTIVE_MOTORS_LEFT_MS	20
 #define TESTONLY_ACTIVE_MOTORS_RIGHT_MS	20
 #define TESTONLY_PAUSE_MOTORS_MS	0
-
-void testMotorLeft(bool autoSwitchState, int offset);
-void testMotorRight(bool autoSwitchState, int offset);
+void testPIDControllerSetup(uint8_t* pui8Data);
+bool testPIDController(void);
 
 #endif
 

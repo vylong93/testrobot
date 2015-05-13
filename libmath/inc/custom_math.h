@@ -53,6 +53,8 @@ typedef struct tagCircleEquation {
 
 float signFloatNumber(float a);
 
+bool isTwoAngleOverlay(float a, float b, float errorInDeg);
+
 bool isValidTriangle(uint16_t a, uint16_t b, uint16_t c);
 bool isTriangle(uint32_t a, uint32_t b, uint32_t c);
 float findCosAngleUseCosineRuleForTriangle(float fSide1, float fSide2, float fOppositeSide);
