@@ -32,7 +32,7 @@ extern "C"
 #define EEPROM_ROBOT_ID_ADDRESS			(EEPROM_ROBOT_ID_WORD_IDX << 2)
 #define EEPROM_INTERCEPT_WORD_ADDRESS	(EEPROM_INTERCEPT_WORD_IDX << 2)
 #define EEPROM_SLOPE_WORD_ADDRESS		(EEPROM_SLOPE_WORD_IDX << 2)
-#define EEPROM_RANDOM_W_WORD_ADDRESS	(EEPROM_RANDOM_WORD_IDX << 2)
+#define EEPROM_RANDOM_W_WORD_ADDRESS	(EEPROM_RANDOM_W_WORD_IDX << 2)
 #define EEPROM_MOTOR_PARAMETERS_ADDRESS	(EEPROM_MOTOR_PARAMETERS << 2)
 
 /* Block 2 - 3 - 4 - 5 - 6 - 7 */
@@ -47,6 +47,7 @@ void initEEPROM(void);
 uint32_t getRobotIDInEEPROM(void);
 bool getTDOAParameterInEEPROM(float* pfIntercept, float* pfSlope);
 bool getMotorParametersInEEPROM(uint8_t* pui8LeftMotor, uint8_t* pui8RightMotor, uint16_t* pui16MotorPeriod);
+bool getRandomWordInEEPROM(uint32_t* pui32RandomWord);
 
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data);
 uint32_t readWordFormEEPROM(uint32_t ui32WordIndex);

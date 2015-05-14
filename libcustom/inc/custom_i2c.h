@@ -18,6 +18,7 @@ extern "C"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "inc/hw_i2c.h"
+#include "inc/hw_gpio.h"
 #include "driverlib/i2c.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
@@ -42,6 +43,7 @@ int i2c_read(unsigned char slave_addr,
                     unsigned char reg_addr,
                     unsigned char length,
                     unsigned char *data);
+void waitForI2CMasterCompletedTransaction(void);
 void delay_ms_i2c(unsigned int n);
 void delay_us_i2c(unsigned int n);
 void get_ms(unsigned long *time);

@@ -103,6 +103,7 @@ typedef struct tag_MessageHeader
 
 //--------------------------------------------------------------
 #define ROBOT_RESPONSE_TO_HOST_OK 							0x0A
+#define ROBOT_RESPONSE_TO_HOST_NACK							0x0B
 #define ROBOT_RESPONSE_TDOA_RESULT							0xB0
 #define ROBOT_RESPONSE_DISTANCE_RESULT						0xB1
 #define ROBOT_RESPONSE_SAMPLING_COLLISION					0xB2

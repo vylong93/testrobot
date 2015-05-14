@@ -21,7 +21,8 @@
 #define GYRO_ON         (0x02)
 #define q30  			1073741824.0f
 
-bool initIMU(InvMPU* pMpu6050);
+bool initIMU(void);
+//bool initIMU(InvMPU* pMpu6050);
 
 float IMU_getYawAngleAndTapValue(float* piTapValue);
 float IMU_getYawAngle(void);

@@ -25,6 +25,10 @@ void GradientMap::reset(void)
 	if(pGradientMap != 0)
 		delete[] pGradientMap;
 
+	Width = 7;
+	Height = 5;
+	OffsetWidth = -1;
+	OffsetHeight = -1;
 	pGradientMap = new int8_t[Height * Width]; /*{
 		-2, -3, -4, -5, -6,  -7, -8,
 		-1,  0,  1, -6,  5,   6, -9,
@@ -35,10 +39,17 @@ void GradientMap::reset(void)
 	if (pGradientMap == 0)
 		return;
 
-	Width = 7;
-	Height = 5;
-	OffsetWidth = -1;
-	OffsetHeight = -1;
+	//TODO: test only =============================
+	int8_t pMap[] = {
+			-2, -3, -4, -5, -6,  -7, -8,
+			-1,  0,  1, -6,  5,   6, -9,
+			-2, -3,  2,  3,  4, -11, -10,
+			-3, -4, -5,  4, -9, -10, -11,
+			-4, -5, -6, -7, -8,  -9, -10 };
+
+	int i;
+	for(i = 0; i < Height * Width; i++)
+		pGradientMap[i] = pMap[i];
 }
 
 bool GradientMap::modifyGradientMap(uint32_t ui32Height, uint32_t ui32Width, int8_t* pi8NewMap, int8_t i8OffsetHeight, int8_t i8OffsetWidth)

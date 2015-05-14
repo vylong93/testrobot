@@ -75,6 +75,8 @@ typedef struct tagRobotRotationFlag{
 
 void test(void); // Test Only
 
+int readChipRev(void);
+
 void initRobotProcess(void);
 void resetRobotIdentity(void);
 
@@ -275,7 +277,7 @@ void robotRotateCommandWithAngle(uint8_t* pui8Data);
 
 void updateGradientMap(uint8_t* pui8Data);
 bool GradientMapUpdater_identifyPacket(va_list argp);
-void GradientMapUpdater_sendNACK(void);
+void GradientMapUpdater_sendNACKToHost(void);
 
 #endif
 

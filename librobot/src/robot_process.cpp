@@ -44,6 +44,9 @@ static uint8_t* g_pui8RequestData;
 
 static GradientMap* g_pGradientMap;
 
+static uint32_t g_ui32RandomW;
+static uint32_t g_ui32RandomWIndex;
+
 void test(void) // Test Only
 {
 //	Robot:0xBEAD08 (31.3617; -0.052002)
@@ -73,6 +76,31 @@ void test(void) // Test Only
 	delete[] pui8MessageData;
 }
 
+int readChipRev(void)
+{
+	#define SCRD  	0x400FE000
+	#define	DID0	0x00000000
+	#define	DID1	0x00000004
+
+	int32_t rDID0 = HWREG(SCRD + DID0);
+	int DID0_VER = (rDID0 >> 28) & 0x07;
+	int DID0_CLASSS = (rDID0 >> 16) & 0x0F;
+	int DID0_MAJOR = (rDID0 >> 8) & 0x0F;
+	int DID0_MINOR = rDID0 & 0x0F;
+
+	int32_t rDID1 = HWREG(SCRD + DID1);
+	int DID1_VER = (rDID1 >> 28) & 0x0F;
+	int DID1_FAM = (rDID1 >> 24) & 0x0F;
+	int DID1_PARTNO = (rDID1 >> 16) & 0xFF;
+	int DID1_PINCOUNT = (rDID1 >> 13) & 0x07;
+	int DID1_TEMP = (rDID1 >> 5) & 0x07;
+	int DID1_PKG = (rDID1 >> 3) & 0x03;
+	int DID1_ROHS = (rDID1 >> 2) & 0x01;
+	int DID1_QUAL = rDID1 & 0x03;
+
+	return (DID0_MAJOR + DID0_MINOR);
+}
+
 void initRobotProcess(void)
 {
 	uint32_t ui32ReadEEPROMData;
@@ -100,7 +128,7 @@ void initRobotProcess(void)
 	resetRobotIdentity();
 
 	//
-	// Initilize motor parameters
+	// Initialize motor parameters
 	//
 	if(getMotorParametersInEEPROM(&ui8LeftMotorOffset, &ui8RightMotorOffset, &ui16PeriodMotorOffset))
 	{
@@ -130,6 +158,15 @@ void initRobotProcess(void)
 	g_pGradientMap = new GradientMap();
 	DEBUG_PRINTS3("init DASH::Gradient Map [%d][%d] at 0x%08x\n", g_pGradientMap->Height, g_pGradientMap->Width, g_pGradientMap->pGradientMap);
 
+	//
+	// Initialize Random Word
+	//
+	if(!getRandomWordInEEPROM(&g_ui32RandomW))
+	{
+		//TODO: generate 8 random half-byte and store to g_ui32RandomW
+	}
+	g_ui32RandomWIndex = 0;
+	
 	//==============================================
 	// IMPORTANCE: Configure Software Interrupt
 	//==============================================
@@ -3169,10 +3206,10 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 
 	if (Network_receivedMessage(&pui8DataHolder, &ui32ReceivedDataSize))
 	{
-		//NOTE: Total packet lenght is ui32ReceivedDataSize
+		// NOTE: Total packet lenght is ui32ReceivedDataSize
 		// Entire packet located at pui8DataHolder
 
-		//TODO: Process data in here:  <4-byte packet ID><1-byte byte_count><1-byte checksum><data...>
+		// Process data in here:  <4-byte packet ID><1-byte byte_count><1-byte checksum><data...>
 		if (ui32ReceivedDataSize > 6 && ui32ReceivedDataSize <= GRADIENT_MAP_PACKET_FULL_LENGTH)
 		{
 			uint32_t ui32PacketId = construct4Byte(pui8DataHolder);
@@ -3187,7 +3224,7 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 
 				if(ui8Checksum != 0)
 				{
-					GradientMapUpdater_sendNACK();
+					GradientMapUpdater_sendNACKToHost();
 					Network_deleteBuffer(pui8DataHolder);
 					return false;
 				}
@@ -3206,7 +3243,7 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 			}
 			else if (ui32PacketId > g_ui32GradientMapExpectedUpdatePacketId)
 			{
-				GradientMapUpdater_sendNACK();
+				GradientMapUpdater_sendNACKToHost();
 				Network_deleteBuffer(pui8DataHolder);
 				return false;
 			}
@@ -3221,9 +3258,25 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 	return false;
 }
 
-void GradientMapUpdater_sendNACK(void)
+void GradientMapUpdater_sendNACKToHost(void)
 {
-	//TODO: implement
+	// Get random half-byte from random word
+	uint8_t ui8Random = (g_ui32RandomW >> (4 * g_ui32RandomWIndex)) & 0x0000000F;
+	g_ui32RandomWIndex++;
+	g_ui32RandomWIndex &= 0x07;
+
+	//  Delay 1ms * 3 + 50us * 3 * random
+	SysCtlDelay((SysCtlClockGet() / 1000) + ((SysCtlClockGet() / 20000) * ui8Random));
+
+	turnOnLED(LED_GREEN);
+	
+	MessageHeader responseNack;
+	responseNack.eMessageType = MESSAGE_TYPE_ROBOT_RESPONSE;
+	responseNack.ui8Cmd = ROBOT_RESPONSE_TO_HOST_NACK;
+
+	sendDataToHost((uint8_t *) (&responseNack), 2);
+
+	turnOffLED(LED_GREEN);
 }
 
 #endif

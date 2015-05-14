@@ -42,20 +42,6 @@ int main(void)
 {
 	initSystem();
 
-#ifdef HAVE_IMU
-	initI2C();
-	DEBUG_PRINT("init I2C: OK\n");
-
-	InvMPU mpu6050;
-	if(initIMU(&mpu6050))
-		DEBUG_PRINT("init IMU: OK\n");
-	else
-	{
-		DEBUG_PRINT("CPU trapped! Please unplug VDD signal of IMU module then replug and try again...\n");
-		while(true);
-	}
-#endif
-
 	initRobotProcess();
 
 	turnOffLED(LED_ALL);
@@ -305,6 +291,25 @@ void initSystem(void)
 
 	initRobotTaskTimer();
 	DEBUG_PRINT("init Robot task timer: OK\n");
+
+	int rev = readChipRev();
+	DEBUG_PRINTS("MCU rev: %d\n", rev);
+
+#ifdef HAVE_IMU
+	initI2C();
+	DEBUG_PRINT("init I2C: OK\n");
+
+	//InvMPU mpu6050;
+	//if(initIMU(&mpu6050))
+	if(initIMU())
+		DEBUG_PRINT("init IMU: OK\n");
+	else
+	{
+		DEBUG_PRINT("CPU trapped! Please unplug VDD signal of IMU module then replug and try again...\n");
+		//TODO: software reset
+		while(true);
+	}
+#endif
 }
 
 void MCU_RF_IRQ_handler(void)

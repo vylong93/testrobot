@@ -7,9 +7,10 @@
 
 #include "librobot/inc/robot_imu.h"
 #include "libcustom/inc/custom_uart_debug.h"
+#include "libcustom/inc/custom_led.h"
 #include <math.h>
 
-InvMPU* g_mpu6050;
+InvMPU* g_pMPU6050;
 
 unsigned long sensor_timestamp;
 
@@ -29,11 +30,12 @@ static void IMU_tap_cb(unsigned char direction, unsigned char count)
 }
 
 
-bool initIMU(InvMPU* pMpu6050)
+//bool initIMU(InvMPU* pMpu6050)
+bool initIMU(void)
 {
-	g_mpu6050 = pMpu6050;
-	bool bIsSuccess = IMU_setup_mpu_dmp(pMpu6050);
-	pMpu6050->mpu_reset_fifo();
+	g_pMPU6050 = new InvMPU();
+	bool bIsSuccess = IMU_setup_mpu_dmp(g_pMPU6050);
+	g_pMPU6050->mpu_reset_fifo();
 	return bIsSuccess;
 }
 
@@ -162,8 +164,20 @@ void IMU_updateNewRaw(void)
 {
 	short sensors;
 
+	unsigned long long counter = 0;
+
 	while(true)
 	{
+		counter++;
+		if(counter > 10000)
+		{
+			while(true)
+			{
+				toggleLED(LED_ALL);
+				delay_ms_i2c(750);
+			}
+		}
+
 		/* This function gets new data from the FIFO when the DMP is in
 		 * use. The FIFO can contain any combination of gyro, accel,
 		 * quaternion, and gesture data. The sensors parameter tells the
@@ -176,7 +190,7 @@ void IMU_updateNewRaw(void)
 		 * registered). The more parameter is non-zero if there are
 		 * leftover packets in the FIFO.
 		 */
-		g_mpu6050->dmp_read_fifo(gyro, accel, quat, &sensor_timestamp, &sensors, &more);
+		g_pMPU6050->dmp_read_fifo(gyro, accel, quat, &sensor_timestamp, &sensors, &more);
 
 		/* Gyro and accel data are written to the FIFO by the DMP in chip
 		 * frame and hardware units. This behavior is convenient because it
@@ -206,7 +220,7 @@ void IMU_extractRawAccel(Vector3<float>* pvect3RawAccel)
 	unsigned short accelSens;
 	float fAccelSens;
 
-	g_mpu6050->mpu_get_accel_sens(&accelSens);
+	g_pMPU6050->mpu_get_accel_sens(&accelSens);
 	fAccelSens = accelSens * 1.0f;
 
 	pvect3RawAccel->x = accel[0] / fAccelSens;
@@ -218,7 +232,7 @@ void IMU_extractRawGyro(Vector3<float>* pvect3RawGyro)
 {
 	float fGyroSens;
 
-	g_mpu6050->mpu_get_gyro_sens(&fGyroSens);
+	g_pMPU6050->mpu_get_gyro_sens(&fGyroSens);
 
 	pvect3RawGyro->x = gyro[0] / fGyroSens;
 	pvect3RawGyro->y = gyro[1] / fGyroSens;

@@ -89,9 +89,7 @@ int i2c_write(unsigned char slave_addr,
 	//
 	// Wait for MCU to finish transaction
 	//
-	while(I2CMasterBusy(I2C_PERIPH_BASE))
-	{
-	}
+	waitForI2CMasterCompletedTransaction();
 
 	for(i = 0; i < length; i++)
     {
@@ -109,9 +107,7 @@ int i2c_write(unsigned char slave_addr,
 		//
 		// Wait for MCU to finish transaction
 		//
-		while(I2CMasterBusy(I2C_PERIPH_BASE))
-		{
-		}
+		waitForI2CMasterCompletedTransaction();
     }
 
 	//
@@ -122,9 +118,7 @@ int i2c_write(unsigned char slave_addr,
 	//
 	// Wait for MCU to finish transaction
 	//
-	while(I2CMasterBusy(I2C_PERIPH_BASE))
-	{
-	}
+	waitForI2CMasterCompletedTransaction();
 
 	return 0;
 }
@@ -161,9 +155,7 @@ int i2c_read(unsigned char slave_addr,
 	//
 	// Wait for MCU to complete send transaction
 	//
-	while(I2CMasterBusy(I2C_PERIPH_BASE))
-    {
-	}
+	waitForI2CMasterCompletedTransaction();
 
     //
     // Tell the master module what address it will place on the bus when
@@ -191,9 +183,7 @@ int i2c_read(unsigned char slave_addr,
 		//
 		// Wait while checking for MCU to complete the transaction
 		//
-		while(I2CMasterBusy(I2C_PERIPH_BASE))
-		{
-		}
+		waitForI2CMasterCompletedTransaction();
 
 		//
 		// Get the data from the MCU register
@@ -202,6 +192,26 @@ int i2c_read(unsigned char slave_addr,
 	}
 
 	return 0;
+}
+
+void waitForI2CMasterCompletedTransaction(void)
+{
+//	unsigned long long counter = 0;
+	//
+	// Wait while checking for MCU to complete the transaction
+	//
+	while(I2CMasterBusy(I2C_PERIPH_BASE))
+	{
+//		counter++;
+//		if(counter > 500000)
+//		{
+//			while(1)
+//			{
+//				HWREG(GPIO_PORTF_BASE + (GPIO_O_DATA + ((GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3) << 2))) ^= 0xFF;
+//				delay_ms_i2c(750);
+//			}
+//		}
+	}
 }
 
 void delay_ms_i2c(unsigned int n)

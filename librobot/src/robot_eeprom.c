@@ -63,6 +63,17 @@ bool getMotorParametersInEEPROM(uint8_t* pui8LeftMotor, uint8_t* pui8RightMotor,
 	return true;
 }
 
+bool getRandomWordInEEPROM(uint32_t* pui32RandomWord)
+{
+	uint32_t ui32ReadData;
+	EEPROMRead(&ui32ReadData, EEPROM_RANDOM_W_WORD_ADDRESS, sizeof(&ui32ReadData));
+	if(ui32ReadData == 0xFFFFFFFF)
+		return false;
+	
+	*pui32RandomWord = ui32ReadData;
+	return true;
+}
+
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data)
 {
 	ui32WordIndex <<= 2;
