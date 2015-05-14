@@ -78,27 +78,29 @@ void test(void) // Test Only
 
 int readChipRev(void)
 {
-	#define SCRD  	0x400FE000
-	#define	DID0	0x00000000
-	#define	DID1	0x00000004
+//	#define SCRD  	0x400FE000
+//	#define	DID0	0x00000000
+//	#define	DID1	0x00000004
+//
+//	int32_t rDID0 = HWREG(SCRD + DID0);
+//	int DID0_VER = (rDID0 >> 28) & 0x07;
+//	int DID0_CLASSS = (rDID0 >> 16) & 0x0F;
+//	int DID0_MAJOR = (rDID0 >> 8) & 0x0F;
+//	int DID0_MINOR = rDID0 & 0x0F;
+//
+//	int32_t rDID1 = HWREG(SCRD + DID1);
+//	int DID1_VER = (rDID1 >> 28) & 0x0F;
+//	int DID1_FAM = (rDID1 >> 24) & 0x0F;
+//	int DID1_PARTNO = (rDID1 >> 16) & 0xFF;
+//	int DID1_PINCOUNT = (rDID1 >> 13) & 0x07;
+//	int DID1_TEMP = (rDID1 >> 5) & 0x07;
+//	int DID1_PKG = (rDID1 >> 3) & 0x03;
+//	int DID1_ROHS = (rDID1 >> 2) & 0x01;
+//	int DID1_QUAL = rDID1 & 0x03;
+//
+//	return (DID0_MAJOR + DID0_MINOR);
 
-	int32_t rDID0 = HWREG(SCRD + DID0);
-	int DID0_VER = (rDID0 >> 28) & 0x07;
-	int DID0_CLASSS = (rDID0 >> 16) & 0x0F;
-	int DID0_MAJOR = (rDID0 >> 8) & 0x0F;
-	int DID0_MINOR = rDID0 & 0x0F;
-
-	int32_t rDID1 = HWREG(SCRD + DID1);
-	int DID1_VER = (rDID1 >> 28) & 0x0F;
-	int DID1_FAM = (rDID1 >> 24) & 0x0F;
-	int DID1_PARTNO = (rDID1 >> 16) & 0xFF;
-	int DID1_PINCOUNT = (rDID1 >> 13) & 0x07;
-	int DID1_TEMP = (rDID1 >> 5) & 0x07;
-	int DID1_PKG = (rDID1 >> 3) & 0x03;
-	int DID1_ROHS = (rDID1 >> 2) & 0x01;
-	int DID1_QUAL = rDID1 & 0x03;
-
-	return (DID0_MAJOR + DID0_MINOR);
+	return 0;
 }
 
 void initRobotProcess(void)

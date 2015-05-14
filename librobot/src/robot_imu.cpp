@@ -8,6 +8,7 @@
 #include "librobot/inc/robot_imu.h"
 #include "libcustom/inc/custom_uart_debug.h"
 #include "libcustom/inc/custom_led.h"
+#include "librobot/inc/robot_motor.h"
 #include <math.h>
 
 InvMPU* g_pMPU6050;
@@ -162,10 +163,31 @@ void IMU_getQuaternion(Quaternion*pQuaternion)
 
 void IMU_updateNewRaw(void)
 {
+	unsigned int lifetimes = 0;
+
 	short sensors;
 
 	while(true)
 	{
+		lifetimes++;
+		if(lifetimes >= 2000)
+		{
+			lifetimes = 0;
+
+			//===========================================
+			Motor_t mLeftMotor;
+			Motor_t mRightMotor;
+
+			mLeftMotor.eDirection = REVERSE;
+			mLeftMotor.ui8Speed = 100;
+
+			mRightMotor.eDirection = FORWARD;
+			mRightMotor.ui8Speed = 100;
+
+			Motors_configure(mLeftMotor, mRightMotor);
+			//===========================================
+		}
+
 		/* This function gets new data from the FIFO when the DMP is in
 		 * use. The FIFO can contain any combination of gyro, accel,
 		 * quaternion, and gesture data. The sensors parameter tells the
