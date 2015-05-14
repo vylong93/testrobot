@@ -164,20 +164,8 @@ void IMU_updateNewRaw(void)
 {
 	short sensors;
 
-	unsigned long long counter = 0;
-
 	while(true)
 	{
-		counter++;
-		if(counter > 10000)
-		{
-			while(true)
-			{
-				toggleLED(LED_ALL);
-				delay_ms_i2c(750);
-			}
-		}
-
 		/* This function gets new data from the FIFO when the DMP is in
 		 * use. The FIFO can contain any combination of gyro, accel,
 		 * quaternion, and gesture data. The sensors parameter tells the

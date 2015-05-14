@@ -46,6 +46,7 @@ void initI2C(void)
     // be set to 400kbps.
     //
     I2CMasterInitExpClk(I2C_PERIPH_BASE, SysCtlClockGet(), true);
+//    I2CMasterInitExpClk(I2C_PERIPH_BASE, SysCtlClockGet(), false);
 
     //
     // Enable I2C
@@ -184,6 +185,15 @@ int i2c_read(unsigned char slave_addr,
 		// Wait while checking for MCU to complete the transaction
 		//
 		waitForI2CMasterCompletedTransaction();
+
+		//
+		// Check for I2C error
+		//
+		if(I2CMasterErr(I2C_PERIPH_BASE) != I2C_MASTER_ERR_NONE)
+		{
+			HWREG(GPIO_PORTF_BASE + (GPIO_O_DATA + ((GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3) << 2))) |= 0xFF;
+			return -1;
+		}
 
 		//
 		// Get the data from the MCU register
