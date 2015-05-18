@@ -2561,6 +2561,8 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data)
 
 #ifdef REGION_CONTOLLER_CALIBRATE
 
+void calculateNewPositionAndOrentation(RobotIdentity_t& robotIdentity, float& theta_old, Motor_t& mLeft, Motor_t& mRight);
+
   //========================//
  // Step Rotate Controller //
 //========================//
@@ -2591,9 +2593,10 @@ bool rotateToAngleUseStepController(void)
 {
 	turnOffLED(LED_ALL);
 
-	g_RobotIdentity.theta = IMU_getYawAngle();
+	//g_RobotIdentity.theta = IMU_getYawAngle();
+	float theta = IMU_getYawAngle();
 
-	if(detectedRotateCollision(g_RobotIdentity.theta, 16))
+	if(detectedRotateCollision(theta, 16))
 	{
 		Motors_stop();
 		turnOnLED(LED_BLUE);
@@ -2601,7 +2604,7 @@ bool rotateToAngleUseStepController(void)
 		return true;
 	}
 
-	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+	if (isTwoAngleOverlay(theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
 	{
 		Motors_stop();
 		turnOffLED(LED_GREEN | LED_BLUE);
@@ -2609,19 +2612,61 @@ bool rotateToAngleUseStepController(void)
 		return true;
 	}
 
-	float fAngleInRadian = g_fEndThetaOfCalibrateController - g_RobotIdentity.theta;
+	float fAngleInRadian = g_fEndThetaOfCalibrateController - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
-	if(fAngleInRadian > 0)
+//	 if(fAngleInRadian > 0)
+//	 {
+//		 turnOnLED(LED_BLUE);
+//		 Robot_stepRotate_tunning(ROBOT_ROTATE_CLOCKWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+//	 }
+//	 else
+//	 {
+//		 turnOnLED(LED_GREEN);
+//		 Robot_stepRotate_tunning(ROBOT_ROTATE_COUNTERCLOSEWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+//	 }
+
+	Motor_t mRight;
+	Motor_t mLeft;
+	if (fAngleInRadian > 0) // ROBOT_ROTATE_CLOCKWISE
+	{
+		mLeft.eDirection = REVERSE;
+		mRight.eDirection = FORWARD;
+	}
+	else // ROBOT_ROTATE_COUNTERCLOSEWISE
+	{
+		mLeft.eDirection = FORWARD;
+		mRight.eDirection = REVERSE;
+	}
+
+	static int flagMotorSelect = 1;
+	flagMotorSelect ^= 1;
+	if(flagMotorSelect) // Left
 	{
 		turnOnLED(LED_BLUE);
-		Robot_stepRotate_tunning(ROBOT_ROTATE_CLOCKWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+		mLeft.ui8Speed = STEP_MAX_SPEED;
+		mRight.ui8Speed = STEP_MIN_SPEED;
 	}
-	else
+	else // Right
 	{
 		turnOnLED(LED_GREEN);
-		Robot_stepRotate_tunning(ROBOT_ROTATE_COUNTERCLOSEWISE, g_ui8StepActivateInMs, g_ui8StepPauseInMs);
+		mLeft.ui8Speed = STEP_MIN_SPEED;
+		mRight.ui8Speed = STEP_MAX_SPEED;
 	}
+	
+	if(g_ui8StepActivateInMs > 0)
+	{
+		Motors_configure(mLeft, mRight);
+		Motor_delay_timer_ms(g_ui8StepActivateInMs);
+	}
+
+	if(g_ui8StepPauseInMs > 0)
+	{
+		Motors_stop();
+		Motor_delay_timer_ms(g_ui8StepPauseInMs);
+	}
+
+	calculateNewPositionAndOrentation(g_RobotIdentity, theta, mLeft, mRight);
 
 	return false;
 }
@@ -2743,9 +2788,10 @@ bool forwardInRotateUseStepController(void)
 
 	turnOffLED(LED_ALL);
 
-	g_RobotIdentity.theta = IMU_getYawAngle();
+	//g_RobotIdentity.theta = IMU_getYawAngle();
+	float theta = IMU_getYawAngle();
 
-	if(detectedRotateCollision(g_RobotIdentity.theta, 6))
+	if(detectedRotateCollision(theta, 6))
 	{
 		Motors_stop();
 		turnOnLED(LED_BLUE | LED_GREEN);
@@ -2753,7 +2799,7 @@ bool forwardInRotateUseStepController(void)
 		return true;
 	}
 
-	if (isTwoAngleOverlay(g_RobotIdentity.theta, g_pfTrackingAngle[g_ui8TrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
+	if (isTwoAngleOverlay(theta, g_pfTrackingAngle[g_ui8TrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
 	{
 		g_ui8TrackingPoint++;
 		if(g_ui8TrackingPoint >= 4)
@@ -2765,7 +2811,7 @@ bool forwardInRotateUseStepController(void)
 		return false; // continue
 	}
 
-	float fAngleInRadian = g_pfTrackingAngle[g_ui8TrackingPoint] - g_RobotIdentity.theta;
+	float fAngleInRadian = g_pfTrackingAngle[g_ui8TrackingPoint] - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
 	if (fAngleInRadian > 0) // Lock left, move right
@@ -2793,8 +2839,87 @@ bool forwardInRotateUseStepController(void)
 		Motor_delay_timer_ms(g_ui8StepFwRtPauseInMs);
 	}
 
+	calculateNewPositionAndOrentation(g_RobotIdentity, theta, mLeft, mRight);
+
 	return false;
 }
+
+//------------------------------------------------------------------------------------------------------------------------
+void calculateNewPositionAndOrentation(RobotIdentity_t& robotIdentity, float& theta_old, Motor_t& mLeft, Motor_t& mRight)
+{
+	float phi = IMU_getYawAngle() - theta_old;
+	phi = atan2f(sinf(phi), cosf(phi));
+
+	int sign;
+	e_MotorDirection direction;
+	if(mRight.ui8Speed - mLeft.ui8Speed > 0)
+	{
+		sign = 1;
+		direction = mRight.eDirection;
+	}
+	else
+	{
+		sign = -1;
+		direction = mLeft.eDirection;
+	}
+
+	float to;
+	if (direction == FORWARD)
+		to = robotIdentity.theta;
+	else
+		to = robotIdentity.theta + phi;
+
+	#define R_CENTER 5.0f		// Wheel base line divived by two
+	float factor = sign * R_CENTER;
+	float sinTo = sinf(to);
+	float cosTo = cosf(to);
+	float sinPhi = sinf(phi);
+	float one_minus_cosPhi = 1 - cosf(phi);
+
+	robotIdentity.x = robotIdentity.x + factor * (sinPhi * cosTo - sinTo * one_minus_cosPhi);
+	robotIdentity.y = robotIdentity.y + factor * (cosTo * one_minus_cosPhi + sinTo * sinPhi);
+	robotIdentity.theta += phi;
+
+//	float rx, ry;
+//	e_MotorDirection direction;
+//	if(mRight.ui8Speed - mLeft.ui8Speed > 0) // Wheel Base Line / 2
+//	{
+//		rx = 5.0f;
+//		ry = 5.0f;
+//		direction = mRight.eDirection;
+//	}
+//	else
+//	{
+//		rx = -5.0f;
+//		ry = -5.0f;
+//		direction = mLeft.eDirection;
+//	}
+//
+//	int sign;
+//	float theta = pRobotIdentity->theta;
+//	float thetaC;
+//	pRobotIdentity->theta = pRobotIdentity->theta + phi;
+//	if(direction == FORWARD)
+//	{
+//		sign = 1;
+//		thetaC = theta;
+//	}
+//	else
+//	{
+//		sign = -1;
+//		thetaC = theta - phi;
+//		phi = -1 * phi;
+//	}
+//
+//	float sinThetaC = sinf(thetaC);
+//	float cosThetaC = cosf(thetaC);
+//	float sinPhi = sinf(phi);
+//	float one_minus_cosPhi = 1 - cosf(phi);
+//
+//	pRobotIdentity->x = pRobotIdentity->x + sign * rx * (sinPhi * cosThetaC - sinThetaC * one_minus_cosPhi);
+//	pRobotIdentity->y = pRobotIdentity->y + sign * ry * (cosThetaC * one_minus_cosPhi + sinThetaC * sinPhi);
+}
+//------------------------------------------------------------------------------------------------------------------------
 
 //void testMotorLeft(bool autoSwitchState, int offset)
 //{
@@ -3070,7 +3195,7 @@ void transmitRobotIdentityToHost(void)
 	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
 
 	//remove:
-	g_RobotIdentity.theta = IMU_getYawAngle();
+	//g_RobotIdentity.theta = IMU_getYawAngle();
 
 	i32Template = (int32_t)(g_RobotIdentity.theta * 65535 + 0.5);
 	parse32bitTo4Bytes(&pui8ResponseBuffer[31], i32Template);
