@@ -34,26 +34,55 @@
 //	int *ary = new int[sizeX*sizeY];
 //	ary[i][j] is then rewritten as ary[i*sizeY+j]
 
+#define PIXEL_SIZE_IN_CM		30
+#define PIXEL_HALFSIZE_IN_CM	15
+
+#define SHAPE_PIXEL		1
+#define EXTERNAL_PIXEL 	0
+//#define TRAPPED1_PIXEL	-1
+//#define TRAPPED2_PIXEL	-2
+//#define TRAPPED3_PIXEL	-3
+//#define TRAPPED4_PIXEL	-4
+//#define TRAPPED5_PIXEL	-5
+
+#define ACTIVE_SEGMENT		1
+#define DEACTIVE_SEGMENT	0
+
+#define SEGMENT_PIXEL_MASK_INIT 			-15
+#define SEGMENT_PIXEL_INVALID				-2
+#define SEGMENT_PIXEL_MASK_NON_MANHATTAN	-1
+#define SEGMENT_PIXEL_MASK_NON_VECTOR		-1
+
 class GradientMap {
 public: //TODO: change to private members
-	int8_t* pGradientMap;
+	typedef int16_t GradientMapPixel_t;
+
+	int8_t* pImage;
+	GradientMapPixel_t* pGradientMap;
 	uint32_t Height;
 	uint32_t Width;
-	int8_t OffsetWidth;
 	int8_t OffsetHeight;
+	int8_t OffsetWidth;
+	uint32_t TrappedSegmentCount;
 
 	// Constructor
 	GradientMap(void);
+	~GradientMap(void);
 
 	// Methods
 	void reset(void);
-	bool modifyGradientMap(uint32_t ui32Height, uint32_t ui32Width, int8_t* pi8NewMap, int8_t i8OffsetHeight, int8_t i8OffsetWidth);
+	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width, int8_t i8OffsetHeight, int8_t i8OffsetWidth, uint32_t ui32TrappedSegmentCount);
 
-	Vector2<float> coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float> vectLocation);
-	int8_t valueOf(Vector2<float> vectLocation);
-	Vector2<int> convertRobotCoordinateToGradientMapIndex(Vector2<float> vectLocation);
-	Vector2<float> convertGradientMapIndexToCoordinate(Vector2<int> index);
-	int8_t getValueInMap(Vector2<int> index);
+	void coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float>& rvectLocation, Vector2<float>& rvectCenterLocation);
+	int32_t valueOf(Vector2<float>& rvectLocation);
+
+	//private:
+	bool searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>* pOrderStartPoint, uint32_t ui32TrappedCount);
+	void calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& startPoint, GradientMap& Segment);
+
+	void convertRobotCoordinateToGradientMapIndex(Vector2<float>& rvectLocation, Vector2<int>& rvectIndex);
+	void convertGradientMapIndexToCoordinate(Vector2<int>& rvectIndex, Vector2<float>& rvectCoordinate);
+	int32_t getValueInMap(Vector2<int>& rvectIndex);
 };
 
 #endif /* LIBALGORITHM_INC_GRADIENTMAP_H_ */

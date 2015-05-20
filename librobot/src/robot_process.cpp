@@ -190,7 +190,7 @@ void resetRobotIdentity(void)
 	g_RobotIdentity.RotationHop_ID = 0;
 	g_RobotIdentity.x = 0;
 	g_RobotIdentity.y = 0;
-	g_RobotIdentity.theta = 0;
+	g_RobotIdentity.theta = MATH_PI_DIV_2;
 	g_RobotIdentity.RotationHop_x = 0;
 	g_RobotIdentity.RotationHop_y = 0;
 }
@@ -3171,6 +3171,8 @@ void selfCorrectLocationsTableExceptRotationHopID(void)
 
 void transmitRobotIdentityToHost(void)
 {
+	turnOnLED(LED_ALL);
+
 	uint8_t pui8ResponseBuffer[35] = { 0 };
 
 	parse32bitTo4Bytes(pui8ResponseBuffer, g_RobotIdentity.Self_ID);
@@ -3201,6 +3203,8 @@ void transmitRobotIdentityToHost(void)
 	parse32bitTo4Bytes(&pui8ResponseBuffer[31], i32Template);
 
 	sendDataToHost(pui8ResponseBuffer, 35);
+
+	turnOffLED(LED_ALL);
 }
 
 void robotMoveCommandWithDistance(uint8_t* pui8Data)
@@ -3219,30 +3223,32 @@ void robotRotateCommandWithAngle(uint8_t* pui8Data)
 	rotateClockwiseWithAngle(fAngleInRadian);
 }
 
-int8_t* g_pui8GradientMapBuffer = 0;
+int8_t* g_pi8ImageBuffer = 0;
 uint32_t g_ui32GradientMapExpectedUpdatePacketId;
 
 void updateGradientMap(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Update Gradient Map\n");
 
-	// Get ten bytes program header
-	uint32_t ui32Row = construct4Byte(pui8Data);
-	uint32_t ui32Column = construct4Byte(&pui8Data[4]);
+	// Get 14 bytes program header
+	uint32_t ui32Height = construct4Byte(pui8Data);
+	uint32_t ui32Width = construct4Byte(&pui8Data[4]);
 	int8_t i8OffsetHeight = pui8Data[8];
 	int8_t i8OffsetWidth = pui8Data[9];
+	uint32_t ui32TrappedCount = construct4Byte(&pui8Data[10]);
 
-	uint64_t ui64NewMapSize = ui32Row * ui32Column;
-//	if(g_pui8GradientMapBuffer != 0)
-//		delete[] g_pui8GradientMapBuffer;
-	g_pui8GradientMapBuffer = new int8_t[ui64NewMapSize];
-	if(g_pui8GradientMapBuffer == 0)
+	turnOffLED(LED_ALL);
+
+	uint64_t ui64NewMapSize = ui32Height * ui32Width;
+	g_pi8ImageBuffer = new int8_t[ui64NewMapSize];
+	if(g_pi8ImageBuffer == 0)
 		return;
 
 	g_ui32GradientMapExpectedUpdatePacketId = 0;
 	uint8_t ui8FailedToUpdateCounter = 0;
 	do
 	{
+		turnOnLED(LED_BLUE);
 		if (RfTryToCaptureRfSignal(SINGLE_PACKET_TIMEOUT_US, GradientMapUpdater_identifyPacket, ui64NewMapSize) == false)
 		{
 			ui8FailedToUpdateCounter++;
@@ -3251,16 +3257,25 @@ void updateGradientMap(uint8_t* pui8Data)
 		}
 	} while (g_ui32GradientMapExpectedUpdatePacketId < ui64NewMapSize);
 
+
 	if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
-		g_pGradientMap->modifyGradientMap(ui32Row, ui32Column, g_pui8GradientMapBuffer, i8OffsetHeight, i8OffsetWidth);
+	{
+		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, i8OffsetHeight, i8OffsetWidth, ui32TrappedCount))
+		{
+			g_pi8ImageBuffer = 0;
+			turnOffLED(LED_BLUE);
+		}
+	}
 	else
+	{
 		g_pGradientMap->reset();
 
-	// Clean up heap
-	if(g_pui8GradientMapBuffer != 0)
-	{
-		delete[] g_pui8GradientMapBuffer;
-		g_pui8GradientMapBuffer = 0;
+		// Clean up heap
+		if(g_pi8ImageBuffer != 0)
+		{
+			delete[] g_pi8ImageBuffer;
+			g_pi8ImageBuffer = 0;
+		}
 	}
 
 	/* Pseudo-code
@@ -3333,19 +3348,17 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 
 	if (Network_receivedMessage(&pui8DataHolder, &ui32ReceivedDataSize))
 	{
-		// NOTE: Total packet lenght is ui32ReceivedDataSize
-		// Entire packet located at pui8DataHolder
-
 		// Process data in here:  <4-byte packet ID><1-byte byte_count><1-byte checksum><data...>
-		if (ui32ReceivedDataSize > 6 && ui32ReceivedDataSize <= GRADIENT_MAP_PACKET_FULL_LENGTH)
+		if (ui32ReceivedDataSize > GRADIENT_MAP_PACKET_HEADER_LENGTH && ui32ReceivedDataSize <= GRADIENT_MAP_PACKET_FULL_LENGTH)
 		{
-			uint32_t ui32PacketId = construct4Byte(pui8DataHolder);
-			uint8_t ui8ByteCount = pui8DataHolder[4];
+			uint32_t ui32RxPacketId = construct4Byte(pui8DataHolder);
+			uint8_t ui8RxByteCount = pui8DataHolder[4];
 
-			if (ui32PacketId == g_ui32GradientMapExpectedUpdatePacketId)
+			if (ui32RxPacketId == g_ui32GradientMapExpectedUpdatePacketId)
 			{
+				uint32_t i;
+
 				uint8_t ui8Checksum = 0;
-				int i;
 				for(i = 0; i < ui32ReceivedDataSize; i++)
 					ui8Checksum += pui8DataHolder[i];
 
@@ -3356,10 +3369,10 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 					return false;
 				}
 
-				for(i = 0; i < ui8ByteCount; i++)
-					g_pui8GradientMapBuffer[ui32PacketId + i] = pui8DataHolder[GRADIENT_MAP_PACKET_HEADER_LENGTH + i];
+				for(i = 0; i < ui8RxByteCount; i++)
+					g_pi8ImageBuffer[ui32RxPacketId + i] = pui8DataHolder[GRADIENT_MAP_PACKET_HEADER_LENGTH + i];
 
-				g_ui32GradientMapExpectedUpdatePacketId += ui8ByteCount;
+				g_ui32GradientMapExpectedUpdatePacketId += ui8RxByteCount;
 
 				if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
 				{
@@ -3368,7 +3381,7 @@ bool GradientMapUpdater_identifyPacket(va_list argp)
 					return true;
 				}
 			}
-			else if (ui32PacketId > g_ui32GradientMapExpectedUpdatePacketId)
+			else if (ui32RxPacketId > g_ui32GradientMapExpectedUpdatePacketId)
 			{
 				GradientMapUpdater_sendNACKToHost();
 				Network_deleteBuffer(pui8DataHolder);
