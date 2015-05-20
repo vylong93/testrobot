@@ -3260,7 +3260,10 @@ void updateGradientMap(uint8_t* pui8Data)
 	{
 		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, ui32TrappedCount))
 		{
+			//WARNING: DO NOT DELETE g_pi8ImageBuffer because g_pGradientMap->pImage is pointing to it
+			// Just only set the tempatory to NULL.
 			g_pi8ImageBuffer = 0;
+
 			turnOffLED(LED_BLUE);
 		}
 

@@ -155,6 +155,8 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 	}
 
 	// Clean up ---------------------------
+	delete[] pOrderStartPointSegments;
+
 	delete[] segment.pGradientMap;
 	segment.pGradientMap = NULL;
 
