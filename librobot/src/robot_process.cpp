@@ -3230,12 +3230,10 @@ void updateGradientMap(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Update Gradient Map\n");
 
-	// Get 14 bytes program header
+	// Get 12 bytes program header
 	uint32_t ui32Height = construct4Byte(pui8Data);
 	uint32_t ui32Width = construct4Byte(&pui8Data[4]);
-	int8_t i8OffsetHeight = pui8Data[8];
-	int8_t i8OffsetWidth = pui8Data[9];
-	uint32_t ui32TrappedCount = construct4Byte(&pui8Data[10]);
+	uint32_t ui32TrappedCount = construct4Byte(&pui8Data[8]);
 
 	turnOffLED(LED_ALL);
 
@@ -3260,11 +3258,29 @@ void updateGradientMap(uint8_t* pui8Data)
 
 	if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
 	{
-		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, i8OffsetHeight, i8OffsetWidth, ui32TrappedCount))
+		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, ui32TrappedCount))
 		{
 			g_pi8ImageBuffer = 0;
 			turnOffLED(LED_BLUE);
 		}
+
+//		uint32_t ClockSpeed = ROM_SysCtlClockGet();
+//		ROM_TimerLoadSet(TASK_TIMER_BASE, TIMER_A, ClockSpeed);
+//		ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//		ROM_TimerEnable(TASK_TIMER_BASE, TIMER_A);
+//
+//		g_RobotIdentity.Origin_ID = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//		g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, ui32TrappedCount);
+//		g_RobotIdentity.RotationHop_ID = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
+//
+//		ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
+//		ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+//
+//		g_RobotIdentity.Self_ID = ClockSpeed;
+//		g_RobotIdentity.x = (g_RobotIdentity.Origin_ID - g_RobotIdentity.RotationHop_ID) / (ClockSpeed * 1.0f);
+//
+//		g_pi8ImageBuffer = 0;
+//		turnOffLED(LED_BLUE);
 	}
 	else
 	{

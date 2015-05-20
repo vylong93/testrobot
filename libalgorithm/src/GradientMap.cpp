@@ -13,9 +13,9 @@ GradientMap::GradientMap(void)
 	pImage = 0;
 	pGradientMap = 0;
 	Height = Width = 0;
-	OffsetWidth = OffsetHeight = 0;
 	TrappedSegmentCount = 0;
-
+	RowOfStartShapePixel = 0;
+	ColumnOfStartShapePixel = 0;
 	this->reset();
 }
 
@@ -42,9 +42,9 @@ void GradientMap::reset(void)
 
 	Width = 7;
 	Height = 5;
-	OffsetWidth = -1;
-	OffsetHeight = -1;
 	TrappedSegmentCount = 0;
+	RowOfStartShapePixel = 1;
+	ColumnOfStartShapePixel = 1;
 	pGradientMap = new GradientMapPixel_t[Height * Width]; /*{
 	 -2, -1, -2, -3, -4,  -5, -6,
 	 -3,  0,  1, -4,  5,   6, -7,
@@ -69,8 +69,7 @@ void GradientMap::reset(void)
 }
 
 bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
-		uint32_t ui32Width, int8_t i8OffsetHeight, int8_t i8OffsetWidth,
-		uint32_t ui32TrappedSegmentCount)
+		uint32_t ui32Width, uint32_t ui32TrappedSegmentCount)
 {
 	if (pGradientMap != 0)
 	{
@@ -101,22 +100,21 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 
 	Width = ui32Width;
 	Height = ui32Height;
-	OffsetWidth = i8OffsetWidth;
-	OffsetHeight = i8OffsetHeight;
 	TrappedSegmentCount = ui32TrappedSegmentCount;
 	//-------------------------------------------------------------
 
-	Vector2<uint32_t> startPointShapeSegment(1, 1);
+	Vector2<uint32_t> startPointShapeSegment;
 	Vector2<uint32_t>* pOrderStartPointSegments = new Vector2<uint32_t>[1 + TrappedSegmentCount];
 	if (!searchTheStartIndexOfSegments(startPointShapeSegment, pOrderStartPointSegments, TrappedSegmentCount))
 		return false;
+
+	RowOfStartShapePixel = startPointShapeSegment.x;
+	ColumnOfStartShapePixel = startPointShapeSegment.y;
 
 	// Clone Map ----------------------------------------------------
 	GradientMap segment;
 	segment.Height = Height;
 	segment.Width = Width;
-	segment.OffsetHeight = OffsetHeight;
-	segment.OffsetWidth = OffsetWidth;
 	segment.TrappedSegmentCount = TrappedSegmentCount;
 
 	// Allocate new memory spaces for clone segment
@@ -167,18 +165,16 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 	return true;
 }
 
-
 bool GradientMap::searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>* pOrderStartPoint, uint32_t ui32TrappedCount)
 {
 	// Warning: this function do not scan the first and the last line of the image
 	// because the start pixel of the shape segment and the external segment
 	// should not be allow to located in this two line.
 
-	uint32_t startScanPoint = Width * (0 - OffsetWidth);
-	uint32_t ui32ShapeMaxSize = (Height + 2 * OffsetHeight) * Width;
+	uint32_t ui32EndIndex = Height * Width - Width;
 
 	bool bIsFoundFirstTwoStartPoint = false;
-	for (uint32_t i = startScanPoint; i < ui32ShapeMaxSize; i++) {
+	for (uint32_t i = Width; i < ui32EndIndex; i++) {
 		if (pImage[i] == SHAPE_PIXEL) {
 			// get the shape segment start point
 			shapeStartPoint.x = i / Width; // Row
@@ -198,7 +194,7 @@ bool GradientMap::searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoi
 		uint32_t foundTrappedStartPoint = 0;
 		for(uint32_t trappedPointer = 1; trappedPointer <= ui32TrappedCount; trappedPointer++)
 		{
-			for (uint32_t i = startScanPoint + 1; i < ui32ShapeMaxSize; i++) {
+			for (uint32_t i = Width; i < ui32EndIndex; i++) {
 				if (pImage[i] == (int8_t)(EXTERNAL_PIXEL - trappedPointer)) {
 					pOrderStartPoint[trappedPointer].x = i / Width;	// Row
 					pOrderStartPoint[trappedPointer].y = i % Width; // Column
@@ -221,7 +217,7 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 	// in the same step, if these two scanning pointer collision, choose to the smaller value
 	// and keep go on until (approach 1: go back to original. approach 2: collision continue repeat over 5 times.
 
-	// Simple approach -> scan and scan enhance
+	// Simple approach -> scan and scan
 	Segment.pGradientMap[startPoint.x * Segment.Width + startPoint.y] = 0; // Initialize starting point
 
 	bool bIsAtBolderTop;
@@ -230,56 +226,27 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 	bool bIsAtBolderRight;
 	int32_t index[4];	// up, down, left , right
 
-	bool bIsScollDown = true;
-	int32_t startRow = startPoint.x;
-	int32_t endRow = Segment.Height - 1;
-	int32_t startCol = 0;
-	int32_t endCol = Segment.Width - 1;
-	int32_t increaseRowCol = 1;
+	int32_t startRow = 0;
+	int32_t endRow = (int32_t)Segment.Height;
 
 	int32_t nextStartRow;
 	int32_t nextEndRow;
+	int32_t indexSelf;
 
-	uint32_t loopCounter = 0;
-	uint32_t pixelScanTimes = 0;
 	bool bIsNeedToLoopAgain = false;
 	while(true)
 	{
-		loopCounter++;
-		for(int32_t row = startRow; ; row += increaseRowCol)
+		for(int32_t row = startRow; row < endRow; row++)
 		{
-			if(bIsScollDown)
+			for(int32_t col = 0; col < Segment.Width; col++)
 			{
-				if(row > endRow)
-					break;
-			}
-			else
-			{
-				if(row < endRow)
-					break;
-			}
-			for(int32_t col = startCol; ; col += increaseRowCol)
-			{
-				if(bIsScollDown)
-				{
-					if(col > endCol)
-						break;
-				}
-				else
-				{
-					if(col < endCol)
-						break;
-				}
-
-				pixelScanTimes++;
-
-				int32_t indexSelf = row * Segment.Width + col;
+				indexSelf = row * Segment.Width + col;
 				if (Segment.pImage[indexSelf] == ACTIVE_SEGMENT && Segment.pGradientMap[indexSelf] == SEGMENT_PIXEL_MASK_INIT)
 				{
 					bIsAtBolderTop = (row == 0);
-					bIsAtBolderBottom = (row == (int32_t)(Segment.Height - 1));
+					bIsAtBolderBottom = (row == (Segment.Height - 1));
 					bIsAtBolderLeft = (col == 0);
-					bIsAtBolderRight = (col == (int32_t)(Segment.Width - 1));
+					bIsAtBolderRight = (col == (Segment.Width - 1));
 
 					// get index
 					index[0] = (bIsAtBolderTop) ? (SEGMENT_PIXEL_INVALID) : ((row - 1) * (int32_t)Segment.Width + col); // up
@@ -322,9 +289,9 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 						if(!bIsNeedToLoopAgain)
 						{
 							bIsNeedToLoopAgain = true;
-							nextEndRow = row;
+							nextStartRow = row;
 						}
-						nextStartRow = row;
+						nextEndRow = row;
 					}
 				}
 			}
@@ -333,24 +300,8 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 		if(bIsNeedToLoopAgain)
 		{
 			bIsNeedToLoopAgain = false;
-
-			if(bIsScollDown)
-			{
-				bIsScollDown = false;
-				startCol = Segment.Width - 1;
-				endCol = 0;
-				increaseRowCol = -1;
-			}
-			else
-			{
-				bIsScollDown = true;
-				startCol = 0;
-				endCol = Segment.Width - 1;
-				increaseRowCol = 1;
-			}
-
 			startRow = nextStartRow;
-			endRow = nextEndRow;
+			endRow = nextEndRow + 1;
 		}
 		else
 			break;
@@ -385,33 +336,31 @@ void GradientMap::convertRobotCoordinateToGradientMapIndex(
 //		else
 //			index.x -= 1;
 //	}
-//	index.x = index.x / 2 - OffsetHeight;
+//	index.x = index.x / 2 - RowOfStartShapePixel;
 
 //	/* Attemp 2: */
 //	index.y = (int)(vectLocation.y / PIXEL_HALFSIZE_IN_CM);
 //	index.y = (index.y % 2 == 0) ? (index.y) : ((index.y > 0) ? (index.y + 1) : (index.y - 1));
-//	index.y = index.y / 2 - OffsetWidth;
+//	index.y = index.y / 2 - ColumnOfStartShapePixel;
 
 	int signX = (rvectLocation.x < 0) ? (-1) : (1);
 	rvectIndex.x = (int) (fabsf(rvectLocation.x) / PIXEL_HALFSIZE_IN_CM);
 	rvectIndex.x = signX * ((rvectIndex.x + (rvectIndex.x % 2)) / 2)
-			- OffsetHeight;
+			+ RowOfStartShapePixel;
 
 	int signY = (rvectLocation.y < 0) ? (-1) : (1);
 	rvectIndex.y = (int) (fabsf(rvectLocation.y) / PIXEL_HALFSIZE_IN_CM);
 	rvectIndex.y = signY * ((rvectIndex.y + (rvectIndex.y % 2)) / 2)
-			- OffsetWidth;
+			+ ColumnOfStartShapePixel;
 }
 
 void GradientMap::convertGradientMapIndexToCoordinate(Vector2<int>& rvectIndex,
 		Vector2<float>& rvectCoordinate) {
-	rvectCoordinate.x = (rvectIndex.x + OffsetHeight) * PIXEL_SIZE_IN_CM;
-	rvectCoordinate.y = (rvectIndex.y + OffsetWidth) * PIXEL_SIZE_IN_CM;
+	rvectCoordinate.x = (rvectIndex.x - RowOfStartShapePixel) * PIXEL_SIZE_IN_CM;
+	rvectCoordinate.y = (rvectIndex.y - ColumnOfStartShapePixel) * PIXEL_SIZE_IN_CM;
 }
 
 int32_t GradientMap::getValueInMap(Vector2<int32_t>& rvectIndex) {
-	// DEBUG_PRINT("inside getValueInMap\n");
-
 	// Case 1: require index is inside the gradient map
 	if (rvectIndex.x >= 0 && rvectIndex.x < (int32_t) Height
 			&& rvectIndex.y >= 0 && rvectIndex.y < (int32_t) Width)

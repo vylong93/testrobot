@@ -61,17 +61,17 @@ public: //TODO: change to private members
 	GradientMapPixel_t* pGradientMap;
 	uint32_t Height;
 	uint32_t Width;
-	int8_t OffsetHeight;
-	int8_t OffsetWidth;
 	uint32_t TrappedSegmentCount;
+	int32_t RowOfStartShapePixel;
+	int32_t ColumnOfStartShapePixel;
 
-	// Constructor
+	// Constructors
 	GradientMap(void);
 	~GradientMap(void);
 
 	// Methods
 	void reset(void);
-	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width, int8_t i8OffsetHeight, int8_t i8OffsetWidth, uint32_t ui32TrappedSegmentCount);
+	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width, uint32_t ui32TrappedSegmentCount);
 
 	void coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float>& rvectLocation, Vector2<float>& rvectCenterLocation);
 	int32_t valueOf(Vector2<float>& rvectLocation);
