@@ -13,7 +13,6 @@ GradientMap::GradientMap(void)
 	pImage = 0;
 	pGradientMap = 0;
 	Height = Width = 0;
-	TrappedSegmentCount = 0;
 	RowOfStartShapePixel = 0;
 	ColumnOfStartShapePixel = 0;
 	this->reset();
@@ -42,7 +41,6 @@ void GradientMap::reset(void)
 
 	Width = 7;
 	Height = 5;
-	TrappedSegmentCount = 0;
 	RowOfStartShapePixel = 1;
 	ColumnOfStartShapePixel = 1;
 	pGradientMap = new GradientMapPixel_t[Height * Width]; /*{
@@ -68,8 +66,7 @@ void GradientMap::reset(void)
 		pGradientMap[i] = (GradientMapPixel_t) pMap[i];
 }
 
-bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
-		uint32_t ui32Width, uint32_t ui32TrappedSegmentCount)
+bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width)
 {
 	if (pGradientMap != 0)
 	{
@@ -100,12 +97,11 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 
 	Width = ui32Width;
 	Height = ui32Height;
-	TrappedSegmentCount = ui32TrappedSegmentCount;
 	//-------------------------------------------------------------
 
 	Vector2<uint32_t> startPointShapeSegment;
-	Vector2<uint32_t>* pOrderStartPointSegments = new Vector2<uint32_t>[1 + TrappedSegmentCount];
-	if (!searchTheStartIndexOfSegments(startPointShapeSegment, pOrderStartPointSegments, TrappedSegmentCount))
+	Vector2<uint32_t> startPointExternalSegment;
+	if (!searchTheStartIndexOfSegments(startPointShapeSegment, startPointExternalSegment))
 		return false;
 
 	RowOfStartShapePixel = startPointShapeSegment.x;
@@ -115,7 +111,6 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 	GradientMap segment;
 	segment.Height = Height;
 	segment.Width = Width;
-	segment.TrappedSegmentCount = TrappedSegmentCount;
 
 	// Allocate new memory spaces for clone segment
 	segment.pGradientMap = new GradientMapPixel_t[ui64NewMapSize];
@@ -133,30 +128,28 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 	for (i = 0; i < ui64NewMapSize; i++) // Initialize clone image: only two segment allow
 		segment.pImage[i] = (pImage[i] == SHAPE_PIXEL) ? (ACTIVE_SEGMENT) : (DEACTIVE_SEGMENT);
 
-	calculateTheManhattanDistanceOfSegment(startPointShapeSegment, segment);
+	calculateTheManhattanDistanceOfSegment(startPointShapeSegment, segment, SHAPE_PIXEL);
 
 	for (i = 0; i < ui64NewMapSize; i++) // Apply result to global GradientMap
 		pGradientMap[i] += (segment.pGradientMap[i] * segment.pImage[i]);
 	//----------------------------------------------------------------------------------------
 
 
-	for(uint32_t trappedPointer = 0; trappedPointer <= segment.TrappedSegmentCount; trappedPointer++)
-	{
-		for (i = 0; i < ui64NewMapSize; i++) // ReInitialize GradientMap for clone trapped segment
-			segment.pGradientMap[i] = SEGMENT_PIXEL_MASK_INIT;
+	// ReInitialize GradientMap for clone segment--------------------------------------------
+	for (i = 0; i < ui64NewMapSize; i++)
+		segment.pGradientMap[i] = SEGMENT_PIXEL_MASK_INIT;
+	// --------------------------------------------------------------------------------------
 
-		for (i = 0; i < ui64NewMapSize; i++) // Initialize clone image: only two segment allow
-			segment.pImage[i] = (pImage[i] == (int8_t)(EXTERNAL_PIXEL - trappedPointer)) ? (ACTIVE_SEGMENT) : (DEACTIVE_SEGMENT);
+	for (i = 0; i < ui64NewMapSize; i++) // Initialize clone image: only two segment allow
+		segment.pImage[i] = (pImage[i] == (int8_t)(EXTERNAL_PIXEL)) ? (ACTIVE_SEGMENT) : (DEACTIVE_SEGMENT);
 
-		calculateTheManhattanDistanceOfSegment(pOrderStartPointSegments[trappedPointer], segment);
+	calculateTheManhattanDistanceOfSegment(startPointExternalSegment, segment, EXTERNAL_PIXEL);
 
-		for (i = 0; i < ui64NewMapSize; i++) // Apply result to global GradientMap
-			pGradientMap[i] += ((- segment.pGradientMap[i] - 1) * segment.pImage[i]);
-	}
+	for (i = 0; i < ui64NewMapSize; i++) // Apply result to global GradientMap
+		pGradientMap[i] += ((- segment.pGradientMap[i] - 1) * segment.pImage[i]);
+
 
 	// Clean up ---------------------------
-	delete[] pOrderStartPointSegments;
-
 	delete[] segment.pGradientMap;
 	segment.pGradientMap = NULL;
 
@@ -167,15 +160,13 @@ bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height,
 	return true;
 }
 
-bool GradientMap::searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>* pOrderStartPoint, uint32_t ui32TrappedCount)
+bool GradientMap::searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>& externalStartPoint)
 {
 	// Warning: this function do not scan the first and the last line of the image
 	// because the start pixel of the shape segment and the external segment
 	// should not be allow to located in this two line.
-
 	uint32_t ui32EndIndex = Height * Width - Width;
 
-	bool bIsFoundFirstTwoStartPoint = false;
 	for (uint32_t i = Width; i < ui32EndIndex; i++) {
 		if (pImage[i] == SHAPE_PIXEL) {
 			// get the shape segment start point
@@ -183,36 +174,16 @@ bool GradientMap::searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoi
 			shapeStartPoint.y = i % Width; // Column
 
 			// External Segment start point is the upper pixel of the shape segment start point
-			pOrderStartPoint[0].x = shapeStartPoint.x - 1;
-			pOrderStartPoint[0].y = shapeStartPoint.y;
+			externalStartPoint.x = shapeStartPoint.x - 1;
+			externalStartPoint.y = shapeStartPoint.y;
 
-			bIsFoundFirstTwoStartPoint = true;
-			break;
-		}
-	}
-
-	if(bIsFoundFirstTwoStartPoint)
-	{
-		uint32_t foundTrappedStartPoint = 0;
-		for(uint32_t trappedPointer = 1; trappedPointer <= ui32TrappedCount; trappedPointer++)
-		{
-			for (uint32_t i = Width; i < ui32EndIndex; i++) {
-				if (pImage[i] == (int8_t)(EXTERNAL_PIXEL - trappedPointer)) {
-					pOrderStartPoint[trappedPointer].x = i / Width;	// Row
-					pOrderStartPoint[trappedPointer].y = i % Width; // Column
-					foundTrappedStartPoint++;
-					break;
-				}
-			}
-		}
-
-		if(foundTrappedStartPoint == ui32TrappedCount)
 			return true;
+		}
 	}
 	return false;
 }
 
-void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& startPoint, GradientMap& Segment)
+void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& startPoint, GradientMap& Segment, int8_t i8ImageValue)
 {
 	//IDEAD: calculate the shape bolder first (smaller distance have high priority)
 	// From start pixel, follow bolder in both direction (left to right and top to bottom)
@@ -228,72 +199,92 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 	bool bIsAtBolderRight;
 	int32_t index[4];	// up, down, left , right
 
-	int32_t startRow = 0;
-	int32_t endRow = (int32_t)Segment.Height;
+	uint32_t startRow = 0;
+	uint32_t endRow = Segment.Height;
 
-	int32_t nextStartRow;
-	int32_t nextEndRow;
-	int32_t indexSelf;
+	uint32_t nextStartRow;
+	uint32_t nextEndRow;
 
+	uint32_t loopCounter = 0;
+	uint32_t pixelScanTimes = 0;
 	bool bIsNeedToLoopAgain = false;
+	bool bIsNeedToFindNewStartPoint = false;
+	bool bIsCalculatedNewManhattanDistance;
 	while(true)
 	{
-		for(int32_t row = startRow; row < endRow; row++)
+		loopCounter++;
+		bIsCalculatedNewManhattanDistance = false;
+		for(uint32_t row = startRow; row < endRow; row++)
 		{
-			for(int32_t col = 0; col < Segment.Width; col++)
+			for(uint32_t col = 0; col < Segment.Width; col++)
 			{
-				indexSelf = row * Segment.Width + col;
+				pixelScanTimes++;
+
+				uint32_t indexSelf = row * Segment.Width + col;
 				if (Segment.pImage[indexSelf] == ACTIVE_SEGMENT && Segment.pGradientMap[indexSelf] == SEGMENT_PIXEL_MASK_INIT)
 				{
-					bIsAtBolderTop = (row == 0);
-					bIsAtBolderBottom = (row == (Segment.Height - 1));
-					bIsAtBolderLeft = (col == 0);
-					bIsAtBolderRight = (col == (Segment.Width - 1));
-
-					// get index
-					index[0] = (bIsAtBolderTop) ? (SEGMENT_PIXEL_INVALID) : ((row - 1) * (int32_t)Segment.Width + col); // up
-					index[1] = (bIsAtBolderBottom) ? (SEGMENT_PIXEL_INVALID) : ((row + 1) * (int32_t)Segment.Width + col); // down
-					index[2] = (bIsAtBolderLeft) ? (SEGMENT_PIXEL_INVALID) : (indexSelf - 1); // left
-					index[3] = (bIsAtBolderRight) ? (SEGMENT_PIXEL_INVALID) : (indexSelf + 1); // right
-
-					// try to get manhattan distance
-					GradientMapPixel_t manhattanDistance;
-					GradientMapPixel_t minManhattan;
-					bool bFoundManhattan = false;
-					for(uint32_t k = 0; k < 4; k++)
+					if(bIsNeedToFindNewStartPoint)
 					{
-						int32_t indexK = index[k];
-						if (indexK != SEGMENT_PIXEL_INVALID)
-						{
-							manhattanDistance = Segment.pGradientMap[indexK];
-							if (manhattanDistance != SEGMENT_PIXEL_MASK_INIT)
-							{
-								if(!bFoundManhattan)
-								{
-									bFoundManhattan = true;
-									minManhattan = manhattanDistance;
-								}
-								else
-								{
-									if (manhattanDistance < minManhattan)
-										minManhattan = manhattanDistance;
-								}
-							}
-						}
-					}
-
-					if (bFoundManhattan)
-					{
-						Segment.pGradientMap[indexSelf] = minManhattan + 1;
+						bIsNeedToFindNewStartPoint = false;
+						//TODO: find new start point and set pImage to i32ImageValue
+						pImage[indexSelf] = i8ImageValue;
+						Segment.pGradientMap[indexSelf] = 0;
 					}
 					else
 					{
-						if(!bIsNeedToLoopAgain)
+						bIsAtBolderTop = (row == 0);
+						bIsAtBolderBottom = (row == (Segment.Height - 1));
+						bIsAtBolderLeft = (col == 0);
+						bIsAtBolderRight = (col == (Segment.Width - 1));
+
+						// get index
+						index[0] = (bIsAtBolderTop) ? (SEGMENT_PIXEL_INVALID) : (((int32_t)row - 1) * (int32_t)Segment.Width + (int32_t)col); // up
+						index[1] = (bIsAtBolderBottom) ? (SEGMENT_PIXEL_INVALID) : (((int32_t)row + 1) * (int32_t)Segment.Width + (int32_t)col); // down
+						index[2] = (bIsAtBolderLeft) ? (SEGMENT_PIXEL_INVALID) : ((int32_t)indexSelf - 1); // left
+						index[3] = (bIsAtBolderRight) ? (SEGMENT_PIXEL_INVALID) : ((int32_t)indexSelf + 1); // right
+
+						// try to get manhattan distance
+						GradientMapPixel_t manhattanDistance;
+						GradientMapPixel_t minManhattan;
+						bool bFoundManhattan = false;
+						for(uint32_t k = 0; k < 4; k++)
 						{
-							bIsNeedToLoopAgain = true;
-							nextStartRow = row;
+							int32_t indexK = index[k];
+							if (indexK != SEGMENT_PIXEL_INVALID)
+							{
+								manhattanDistance = Segment.pGradientMap[indexK];
+								if (manhattanDistance != SEGMENT_PIXEL_MASK_INIT)
+								{
+									if(!bFoundManhattan)
+									{
+										bFoundManhattan = true;
+										minManhattan = manhattanDistance;
+									}
+									else
+									{
+										if (manhattanDistance < minManhattan)
+											minManhattan = manhattanDistance;
+									}
+								}
+							}
 						}
-						nextEndRow = row;
+
+						if (bFoundManhattan)
+						{
+							Segment.pGradientMap[indexSelf] = minManhattan + 1;
+							if(i8ImageValue < 0)
+								pImage[indexSelf] = i8ImageValue;
+							bIsCalculatedNewManhattanDistance = true;
+						}
+						else
+						{
+							if(!bIsNeedToLoopAgain)
+							{
+								bIsNeedToLoopAgain = true;
+								nextStartRow = row;
+							}
+							nextEndRow = row;
+						}
 					}
 				}
 			}
@@ -304,6 +295,14 @@ void GradientMap::calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& star
 			bIsNeedToLoopAgain = false;
 			startRow = nextStartRow;
 			endRow = nextEndRow + 1;
+
+			if(!bIsCalculatedNewManhattanDistance)
+			{
+				// completed external but found trapped segment
+				bIsNeedToFindNewStartPoint = true;
+				if(i8ImageValue <= 0)
+					i8ImageValue--;
+			}
 		}
 		else
 			break;

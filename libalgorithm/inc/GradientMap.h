@@ -61,7 +61,6 @@ public: //TODO: change to private members
 	GradientMapPixel_t* pGradientMap;
 	uint32_t Height;
 	uint32_t Width;
-	uint32_t TrappedSegmentCount;
 	int32_t RowOfStartShapePixel;
 	int32_t ColumnOfStartShapePixel;
 
@@ -71,14 +70,14 @@ public: //TODO: change to private members
 
 	// Methods
 	void reset(void);
-	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width, uint32_t ui32TrappedSegmentCount);
+	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width);
 
 	void coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float>& rvectLocation, Vector2<float>& rvectCenterLocation);
 	int32_t valueOf(Vector2<float>& rvectLocation);
 
 	//private:
-	bool searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>* pOrderStartPoint, uint32_t ui32TrappedCount);
-	void calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& startPoint, GradientMap& Segment);
+	bool searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>& externalStartPoint);
+	void calculateTheManhattanDistanceOfSegment(Vector2<uint32_t>& startPoint, GradientMap& Segment, int8_t i8ImageValue);
 
 	void convertRobotCoordinateToGradientMapIndex(Vector2<float>& rvectLocation, Vector2<int>& rvectIndex);
 	void convertGradientMapIndexToCoordinate(Vector2<int>& rvectIndex, Vector2<float>& rvectCoordinate);

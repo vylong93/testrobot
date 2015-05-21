@@ -3230,10 +3230,9 @@ void updateGradientMap(uint8_t* pui8Data)
 {
 	DEBUG_PRINT("Update Gradient Map\n");
 
-	// Get 12 bytes program header
+	// Get 8 bytes program header
 	uint32_t ui32Height = construct4Byte(pui8Data);
 	uint32_t ui32Width = construct4Byte(&pui8Data[4]);
-	uint32_t ui32TrappedCount = construct4Byte(&pui8Data[8]);
 
 	turnOffLED(LED_ALL);
 
@@ -3258,7 +3257,7 @@ void updateGradientMap(uint8_t* pui8Data)
 
 	if (g_ui32GradientMapExpectedUpdatePacketId == ui64NewMapSize)
 	{
-		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, ui32TrappedCount))
+		if(g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width))
 		{
 			//WARNING: DO NOT DELETE g_pi8ImageBuffer because g_pGradientMap->pImage is pointing to it
 			// Just only set the tempatory to NULL.
