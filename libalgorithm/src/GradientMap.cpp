@@ -326,6 +326,16 @@ int32_t GradientMap::valueOf(Vector2<float>& rvectLocation) {
 	return getValueInMap(vectIndex);
 }
 
+int32_t GradientMap::valueOf(float x, float y) {
+	Vector2<float> vectLocation(x, y);
+	Vector2<int> vectIndex;
+	convertRobotCoordinateToGradientMapIndex(vectLocation, vectIndex);
+
+	return getValueInMap(vectIndex);
+}
+
+
+
 void GradientMap::convertRobotCoordinateToGradientMapIndex(
 		Vector2<float>& rvectLocation, Vector2<int>& rvectIndex) {
 //  /* Attemp 1: */

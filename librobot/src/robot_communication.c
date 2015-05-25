@@ -65,6 +65,10 @@ void RobotResponseIntHandler(void)
 			StateSix_CorrectLocations_ReadSelfVectorAndFlagHanlder(pui8RequestData);
 			break;
 
+		case ROBOT_RESPONSE_STATE_LOCALIZATION:
+			updateLocationResquestHanlder(pui8RequestData);
+			break;
+
 		default:	// ROBOT_RESPONSE_STATE_NONE
 			break;
 	}
@@ -416,6 +420,14 @@ void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_
 		triggerResponseState(ROBOT_RESPONSE_STATE_READ_SELF_VECTOR_AND_FLAG, pui8MessageData, ui32DataSize);
 		break;
 
+	case ROBOT_REQUEST_LOCOLIZATION:
+		triggerResponseState(ROBOT_RESPONSE_STATE_LOCALIZATION, pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_REQUEST_UPDATE_NEIGHBOR_VECTOR:
+		updateNeighborLocation(pui8MessageData);
+		break;
+
 	default:
 		// Invalid Request
 		break;
@@ -464,6 +476,10 @@ void decodeRobotResponseMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32
 
 	case ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE:
 		StateSix_CorrectLocations_UnActiveHandler(pui8MessageData, ui32DataSize);
+		break;
+
+	case ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR:
+		updateLocationResponseHanlder(pui8MessageData, ui32DataSize);
 		break;
 
 	default:

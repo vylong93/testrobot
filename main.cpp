@@ -217,8 +217,8 @@ int main(void)
 				break;
 
 			case ROBOT_STATE_LOCOMOTION:
-				//TODO: implement
-				setRobotState(ROBOT_STATE_IDLE);
+				DEBUG_PRINT("goto State SEVEN: Locomotion\n");
+				StateSeven_Locomotion();
 				break;
 
 			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP:
@@ -244,6 +244,11 @@ int main(void)
 			case ROBOT_STATE_TEST_PID_CONTROLLER:
 				if(testPIDController())
 					setRobotState(ROBOT_STATE_IDLE);
+				break;
+
+			case ROBOT_STATE_UPDATE_LOCATION:
+				updateLocation();
+				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
 			default: // ROBOT_STATE_IDLE

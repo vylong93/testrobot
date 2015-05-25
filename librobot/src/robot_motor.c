@@ -74,7 +74,7 @@ void initMotors(void)
 
 	Motors_stop();
 
-	initRobotMotorPairTimer();
+	initRobotMovementTimers();
 }
 
 void Motors_stop(void)
@@ -246,28 +246,30 @@ void MotorRight_assignActiveParameter(Motor_t mMotor)
 
 static char g_flagMotorSelect = 1;
 
-void initRobotMotorPairTimer(void)
-{
-	ROM_SysCtlPeripheralEnable(MOTOR_TIMER_CLOCK);
-	TimerClockSourceSet(MOTOR_TIMER_BASE, TIMER_CLOCK_SYSTEM);
-	ROM_TimerConfigure(MOTOR_TIMER_BASE, TIMER_CFG_ONE_SHOT);
+uint32_t g_ui32LastMovementDelayCycles;
 
-	ROM_TimerConfigure(MOTOR_TIMER_BASE,
+void initRobotMovementTimers(void)
+{
+	ROM_SysCtlPeripheralEnable(MOVEMENT_TIMER_CLOCK);
+	TimerClockSourceSet(MOVEMENT_TIMER_BASE, TIMER_CLOCK_SYSTEM);
+	ROM_TimerConfigure(MOVEMENT_TIMER_BASE, TIMER_CFG_ONE_SHOT);
+
+	ROM_TimerConfigure(MOVEMENT_TIMER_BASE,
 	TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_ONE_SHOT | TIMER_CFG_B_ONE_SHOT);
 
-	ROM_TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-	ROM_TimerIntEnable(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+	ROM_TimerIntEnable(MOVEMENT_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntEnable(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 }
 
-void Motor_delay_timer_ms(uint32_t ui32PeriodInMs)
+void MovementTimer_delay_ms(uint32_t ui32PeriodInMs)
 {
-	Motor_delay_timer_us(ui32PeriodInMs * 1000);
+	MovementTimer_delay_us(ui32PeriodInMs * 1000);
 }
 
-void Motor_delay_timer_us(uint32_t ui32PeriodInUs)
+void MovementTimer_delay_us(uint32_t ui32PeriodInUs)
 {
 	if (ui32PeriodInUs == 0)
 		return;
@@ -278,24 +280,24 @@ void Motor_delay_timer_us(uint32_t ui32PeriodInUs)
 	//
 	// Reset timer counter
 	//
-	ROM_TimerLoadSet(MOTOR_TIMER_BASE, TIMER_A, delayPeriod);
+	ROM_TimerLoadSet(MOVEMENT_TIMER_BASE, TIMER_A, delayPeriod);
 
 	//
 	// Clear timer interrupt flag
 	//
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMA_TIMEOUT);
 
 	//
 	// Start timer
 	//
-	ROM_TimerEnable(MOTOR_TIMER_BASE, TIMER_A);
+	ROM_TimerEnable(MOVEMENT_TIMER_BASE, TIMER_A);
 
 	while(1)
 	{
 		//
 		// Get delay status
 		//
-		ui32Status = ROM_TimerIntStatus(MOTOR_TIMER_BASE, false);
+		ui32Status = ROM_TimerIntStatus(MOVEMENT_TIMER_BASE, false);
 
 		//
 		// Check for delay timeout
@@ -307,62 +309,78 @@ void Motor_delay_timer_us(uint32_t ui32PeriodInUs)
 	//
 	// Clear timer interrupt flag
 	//
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMA_TIMEOUT);
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMA_TIMEOUT);
 }
 
-void Motor_task_timer_start(uint32_t ui32PeriodInMs)
+void MovementTimer_activeWatchDogMode(uint32_t ui32PeriodInMs)
 {
 	if (ui32PeriodInMs == 0)
 		return;
 
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * ui32PeriodInMs;
+	g_ui32LastMovementDelayCycles = (ROM_SysCtlClockGet() / 1000) * ui32PeriodInMs;
 
-	ROM_TimerLoadSet(MOTOR_TIMER_BASE, TIMER_B, delayPeriod);
+	ROM_TimerLoadSet(MOVEMENT_TIMER_BASE, TIMER_B, g_ui32LastMovementDelayCycles);
 
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 
-	ROM_TimerEnable(MOTOR_TIMER_BASE, TIMER_B);
+	ROM_TimerEnable(MOVEMENT_TIMER_BASE, TIMER_B);
 }
 
-bool Motor_task_timer_isExpired(void)
+bool MovementTimer_isWatchDogExpired(void)
 {
-	uint32_t ui32Status = ROM_TimerIntStatus(MOTOR_TIMER_BASE, false);
+	uint32_t ui32Status = ROM_TimerIntStatus(MOVEMENT_TIMER_BASE, false);
 
 	if (ui32Status & TIMER_TIMB_TIMEOUT)
 	{
-		ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+		ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 		return true;
 	}
-
 	return false;
 }
 
-void Robot_activeMotorsTask(uint32_t ui32PeriodInMs, e_RobotMovement eRobotMovement, bool (*pfnTask)(e_RobotMovement eMovement))
+void MovementTimer_resetTaskTimer(void)
+{
+	ROM_TimerDisable(MOVEMENT_TIMER_BASE, TIMER_B);
+
+	ROM_TimerLoadSet(MOVEMENT_TIMER_BASE, TIMER_B, g_ui32LastMovementDelayCycles);
+
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+	ROM_TimerEnable(MOVEMENT_TIMER_BASE, TIMER_B);
+}
+
+void MovementTimer_activeTask(uint32_t ui32PeriodInMs, bool (*pfnTask)(va_list argp), ...)
 {
 	if (ui32PeriodInMs == 0)
 		return;
 
+	va_list argp;
+
+	va_start(argp, pfnTask);
+
+	g_ui32LastMovementDelayCycles = (ROM_SysCtlClockGet() / 1000) * ui32PeriodInMs;
+
+	ROM_TimerLoadSet(MOVEMENT_TIMER_BASE, TIMER_B, g_ui32LastMovementDelayCycles);
+
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+
+	ROM_TimerEnable(MOVEMENT_TIMER_BASE, TIMER_B);
+
 	uint32_t ui32Status;
-	uint32_t delayPeriod = (ROM_SysCtlClockGet() / 1000) * ui32PeriodInMs;
-
-	ROM_TimerLoadSet(MOTOR_TIMER_BASE, TIMER_B, delayPeriod);
-
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
-
-	ROM_TimerEnable(MOTOR_TIMER_BASE, TIMER_B);
-
-	while(1)
+	while(true)
 	{
-		ui32Status = ROM_TimerIntStatus(MOTOR_TIMER_BASE, false);
+		ui32Status = ROM_TimerIntStatus(MOVEMENT_TIMER_BASE, false);
 
 		if (ui32Status & TIMER_TIMB_TIMEOUT)
 			break;
 
-	    if((*pfnTask)(eRobotMovement))
+	    if((*pfnTask)(argp))
 	    	break;
 	}
 
-	ROM_TimerIntClear(MOTOR_TIMER_BASE, TIMER_TIMB_TIMEOUT);
+	va_end(argp);
+
+	ROM_TimerIntClear(MOVEMENT_TIMER_BASE, TIMER_TIMB_TIMEOUT);
 }
 
 void Robot_stepRotate_tunning(e_RobotRotateDirection eRotateDirection, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod)
@@ -404,12 +422,12 @@ void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32Act
 	Motors_configure(mLeftMotor, mRightMotor);
 
 	if(ui32ActivePeriod > 0)
-		Motor_delay_timer_ms(ui32ActivePeriod);
+		MovementTimer_delay_ms(ui32ActivePeriod);
 
 	if(ui32PausePeriod > 0)
 	{
 		Motors_stop();
-		Motor_delay_timer_ms(ui32PausePeriod);
+		MovementTimer_delay_ms(ui32PausePeriod);
 	}
 }
 
@@ -426,23 +444,33 @@ void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32A
 	Motors_configure(mLeftMotor, mRightMotor);
 
 	if(ui32ActivePeriod > 0)
-		Motor_delay_timer_ms(ui32ActivePeriod);
+		MovementTimer_delay_ms(ui32ActivePeriod);
 
 	if(ui32PausePeriod > 0)
 	{
 		Motors_stop();
-		Motor_delay_timer_ms(ui32PausePeriod);
+		MovementTimer_delay_ms(ui32PausePeriod);
 	}
 }
+
 
 //==================================================================
 void Robot_stepMovementWithPeriod(uint32_t ui32PeriodMs, e_RobotMovement eRobotMovement)
 {
-	Robot_activeMotorsTask(ui32PeriodMs, eRobotMovement, Robot_stepMovementTask);
+	MovementTimer_activeTask(ui32PeriodMs, Robot_stepMovementTask, eRobotMovement);
 }
 
-bool Robot_stepMovementTask(e_RobotMovement eRobotRotateMovement)
+bool Robot_stepMovementTask(va_list argp)
 {
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt one argument in order:
+	//				1/ e_RobotMovement eRobotRotateMovement
+
+	// Get the input arguments
+	e_RobotMovement eRobotRotateMovement;
+	eRobotRotateMovement = va_arg(argp, e_RobotMovement);
+
 	e_MotorDirection leftD, rightD;
 
 	switch(eRobotRotateMovement)

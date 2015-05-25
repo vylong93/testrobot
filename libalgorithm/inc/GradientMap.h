@@ -34,8 +34,8 @@
 //	int *ary = new int[sizeX*sizeY];
 //	ary[i][j] is then rewritten as ary[i*sizeY+j]
 
-#define PIXEL_SIZE_IN_CM		30
-#define PIXEL_HALFSIZE_IN_CM	15
+#define PIXEL_SIZE_IN_CM		20
+#define PIXEL_HALFSIZE_IN_CM	10
 
 #define SHAPE_PIXEL		1
 #define EXTERNAL_PIXEL 	0
@@ -74,6 +74,7 @@ public: //TODO: change to private members
 
 	void coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float>& rvectLocation, Vector2<float>& rvectCenterLocation);
 	int32_t valueOf(Vector2<float>& rvectLocation);
+	int32_t valueOf(float x, float y);
 
 	//private:
 	bool searchTheStartIndexOfSegments(Vector2<uint32_t>& shapeStartPoint, Vector2<uint32_t>& externalStartPoint);

@@ -77,6 +77,22 @@ void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	}
 }
 
+void NeighborsTable_updateNewDistanceForNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
+{
+	int i;
+	for(i = 0; i < g_NeighborsTable.Count; i++)
+	{
+		if(g_NeighborsTable[i].ID == ui32NeighborId)
+		{
+			g_NeighborsTable[i].Distance = ui16Distance;
+			return;
+		}
+	}
+
+	// breakout if not found any match which ui32NeighborId:
+	NeighborsTable_add(ui32NeighborId, ui16Distance);
+}
+
 bool NeighborsTable_isContainRobot(uint32_t ui32RobotId)
 {
 	int i;
@@ -249,6 +265,18 @@ void RobotLocationsTable_remove(uint32_t id)
 	RobotLocation robotLocation(id, 0);
 
 	g_RobotLocationsTable.remove(robotLocation);
+}
+
+void RobotLocationsTable_updateLocation(uint32_t id, float x, float y)
+{
+	RobotLocation robotLocation(id, 0);
+
+	g_RobotLocationsTable.remove(robotLocation);
+
+	robotLocation.vector.x = x;
+	robotLocation.vector.y = y;
+
+	g_RobotLocationsTable.add(robotLocation);
 }
 
 int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID)
@@ -458,6 +486,8 @@ void RobotLocationsTable_selfCorrectByGradientDescent(uint32_t ui32OriginalID, u
 			}
 		}
 	}
+
+	//listCorrectLocationAlgorithm.clearAll(); // optimzied
 
 	DEBUG_PRINT("........Returning from RobotLocationsTable_selfCorrectByGradientDescent\n");
 }

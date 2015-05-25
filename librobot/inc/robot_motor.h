@@ -27,6 +27,11 @@ extern "C"
 #include "driverlib\timer.h"
 #include "timers_definition.h"
 
+#define STEP_CONTROLLER_MOTOR_ACTIVE_MS		50
+#define STEP_CONTROLLER_MOTOR_DEACTIVE_MS	75
+//#define STEP_CONTROLLER_ROTATE_STEP_ANGLE	0.3926990925 // 22.5 * PI / 180
+#define STEP_CONTROLLER_ROTATE_STEP_ANGLE	0.09817477042 // 5.625 * PI / 180
+
 #define MOTOR_SPEED_MINIMUM		1
 #define MOTOR_SPEED_MAXIMUM		250
 
@@ -126,19 +131,20 @@ void MotorRight_assignActiveParameter(Motor_t motor);
 #define STEP_MAX_SPEED 			254
 #define STEP_MIN_SPEED 			10
 
-void initRobotMotorPairTimer(void);
-void Motor_delay_timer_ms(uint32_t ui32PeriodInMs);
-void Motor_delay_timer_us(uint32_t ui32PeriodInUs);
-void Motor_task_timer_start(uint32_t ui32PeriodInMs);
-bool Motor_task_timer_isExpired(void);
-void Robot_activeMotorsTask(uint32_t ui32PeriodInMs, e_RobotMovement eRobotMovement, bool (*pfnTask)(e_RobotMovement eMovement));
+void initRobotMovementTimers(void);
+void MovementTimer_delay_ms(uint32_t ui32PeriodInMs);
+void MovementTimer_delay_us(uint32_t ui32PeriodInUs);
+void MovementTimer_activeWatchDogMode(uint32_t ui32PeriodInMs);
+bool MovementTimer_isWatchDogExpired(void);
+void MovementTimer_resetTaskTimer(void);
+void MovementTimer_activeTask(uint32_t ui32PeriodInMs, bool (*pfnTask)(va_list argp), ...);
 
 void Robot_stepRotate_tunning(e_RobotRotateDirection eRotateDirection, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 void MotorLeft_commandStep(e_MotorDirection directionLeftMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 void MotorRight_commandStep(e_MotorDirection directionRightMotor, uint32_t ui32ActivePeriod, uint32_t ui32PausePeriod);
 
 void Robot_stepMovementWithPeriod(uint32_t ui32PeriodMs, e_RobotMovement eRobotMovement);
-bool Robot_stepMovementTask(e_RobotMovement eRobotMovement);
+bool Robot_stepMovementTask(va_list argp);
 
 // Test only ==================================
 void setLeftMotorOffset(uint8_t ui8Parameter);

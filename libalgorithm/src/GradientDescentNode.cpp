@@ -9,9 +9,10 @@
 #include "libstorage/inc/CustomLinkedList.h"
 #include "libstorage/inc/RobotMeas.h"
 #include "libstorage/inc/OneHopMeas.h"
-#include "libstorage/inc/robot_data.h"
 #include "libstorage/inc/RobotLocation.h"
+#include "libstorage/inc/robot_data.h"
 
+extern CustomLinkedList<RobotMeas> g_NeighborsTable;
 extern CustomLinkedList<OneHopMeas> g_OneHopNeighborsTable;
 extern CustomLinkedList<RobotLocation> g_RobotLocationsTable;
 
@@ -32,7 +33,7 @@ void GradientDescentNode::init(RobotLocation* pTarget, float fStepSize, float fS
 
 void GradientDescentNode::run(void)
 {
-	if(oneHopIndex < 0)
+	if((g_OneHopNeighborsTable.Count > 0 && oneHopIndex < 0) || (g_NeighborsTable.Count <= 0))
 		return;
 
 	uint16_t ui16Distance;
@@ -49,10 +50,21 @@ void GradientDescentNode::run(void)
 	for(i = 0; i < g_RobotLocationsTable.Count; i++)
 	{
 		destinationRobot.ID = g_RobotLocationsTable[i].ID;
-		destIndex = g_OneHopNeighborsTable[oneHopIndex].pNeighborsTable->isContain(destinationRobot);
-		if (destIndex < 0)
-			continue;
-		ui16Distance = g_OneHopNeighborsTable[oneHopIndex].pNeighborsTable->ElementAt(destIndex).Distance;
+
+		if(g_OneHopNeighborsTable.Count > 0) // search in One Hop Neighbors table
+		{
+			destIndex = g_OneHopNeighborsTable[oneHopIndex].pNeighborsTable->isContain(destinationRobot);
+			if (destIndex < 0)
+				continue;
+			ui16Distance = g_OneHopNeighborsTable[oneHopIndex].pNeighborsTable->ElementAt(destIndex).Distance;
+		}
+		else // search in Neighbors table
+		{
+			destIndex = g_NeighborsTable.isContain(destinationRobot);
+			if (destIndex < 0)
+				continue;
+			ui16Distance = g_NeighborsTable.ElementAt(destIndex).Distance;
+		}
 
 		distanceVector =  pRobot->vector - g_RobotLocationsTable[i].vector;
 		if (distanceVector.x == 0 && distanceVector.y == 0)

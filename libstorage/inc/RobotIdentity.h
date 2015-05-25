@@ -12,6 +12,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+typedef enum tag_Locomotion
+{
+	LOCOMOTION_SAME = 0,
+	LOCOMOTION_DIFFERENT = 1,
+	LOCOMOTION_INVALID = 2,
+} e_Locomotion;
+
 typedef struct tagRobotIdentity {
 	uint32_t Self_ID;
 	uint32_t Origin_ID;
@@ -24,7 +31,8 @@ typedef struct tagRobotIdentity {
 	float theta;
 	float RotationHop_x;
 	float RotationHop_y;
+	bool ValidOrientation;
+	e_Locomotion Locomotion;
 } RobotIdentity_t;
-
 
 #endif /* ROBOTIDENTITY_H_ */

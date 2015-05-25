@@ -14,8 +14,8 @@ extern "C"
 #endif
 
 /* robot_motor library */
-#define MOTOR_TIMER_CLOCK           SYSCTL_PERIPH_WTIMER0
-#define MOTOR_TIMER_BASE            WTIMER0_BASE
+#define MOVEMENT_TIMER_CLOCK           SYSCTL_PERIPH_WTIMER0
+#define MOVEMENT_TIMER_BASE            WTIMER0_BASE
 
 /* custom_delay library */
 #define DELAY_TIMER_CLOCK_NON_INT	SYSCTL_PERIPH_WTIMER1

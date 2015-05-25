@@ -17,10 +17,12 @@ extern "C"
 {
 #endif
 
+#include "libstorage/inc/RobotIdentity.h"
 #include "librobot/inc/robot_motor.h"
 
 // Region definition =========================
 #define REGION_ROBOT_VARIABLES_AND_FUNCTIONS
+#define REGION_MOVING_CONTOLLER
 #define REGION_STATE_PERIOD_PARAMETERS
 #define REGION_STATE_ONE_MEASURE_DISTANCE
 #define REGION_STATE_TWO_EXCHANGE_TABLE
@@ -28,9 +30,11 @@ extern "C"
 #define REGION_STATE_FOUR_ROTATE_NETWORK
 #define REGION_STATE_FIVE_CORRECT_COORDINATES
 #define REGION_STATE_SIX_SYNCH_LOCS_TABLE
+#define REGION_STATE_SEVEN_LOCOMOTION
 #define REGION_BASIC_CALIBRATE
 #define REGION_DEBUG
 #define REGION_CONTOLLER_CALIBRATE
+#define REGION_UPDATE_LOCATION
 //============================================
 
 #ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
@@ -50,8 +54,8 @@ typedef enum tag_RobotState
 	ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP = 10, // Step Controller
 
 	ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE = 11,
-	ROBOT_STATE_TEST_PID_CONTROLLER = 12
-
+	ROBOT_STATE_TEST_PID_CONTROLLER = 12,
+	ROBOT_STATE_UPDATE_LOCATION = 13
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -65,7 +69,8 @@ typedef enum tag_RobotResponseState
 	ROBOT_RESPONSE_STATE_ROTATE_COORDINATES,
 	ROBOT_RESPONSE_STATE_READ_LOCATIONS_TABLE,
 	ROBOT_RESPONSE_STATE_READ_NEIGHBOR_VECTOR,
-	ROBOT_RESPONSE_STATE_READ_SELF_VECTOR_AND_FLAG
+	ROBOT_RESPONSE_STATE_READ_SELF_VECTOR_AND_FLAG,
+	ROBOT_RESPONSE_STATE_LOCALIZATION
 } e_RobotResponseState;
 
 typedef struct tagRobotRotationFlag{
@@ -93,6 +98,22 @@ void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 #endif
 
+#ifdef REGION_MOVING_CONTOLLER
+
+typedef enum tag_MovementResult
+{
+	MOVEMENT_RESULT_COMPLETED,
+	MOVEMENT_RESULT_STUCK,
+	MOVEMENT_RESULT_BUSY
+} e_MovementResult;
+
+bool detectedRotateCollision(float fCurrentAngle, int windowTimes);
+e_MovementResult tryToAttempMovement(float fDistance, float fAngleInDeg);
+e_MovementResult StepController_rotateToAngle(float fEndThetaInRad);
+e_MovementResult StepController_forward(void);
+void broadcastMovingMessageToLocalNeighbors(uint8_t ui8Command);
+#endif
+
 #ifdef REGION_STATE_PERIOD_PARAMETERS
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
@@ -118,6 +139,10 @@ void handleNeighborResponseSamplingCollision(void);
 #define CORRECT_LOCATIONS_STATE_MAINTASK2_LIFE_TIME_IN_MS		2000	// 2s
 #define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MIN		10000		// 10ms
 #define CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX		100000		// 100ms
+
+#define LOCOMOTION_STATE_MAINTASK_LIFE_TIME_IN_MS		10000	// 10s
+#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	1000000		// 1s
+#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	2000000		// 2s
 #endif
 
 #ifdef REGION_STATE_ONE_MEASURE_DISTANCE
@@ -208,6 +233,17 @@ void responseSelfVectorAndFlagToRequestRobot(uint32_t ui32NeighborId);
 void indicatesLocalLoopToLEDs(void);
 #endif
 
+#ifdef REGION_STATE_SEVEN_LOCOMOTION
+//========= State 7 - Locomotion ===================================
+void StateSeven_Locomotion(void);
+void StateSeven_Locomotion_ResetFlag(void);
+bool StateSeven_Locomotion_MainTask(va_list argp);
+bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp);
+
+bool haveClearshotToTheGoal(float fDistance, float fAngleInRad);
+void broadcastLocomotionResultToLocalNeighbors(uint8_t ui8Command);
+#endif
+
 #ifdef REGION_BASIC_CALIBRATE
 void testRfReceiver(uint8_t* pui8Data);
 bool checkForCorrectRxDataStream(va_list argp);
@@ -233,10 +269,8 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data);
 #endif
 
 #ifdef REGION_CONTOLLER_CALIBRATE
-
 void testStepRotateController(uint8_t* pui8Data);
 bool rotateToAngleUseStepController(void);
-bool detectedRotateCollision(float fCurrentAngle, int times);
 
 void testStepForwardInPeriodController(uint8_t* pui8Data);
 bool forwardInPeriodUseStepController(void);
@@ -255,8 +289,6 @@ bool forwardInRotatePureController(void);
 #define TESTONLY_PAUSE_MOTORS_MS	0
 void testPIDControllerSetup(uint8_t* pui8Data);
 bool testPIDController(void);
-
-
 
 #endif
 
@@ -280,6 +312,20 @@ void robotRotateCommandWithAngle(uint8_t* pui8Data);
 void updateGradientMap(uint8_t* pui8Data);
 bool GradientMapUpdater_identifyPacket(va_list argp);
 void GradientMapUpdater_sendNACKToHost(void);
+
+#endif
+
+#ifdef REGION_UPDATE_LOCATION
+#define WAIT_FOR_LOCATION_RESPONSE_IN_US 1000000 // 1s
+bool updateLocation(void);
+bool updateLocationDelayHandler(va_list argp);
+void updateLocationResquestHanlder(uint8_t* pui8RequestData);
+void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSize);
+
+bool tryToRequestLocalNeighborsFoLocolization(void);
+bool responseDistanceAndLocationToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
+void notifyNewVectorToNeigbors(void);
+void updateNeighborLocation(uint8_t* pui8RequestData);
 
 #endif
 

@@ -36,6 +36,7 @@ void NeighborsTable_clear(void);
 
 void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance);
+void NeighborsTable_updateNewDistanceForNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 bool NeighborsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index);
 bool NeighborsTable_getDistanceOfRobot(uint32_t ui32RobotID, uint16_t *pui16Distance);
@@ -56,6 +57,7 @@ void RobotLocationsTable_clear(void);
 int RobotLocationsTable_getSize(void);
 void RobotLocationsTable_add(uint32_t id, float x, float y);
 void RobotLocationsTable_remove(uint32_t id);
+void RobotLocationsTable_updateLocation(uint32_t id, float x, float y);
 int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID);
 bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId);
 bool RobotLocationsTable_getVectorOfRobot(uint32_t ui32RobotId, float* pfX, float *pfY);
