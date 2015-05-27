@@ -32,6 +32,7 @@ typedef struct tagRobotIdentity {
 	float RotationHop_x;
 	float RotationHop_y;
 	bool ValidOrientation;
+	bool ValidLocation;
 	e_Locomotion Locomotion;
 } RobotIdentity_t;
 

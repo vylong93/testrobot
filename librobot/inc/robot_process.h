@@ -53,9 +53,7 @@ typedef enum tag_RobotState
 	ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP = 9,	 // Step Controller
 	ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP = 10, // Step Controller
 
-	ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE = 11,
-	ROBOT_STATE_TEST_PID_CONTROLLER = 12,
-	ROBOT_STATE_UPDATE_LOCATION = 13
+	ROBOT_STATE_UPDATE_LOCATION = 11
 } e_RobotState;
 
 typedef enum tag_RobotResponseState
@@ -278,18 +276,6 @@ bool forwardInPeriodUseStepController(void);
 void testStepForwardInRotateController(uint8_t* pui8Data);
 bool forwardInRotateUseStepController(void);
 
-//void testMotorLeft(bool autoSwitchState, int offset);
-//void testMotorRight(bool autoSwitchState, int offset);
-
-void testForwardInRotatePureController(uint8_t* pui8Data);
-bool forwardInRotatePureController(void);
-
-#define TESTONLY_ACTIVE_MOTORS_LEFT_MS	20
-#define TESTONLY_ACTIVE_MOTORS_RIGHT_MS	20
-#define TESTONLY_PAUSE_MOTORS_MS	0
-void testPIDControllerSetup(uint8_t* pui8Data);
-bool testPIDController(void);
-
 #endif
 
 #ifdef REGION_DEBUG
@@ -316,7 +302,7 @@ void GradientMapUpdater_sendNACKToHost(void);
 #endif
 
 #ifdef REGION_UPDATE_LOCATION
-#define WAIT_FOR_LOCATION_RESPONSE_IN_US 1000000 // 1s
+#define WAIT_FOR_LOCATION_RESPONSE_IN_US 700000 // 700ms
 bool updateLocation(void);
 bool updateLocationDelayHandler(va_list argp);
 void updateLocationResquestHanlder(uint8_t* pui8RequestData);
@@ -325,7 +311,7 @@ void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSi
 bool tryToRequestLocalNeighborsFoLocolization(void);
 bool responseDistanceAndLocationToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void notifyNewVectorToNeigbors(void);
-void updateNeighborLocation(uint8_t* pui8RequestData);
+void updateNeighborLocationRequestHandler(uint8_t* pui8RequestData);
 
 #endif
 

@@ -236,16 +236,6 @@ int main(void)
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_TEST_FORWARD_IN_ROTATE_PURE:
-				if(forwardInRotatePureController())
-					setRobotState(ROBOT_STATE_IDLE);
-				break;
-
-			case ROBOT_STATE_TEST_PID_CONTROLLER:
-				if(testPIDController())
-					setRobotState(ROBOT_STATE_IDLE);
-				break;
-
 			case ROBOT_STATE_UPDATE_LOCATION:
 				updateLocation();
 				setRobotState(ROBOT_STATE_IDLE);
