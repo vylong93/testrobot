@@ -219,6 +219,7 @@ int main(void)
 			case ROBOT_STATE_LOCOMOTION:
 				DEBUG_PRINT("goto State SEVEN: Locomotion\n");
 				StateSeven_Locomotion();
+				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
 			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP:

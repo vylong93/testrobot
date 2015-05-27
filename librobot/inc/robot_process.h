@@ -22,19 +22,19 @@ extern "C"
 
 // Region definition =========================
 #define REGION_ROBOT_VARIABLES_AND_FUNCTIONS
-#define REGION_MOVING_CONTOLLER
 #define REGION_STATE_PERIOD_PARAMETERS
 #define REGION_STATE_ONE_MEASURE_DISTANCE
 #define REGION_STATE_TWO_EXCHANGE_TABLE
 #define REGION_STATE_THREE_VOTE_ORIGIN
 #define REGION_STATE_FOUR_ROTATE_NETWORK
-#define REGION_STATE_FIVE_CORRECT_COORDINATES
-#define REGION_STATE_SIX_SYNCH_LOCS_TABLE
+#define REGION_STATE_FIVE_SYNCH_LOCS_TABLE
+#define REGION_STATE_SIX_CORRECT_COORDINATES
 #define REGION_STATE_SEVEN_LOCOMOTION
 #define REGION_BASIC_CALIBRATE
 #define REGION_DEBUG
 #define REGION_CONTOLLER_CALIBRATE
 #define REGION_UPDATE_LOCATION
+#define REGION_MOVING_CONTOLLER
 //============================================
 
 #ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
@@ -96,22 +96,6 @@ void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 #endif
 
-#ifdef REGION_MOVING_CONTOLLER
-
-typedef enum tag_MovementResult
-{
-	MOVEMENT_RESULT_COMPLETED,
-	MOVEMENT_RESULT_STUCK,
-	MOVEMENT_RESULT_BUSY
-} e_MovementResult;
-
-bool detectedRotateCollision(float fCurrentAngle, int windowTimes);
-e_MovementResult tryToAttempMovement(float fDistance, float fAngleInDeg);
-e_MovementResult StepController_rotateToAngle(float fEndThetaInRad);
-e_MovementResult StepController_forward(void);
-void broadcastMovingMessageToLocalNeighbors(uint8_t ui8Command);
-#endif
-
 #ifdef REGION_STATE_PERIOD_PARAMETERS
 #define MEASURE_DISTANCE_STATE_MAINTASK_LIFE_TIME_IN_MS		3000	// 3s
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
@@ -140,7 +124,7 @@ void broadcastMovingMessageToLocalNeighbors(uint8_t ui8Command);
 
 #define LOCOMOTION_STATE_MAINTASK_LIFE_TIME_IN_MS		10000	// 10s
 #define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	1000000		// 1s
-#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	2000000		// 2s
+#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	5000000		// 5s
 #endif
 
 #ifdef REGION_STATE_ONE_MEASURE_DISTANCE
@@ -196,7 +180,7 @@ void setRotationFlagOfRobotTo(uint32_t ui32RobotID, bool bFlag);
 bool getRotationFlagOfRobot(uint32_t ui32RobotID);
 #endif
 
-#ifdef REGION_STATE_FIVE_CORRECT_COORDINATES
+#ifdef REGION_STATE_FIVE_SYNCH_LOCS_TABLE
 void StateFive_AverageVector(void);
 void StateFive_AverageVector_ResetFlag(void);
 bool StateFive_AverageVector_MainTask(va_list argp);
@@ -209,7 +193,7 @@ void sendRequestNeighborVectorCommandToNeighbor(uint32_t ui32NeighborId);
 void responseNeighborVectorToRequestRobot(uint32_t ui32NeighborId);
 #endif
 
-#ifdef REGION_STATE_SIX_SYNCH_LOCS_TABLE
+#ifdef REGION_STATE_SIX_CORRECT_COORDINATES
 //========= State 6 - Correct Locations Table ===================================
 void StateSix_CorrectLocations(void);
 
@@ -233,12 +217,10 @@ void indicatesLocalLoopToLEDs(void);
 
 #ifdef REGION_STATE_SEVEN_LOCOMOTION
 //========= State 7 - Locomotion ===================================
-void StateSeven_Locomotion(void);
-void StateSeven_Locomotion_ResetFlag(void);
-bool StateSeven_Locomotion_MainTask(va_list argp);
+bool StateSeven_Locomotion(void);
 bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp);
+void StateSeven_Locomotion_updateLocomotionRequestHandler(uint8_t* pui8RequestData);
 
-bool haveClearshotToTheGoal(float fDistance, float fAngleInRad);
 void broadcastLocomotionResultToLocalNeighbors(uint8_t ui8Command);
 #endif
 
@@ -267,6 +249,9 @@ void robotRotateCommandWithPeriod(uint8_t* pui8Data);
 #endif
 
 #ifdef REGION_CONTOLLER_CALIBRATE
+bool detectedRotateCollision(float fCurrentAngle, int windowTimes);
+void calculateNewPositionAndOrentation(float theta_old, Motor_t mLeft, Motor_t mRight);
+
 void testStepRotateController(uint8_t* pui8Data);
 bool rotateToAngleUseStepController(void);
 
@@ -310,9 +295,20 @@ void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSi
 
 bool tryToRequestLocalNeighborsFoLocolization(void);
 bool responseDistanceAndLocationToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
-void notifyNewVectorToNeigbors(void);
+void broadcastLocationMessageToLocalNeighbors(void);
 void updateNeighborLocationRequestHandler(uint8_t* pui8RequestData);
 
+#endif
+
+#ifdef REGION_MOVING_CONTOLLER
+bool forwardStep(int8_t i8StepOfFour);
+bool forwardActivate(bool *bIsMoveCompleted);
+
+void rotateAngle(float fAngleInDeg);
+bool rotateActivate(void);
+
+void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t mRight);
+void broadcastMovingMessageToLocalNeighbors(void);
 #endif
 
 #ifdef __cplusplus
