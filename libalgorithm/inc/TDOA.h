@@ -35,7 +35,7 @@ extern "C"
 #define NOISY_THRESHOLD					50	// ~0.040	(x 3.3 / 2^12)
 #define GOOD_QUALITY_THRESHOLD			70	// ~0.056	(x 3.3 / 2^12)
 
-#define MAXIMUM_DISTANCE				11520	// 45cm * 256 = <8.8> format
+#define MAXIMUM_DISTANCE				12160	// 47.5cm * 256 = <8.8> format
 
 #define SPEAKER_RADIUS_IN_CM		2.0
 #define OFFSET_DISTANCE_IN_CM		SPEAKER_RADIUS_IN_CM

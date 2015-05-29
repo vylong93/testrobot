@@ -1877,14 +1877,9 @@ void StateSix_CorrectLocations(void)
 		g_bIsActiveCoordinatesFixing = false;
 	}
 
-	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+//	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
 
-//	//
-//	// Synchornous delay for previous state
-//	//
-//	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX);
-//
-//	setRobotState(ROBOT_STATE_LOCOMOTION);
+	setRobotState(ROBOT_STATE_LOCOMOTION);
 }
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void)
@@ -2157,6 +2152,8 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 
 		getLastPoint(0, &pPoint[1]);
 		getLastPoint(-1, &pPoint[0]);
+
+		moveStep(REVERSE, 2);
 	}
 	else
 	{
@@ -2175,6 +2172,8 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 			return false; // Continues this TASK
 
 		getLastPoint(0, &pPoint[2]);
+
+		moveStep(REVERSE, 2);
 	}
 	else
 	{
@@ -3836,7 +3835,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 	mRight.eDirection = g_eMovementDirection;
 
 	float theta = IMU_getYawAngle();
-	if(detectedRotateCollision(theta, 5))
+	if(detectedRotateCollision(theta, 8))
 	{
 		g_ui8RepeatIMUAngleCounter = 0;
 
