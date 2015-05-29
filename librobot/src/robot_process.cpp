@@ -1878,6 +1878,7 @@ void StateSix_CorrectLocations(void)
 //	}
 //	while(g_ui8TargetNeighborPointer < NeighborsTable_getSize());
 
+	pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 
 	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
 }
@@ -2097,8 +2098,6 @@ bool StateSeven_Locomotion(void)
 	turnOffLED(LED_ALL);
 	turnOnLED(LED_BLUE);
 
-	pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-
 	bool isRfFlagAssert;
 	uint32_t ui32LifeTimeInUsOfSubTask;
 	do
@@ -2113,6 +2112,8 @@ bool StateSeven_Locomotion(void)
 	// Now, robot timer delay random is expired
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
 		return true; // Terminal this task
+
+	broadcastMovingMessageToLocalNeighbors();
 
 	//BUG: if forwardStep() cannot relocalized -> invalid access to MovementSavePoint
 //	Vector2<float> pPoint[3];
@@ -2282,7 +2283,6 @@ void testRfTransmister(uint8_t* pui8Data)
 
 	uint32_t ui32TestDataSize = construct4Byte(pui8Data);
 
-	//uint16_t* pui16TestData = malloc(sizeof(*pui16TestData) * (ui32TestDataSize >> 1));
 	uint16_t* pui16TestData = new uint16_t[ui32TestDataSize >> 1];
 	if(pui16TestData == 0)
 		return;
@@ -2304,8 +2304,7 @@ void testRfTransmister(uint8_t* pui8Data)
 	{
 		DEBUG_PRINT("Test RF Transmission TX: Connection failed...\n");
 	}
-
-	//free(pui16TestData);
+	
 	delete[] pui16TestData;
 }
 
@@ -2370,7 +2369,6 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read %d word(s) in EEPROM\n", ui32DataCount);
 
 	uint8_t ui8ResponseSize = ui32DataCount * 6 + 1;
-//	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui8ResponseSize);
 	uint8_t* pui8ResponseBuffer = new uint8_t[ui8ResponseSize];
 	if(pui8ResponseBuffer == 0)
 		return;
@@ -2404,7 +2402,6 @@ void transmitRequestDataInEeprom(uint8_t* pui8Data)
 		DEBUG_PRINT("Send eeprom data to host: Failed...\n");
 	}
 
-//	free(pui8ResponseBuffer);
 	delete[] pui8ResponseBuffer;
 }
 
@@ -2446,7 +2443,6 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 	DEBUG_PRINTS("Host request read bulk %d word(s) in EEPROM\n", pui8Data[0]);
 
 	uint32_t ui32ResponseSize = 1 + 4 + ui32NumberOfBytes;
-//	uint8_t* pui8ResponseBuffer = malloc(sizeof(*pui8ResponseBuffer) * ui32ResponseSize);
 	uint8_t* pui8ResponseBuffer = new uint8_t[ui32ResponseSize];
 	if(pui8ResponseBuffer == 0)
 		return;
@@ -2472,7 +2468,6 @@ void transmitRequestBulkDataInEeprom(uint8_t* pui8Data)
 		DEBUG_PRINT("Send eeprom bulk data to host: Failed...\n");
 	}
 
-//	free(pui8ResponseBuffer);
 	delete[] pui8ResponseBuffer;
 }
 
@@ -2491,7 +2486,6 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 
 	uint32_t ui32DataPointer = 0;
 	uint32_t ui32ResponseLength = ui8TestTimes * 4; // Each peak is 2-byte in 8.8 fixed-point format
-//	uint8_t* pui8ResponseToHostBuffer = malloc(sizeof(*pui8ResponseToHostBuffer) * ui32ResponseLength);
 	uint8_t* pui8ResponseToHostBuffer = new uint8_t[ui32ResponseLength];
 	if(pui8ResponseToHostBuffer == 0)
 		return;
@@ -2525,7 +2519,6 @@ void calibrationTx_TDOA(uint8_t* pui8Data)
 	if(ui32DataPointer == ui32ResponseLength)
 		sendDataToHost(pui8ResponseToHostBuffer, ui32ResponseLength);
 
-//	free(pui8ResponseToHostBuffer);
 	delete[] pui8ResponseToHostBuffer;
 }
 
@@ -2772,9 +2765,6 @@ bool rotateToAngleUseStepController(void)
 		Motors_stop();
 		MovementTimer_delay_ms(g_ui8StepPauseInMs);
 	}
-
-//	if (g_RobotIdentity.ValidLocation && g_RobotIdentity.ValidOrientation)
-//		calculateNewPositionAndOrentation(theta, mLeft, mRight);
 
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation)
 	{
@@ -3235,24 +3225,6 @@ void updateGradientMap(uint8_t* pui8Data)
 
 			turnOffLED(LED_BLUE);
 		}
-
-//		uint32_t ClockSpeed = ROM_SysCtlClockGet();
-//		ROM_TimerLoadSet(TASK_TIMER_BASE, TIMER_A, ClockSpeed);
-//		ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-//		ROM_TimerEnable(TASK_TIMER_BASE, TIMER_A);
-//
-//		g_RobotIdentity.Origin_ID = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
-//		g_pGradientMap->modifyGradientMap(g_pi8ImageBuffer, ui32Height, ui32Width, ui32TrappedCount);
-//		g_RobotIdentity.RotationHop_ID = ROM_TimerValueGet(TASK_TIMER_BASE, TIMER_A);
-//
-//		ROM_TimerDisable(TASK_TIMER_BASE, TIMER_A);
-//		ROM_TimerIntClear(TASK_TIMER_BASE, TIMER_TIMA_TIMEOUT);
-//
-//		g_RobotIdentity.Self_ID = ClockSpeed;
-//		g_RobotIdentity.x = (g_RobotIdentity.Origin_ID - g_RobotIdentity.RotationHop_ID) / (ClockSpeed * 1.0f);
-//
-//		g_pi8ImageBuffer = 0;
-//		turnOffLED(LED_BLUE);
 	}
 	else
 	{
@@ -3744,10 +3716,10 @@ bool forwardActivate(bool *bIsMoveCompleted)
 
 	if (isTwoAngleOverlay(theta, g_pfStepForwardRotateTrackingAngle[g_i8StepForwardRotateTrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
 	{
-		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
-			broadcastMovingMessageToLocalNeighbors();
-		else
-			broadcastLocationMessageToLocalNeighbors();
+//		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
+//			broadcastMovingMessageToLocalNeighbors();
+//		else
+//			broadcastLocationMessageToLocalNeighbors();
 
 		if(direction == FORWARD)
 		{
@@ -3845,6 +3817,11 @@ bool forwardActivate(bool *bIsMoveCompleted)
 	Motors_stop();
 	MovementTimer_delay_ms(STEP_CONTROLLER_MOTOR_DEACTIVE_MS);
 
+	if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
+		broadcastMovingMessageToLocalNeighbors();
+	else
+		broadcastLocationMessageToLocalNeighbors();
+
 	if(g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation)
 		calculateNewRobotStateAfterRotated(theta, mLeft, mRight);
 
@@ -3934,6 +3911,11 @@ bool rotateActivate(void)
 		g_RobotIdentity.theta += theta;
 	}
 
+	if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
+		broadcastMovingMessageToLocalNeighbors();
+	else
+		broadcastLocationMessageToLocalNeighbors();
+	
 	return false;
 }
 

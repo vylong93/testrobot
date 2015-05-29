@@ -238,7 +238,10 @@ int main(void)
 				break;
 
 			case ROBOT_STATE_UPDATE_LOCATION:
-				updateLocation();
+				if (updateLocation())
+				{
+					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+				}
 				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
