@@ -126,7 +126,7 @@ typedef struct tag_MessageHeader
 #define ROBOT_REQUEST_SELF_VECTOR_AND_FLAG			0xA7
 #define ROBOT_REQUEST_LOCOLIZATION					0xA8
 #define ROBOT_REQUEST_UPDATE_NEIGHBOR_VECTOR		0xA9
-#define ROBOT_REQUEST_MOVING						0xAA
+#define ROBOT_REQUEST_NOP							0xAA
 #define ROBOT_REQUEST_UPDATE_LOCOMOTION				0xAB
 //------------------------------------------------------
 
@@ -160,12 +160,6 @@ bool sendDataToNeighbor(uint32_t ui32NeighborId, uint8_t* pui8Data, uint32_t ui3
 
 void constructMessage(uint8_t* puiMessageBuffer, e_MessageType eMessType, uint8_t ui8Command, uint8_t* pui8Data, uint32_t ui32DataSize);
 
-//=============================================================================
-//#define PC_SEND_ROTATE_CLOCKWISE		0xB6
-//#define PC_SEND_ROTATE_CLOCKWISE_ANGLE	0xB7
-//#define PC_SEND_FORWARD_PERIOD			0xB8
-//#define PC_SEND_FORWARD_DISTANCE		0xB9
-//
 //// Format <SMART_PHONE_COMMAND><SP_SEND_...>
 //#define SMART_PHONE_COMMAND				0xF0
 //#define SP_SEND_STOP_TWO_MOTOR			0xF1

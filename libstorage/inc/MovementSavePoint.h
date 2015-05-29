@@ -18,7 +18,7 @@ void pushNewPoint(float x, float y);
 bool getLastPoint(int offset, Vector2<float>* pPointOut);
 bool calculateLastForwardOrientation(float *pTheta);
 bool calculateLastBackwardOrientation(float *pTheta);
-e_Locomotion calculateLastLocomotion(Vector2<float> pPoint[]);
+e_Locomotion tryToCalculateLastLocomotion(Vector2<float> pPoint[]);
 
 
 #endif /* LIBSTORAGE_INC_MOVEMENTSAVEPOINT_H_ */

@@ -424,8 +424,8 @@ void decodeRobotRequestMessage(uint8_t ui8Cmd, uint8_t* pui8MessageData, uint32_
 		updateNeighborLocationRequestHandler(pui8MessageData);
 		break;
 
-	case ROBOT_REQUEST_MOVING:
-		// Do nothing!
+	case ROBOT_REQUEST_NOP:
+		// No Operation!
 		break;
 
 	case ROBOT_REQUEST_UPDATE_LOCOMOTION:

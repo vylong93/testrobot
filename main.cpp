@@ -219,6 +219,25 @@ int main(void)
 			case ROBOT_STATE_LOCOMOTION:
 				DEBUG_PRINT("goto State SEVEN: Locomotion\n");
 				StateSeven_Locomotion();
+				break;
+
+			case ROBOT_STATE_FIND_ORIENTATION:
+				DEBUG_PRINT("goto State EIGHT: Find Orientation\n");
+				StateEight_FindOrientation();
+				break;
+
+			case ROBOT_STATE_FOLLOW_GRADIENT_MAP:
+				DEBUG_PRINT("goto State NICE: Follow Gradient Map\n");
+				StateNine_FollowGradientMap();
+				break;
+
+			case ROBOT_STATE_UPDATE_LOCATION:
+				turnOnLED(LED_ALL);
+				if (updateLocation())
+				{
+					broadcastLocationMessageToLocalNeighbors();
+					turnOffLED(LED_ALL);
+				}
 				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
@@ -227,22 +246,14 @@ int main(void)
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP:
-				if(forwardInPeriodUseStepController())
-					setRobotState(ROBOT_STATE_IDLE);
-				break;
-
 			case ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP:
 				if(forwardInRotateUseStepController())
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
-			case ROBOT_STATE_UPDATE_LOCATION:
-				if (updateLocation())
-				{
-					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-				}
-				setRobotState(ROBOT_STATE_IDLE);
+			case ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP:
+				if(forwardInPeriodUseStepController())
+					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
 			default: // ROBOT_STATE_IDLE

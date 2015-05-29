@@ -285,6 +285,15 @@ void handleNeighborResponseSamplingCollision(void)
 	}
 }
 
+void broadcastNOPMessageToLocalNeighbors(void)
+{
+	uint8_t pui8MessageData[4];	// <4-byte SelfId>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	broadcastToLocalNeighbors(ROBOT_REQUEST_NOP, pui8MessageData, 4);
+}
+
 #endif
 
 #ifdef REGION_STATE_ONE_MEASURE_DISTANCE
@@ -399,7 +408,10 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 
 			turnOffLED(LED_BLUE);
 		}
-	    // else { Do nothing! There are too noisy in sound! }
+	    else // The environment are too noisy
+	    {
+	    	broadcastNOPMessageToLocalNeighbors();
+	    }
 	}
 	// else { Nothing to do! Already broadcast request successed! }
 
@@ -688,7 +700,7 @@ void StateTwo_ExchangeTable(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	delay_us(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	turnOnLED(LED_GREEN);
 
@@ -898,7 +910,7 @@ void StateThree_VoteTheOrigin(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	delay_us(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	//
 	// indicates the origin id
@@ -1137,7 +1149,7 @@ void StateFour_RotateCoordinates(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	delay_us(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	activeRobotTask(ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS, StateFour_RotateCoordinates_MainTask);
 
@@ -1479,7 +1491,7 @@ void StateFive_AverageVector(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	delay_us(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	do
 	{
@@ -1487,8 +1499,8 @@ void StateFive_AverageVector(void)
 	}
 	while(g_ui8NeighborsTablePointer < NeighborsTable_getSize());
 
-	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
 //	setRobotState(ROBOT_STATE_CORRECT_LOCATIONS);
+	setRobotState(ROBOT_STATE_IDLE);
 }
 
 void StateFive_AverageVector_ResetFlag(void)
@@ -1798,13 +1810,13 @@ void StateSix_CorrectLocations(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	if (g_RobotIdentity.Self_ID == g_RobotIdentity.Origin_ID)
 	{
 		StateSix_CorrectLocations_Task1_ResetFlag();
 
-		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
+//		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
 	}
 	else
 	{
@@ -1865,22 +1877,14 @@ void StateSix_CorrectLocations(void)
 		g_bIsActiveCoordinatesFixing = false;
 	}
 
-//	StateSix_CorrectLocations_ResetFlag();
-//
+	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+
 //	//
 //	// Synchornous delay for previous state
 //	//
-//	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+//	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX);
 //
-//	do
-//	{
-//		activeRobotTask(SYNCHRONOUS_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSix_SynchronousLocations_MainTask);
-//	}
-//	while(g_ui8TargetNeighborPointer < NeighborsTable_getSize());
-
-	pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-
-	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+//	setRobotState(ROBOT_STATE_LOCOMOTION);
 }
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void)
@@ -1888,6 +1892,7 @@ void StateSix_CorrectLocations_Task1_ResetFlag(void)
 	g_bIsActiveCoordinatesFixing = false;
 	g_RobotIdentity.x = 0;
 	g_RobotIdentity.y = 0;
+	g_RobotIdentity.ValidLocation = true;
 }
 
 bool StateSix_CorrectLocations_MainTask1(va_list argp)
@@ -1898,9 +1903,16 @@ bool StateSix_CorrectLocations_MainTask1(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert = RfTryToCaptureRfSignal(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_SubTask1_Delay_Handler);
-	if (isRfFlagAssert)
-		resetRobotTaskTimer();
+	bool isRfFlagAssert;
+
+	do
+	{
+		isRfFlagAssert = RfTryToCaptureRfSignal(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX, StateSix_CorrectLocations_SubTask1_Delay_Handler);
+
+		if (isRfFlagAssert)
+			resetRobotTaskTimer();
+	}
+	while(isRfFlagAssert);
 
 	return false; // Continue the main task
 }
@@ -2086,23 +2098,40 @@ void indicatesLocalLoopToLEDs(void)
 #endif
 
 #ifdef REGION_STATE_SEVEN_LOCOMOTION
-
-
-Vector2<float> pPoint[3];
-
-bool StateSeven_Locomotion(void)
+void StateSeven_Locomotion(void)
 {
-	if (!g_RobotIdentity.ValidLocation)
-		return false;
-
 	turnOffLED(LED_ALL);
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+
 	turnOnLED(LED_BLUE);
+
+	activeRobotTask(LOCOMOTION_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSeven_Locomotion_MainTask);
+
+	turnOffLED(LED_BLUE);
+
+	if (g_RobotIdentity.ValidOrientation)
+		setRobotState(ROBOT_STATE_IDLE);
+	else
+		setRobotState(ROBOT_STATE_FIND_ORIENTATION);
+}
+
+bool StateSeven_Locomotion_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
 
 	bool isRfFlagAssert;
 	uint32_t ui32LifeTimeInUsOfSubTask;
 	do
 	{
-		 // 1s to 5s
+		 // 1s to 6s
 		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSeven_Locomotion_SubTask_DelayRandom_Handler);
@@ -2111,24 +2140,28 @@ bool StateSeven_Locomotion(void)
 
 	// Now, robot timer delay random is expired
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
-		return true; // Terminal this task
+		return true; // Terminate this task
 
-	broadcastMovingMessageToLocalNeighbors();
+	broadcastNOPMessageToLocalNeighbors();
 
-	//BUG: if forwardStep() cannot relocalized -> invalid access to MovementSavePoint
-//	Vector2<float> pPoint[3];
-	if (forwardStep(3)) // Blocking-call
+	if (!updateLocation())
+		return false; // Continue this task
+
+	pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+
+	Vector2<float> pPoint[3];
+	if (moveStep(FORWARD, 2)) // Blocking-call
 	{
 		if (getSavePointCounter() < 2)
-			return false;
+			return false; // Continues this TASK
 
 		getLastPoint(0, &pPoint[1]);
 		getLastPoint(-1, &pPoint[0]);
 	}
 	else
 	{
-		if (getSavePointCounter() < 3)
-			return false;
+		if (getSavePointCounter() < 2)
+			return false; // Continues this TASK
 
 		getLastPoint(-1, &pPoint[1]);
 		getLastPoint(-2, &pPoint[0]);
@@ -2136,28 +2169,31 @@ bool StateSeven_Locomotion(void)
 
 	rotateAngle(90); // Blocking-call
 
-	if (forwardStep(3)) // Blocking-call
+	if (moveStep(FORWARD, 3)) // Blocking-call
 	{
 		if (getSavePointCounter() < 3)
-			return false;
+			return false; // Continues this TASK
 
 		getLastPoint(0, &pPoint[2]);
 	}
 	else
 	{
 		if (getSavePointCounter() < 3)
-			return false;
+			return false; // Continues this TASK
 
 		getLastPoint(-1, &pPoint[2]);
 	}
 
-	g_RobotIdentity.Locomotion = calculateLastLocomotion(pPoint);
-	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
-		return false;
+	broadcastLocationMessageToLocalNeighbors();
 
-    turnOffLED(LED_BLUE);
-	broadcastLocomotionResultToLocalNeighbors(ROBOT_REQUEST_UPDATE_LOCOMOTION);
-	return true;
+	g_RobotIdentity.Locomotion = tryToCalculateLastLocomotion(pPoint);
+
+	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
+	{
+		broadcastLocomotionResultToLocalNeighbors();
+	}
+
+	return false; // Continues this task
 }
 
 bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp)
@@ -2176,12 +2212,12 @@ bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp)
 
 void StateSeven_Locomotion_updateLocomotionRequestHandler(uint8_t* pui8RequestData)
 {
-	// uint32_t ui32NeighborID = construct4Byte(pui8RequestData);	// optimized
+//	uint32_t ui32NeighborID = construct4Byte(pui8RequestData);	// Optimized
 
 	g_RobotIdentity.Locomotion = (e_Locomotion)pui8RequestData[4];
 }
 
-void broadcastLocomotionResultToLocalNeighbors(uint8_t ui8Command)
+void broadcastLocomotionResultToLocalNeighbors(void)
 {
 	uint8_t pui8MessageData[5];	// <4-byte SelfId><1-byte locomotion>
 
@@ -2189,7 +2225,357 @@ void broadcastLocomotionResultToLocalNeighbors(uint8_t ui8Command)
 
 	pui8MessageData[4] = (int8_t)(g_RobotIdentity.Locomotion);
 
-	broadcastToLocalNeighbors(ui8Command, pui8MessageData, 5);
+	broadcastToLocalNeighbors(ROBOT_REQUEST_UPDATE_LOCOMOTION, pui8MessageData, 5);
+}
+
+#endif
+
+#ifdef REGION_STATE_EIGHT_FIND_ORIENTATION
+void StateEight_FindOrientation(void)
+{
+	/* Pseudo-Code
+	   call Robot timer delay [FIND_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS] with TASK()
+	   {
+	   	   DO
+	   	   {
+	   	   	   generate random values
+			   clear isFlagAssert flag
+			   isFlagAssert = RfTryToCaptureRfSignal(random, handlerInDelayRandom)
+				   handlerInDelayRandom()
+				   -- {
+							case:
+							return true; // alway return true to reset task timer
+				    -- }
+
+			   if (isFlagAssert == true)
+			   	   reset Robot timer delay();
+
+		   } WHILE (isFlagAssert == true);
+		   // Now, robot timer delay random is expired
+
+		   IF have valid orientation THEN
+		   	   return true; // Ternimate this TASK
+
+		   broadcastNOP();
+
+		   IF moveActivate(FORWARD, 3) success THEN
+				moveActivate(RESEVER, 3)
+
+		   return false; // continue the main TASK
+	   }
+	*/
+
+	turnOffLED(LED_ALL);
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+
+	turnOnLED(LED_GREEN);
+
+	activeRobotTask(FIND_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS, StateEight_FindOrientation_MainTask);
+
+	turnOffLED(LED_GREEN);
+
+	setRobotState(ROBOT_STATE_IDLE);
+}
+
+bool StateEight_FindOrientation_MainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		 // 1s to 6s
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateEight_FindOrientation_SubTask_DelayRandom_Handler);
+	}
+	while (isRfFlagAssert);
+	// Now, robot timer delay random is expired
+
+	if (g_RobotIdentity.ValidOrientation)
+		return true; // Ternimate this TASK
+
+	broadcastNOPMessageToLocalNeighbors();
+
+	if (moveStep(FORWARD, 2))
+		moveStep(REVERSE, 2);
+
+	return false; // continue the main TASK
+}
+
+bool StateEight_FindOrientation_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: none
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+#endif
+
+#ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
+void StateNine_FollowGradientMap(void)
+{
+	//TODO: implement
+	setRobotState(ROBOT_STATE_IDLE);
+}
+
+#endif
+
+#ifdef REGION_UPDATE_LOCATION
+//-----------------------------------------------------------------------------
+//  bool updateLocation(void)
+//
+//  DESCRIPTION:
+//		This is blocking call function
+//		if not enough neighbors to relocate then return false
+//		else three action will be involke
+//			1/ the new location will be store at g_RobotIdentity
+//			2/ synchronous in Robot Locations Table
+//			3/ broadcast new location to all neighbors
+//
+//-----------------------------------------------------------------------------
+bool updateLocation(void)
+{
+	turnOffLED(LED_ALL);
+
+	// 1/ Send request
+	turnOnLED(LED_GREEN);
+	while(true)
+	{
+		if (tryToRequestLocalNeighborsFoLocolization())
+			break;
+		else // Environment too noisy!
+			broadcastNOPMessageToLocalNeighbors();
+	};
+
+	NeighborsTable_clear();
+	OneHopNeighborsTable_clear();
+	RobotLocationsTable_clear();
+
+	// 2/ Wait
+	turnOffLED(LED_GREEN);
+	turnOnLED(LED_BLUE);
+	bool isRfFlagAssert;
+	do
+	{
+		isRfFlagAssert = RfTryToCaptureRfSignal(WAIT_FOR_LOCATION_RESPONSE_IN_US, updateLocationDelayHandler);
+	}
+	while (isRfFlagAssert);
+
+	// 3/ Calculation
+	if(RobotLocationsTable_getSize() < 3)
+	{
+		turnOnLED(LED_ALL);
+		return false; // Not enough neighbor for relocalization
+	}
+
+	// 4/ Gradient descent:: result store in g_RobotIdentity
+	RobotLocation selfTarget(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+
+	GradientDescentNode correctLocationAlgorithm;
+	correctLocationAlgorithm.init(&selfTarget);
+	while(!correctLocationAlgorithm.isGradientSearchStop)
+		correctLocationAlgorithm.run();
+
+	g_RobotIdentity.x = selfTarget.vector.x;
+	g_RobotIdentity.y = selfTarget.vector.y;
+
+	// 5/ synchronous
+	RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+
+	// notifyNewVectorToNeigbors();
+	broadcastLocationMessageToLocalNeighbors();
+
+	g_RobotIdentity.ValidLocation = true;
+
+    turnOffLED(LED_BLUE);
+    return true;
+}
+
+bool updateLocationDelayHandler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
+}
+
+void updateLocationResquestHanlder(uint8_t* pui8RequestData)
+{
+	bool bIsSkipTheRest = false;
+
+	uint8_t* pui8RxBuffer = 0;
+	uint32_t ui32MessageSize;
+
+	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
+	float fInterceptOfRequestRobot = (int16_t)((pui8RequestData[4] << 8) | pui8RequestData[5]) / 1024.0f;
+	float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
+
+	float fPeakA, fMaxA;
+	float fPeakB, fMaxB;
+
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted())
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
+
+			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+			{
+				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
+						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_LOCOLIZATION)
+				{
+					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
+					bIsSkipTheRest = true;
+				}
+				// else { Do nothing! Because other command is not collision with the sampling process }
+			}
+			Network_deleteBuffer(pui8RxBuffer);
+		}
+	}
+
+	if(!bIsSkipTheRest)
+	{
+		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
+		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
+
+		if(TDOA_isGoodQualityMeasurement(fMaxA, fMaxB))
+		{
+			uint16_t ui16Distance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);	// Fixed-point <8.8>
+
+			if (ui16Distance > 0)
+			{
+				NeighborsTable_updateNewDistanceForNeighbor(ui32RequestRobotID, ui16Distance);
+
+				if (g_RobotIdentity.ValidLocation)
+				{
+					// random 1->100: delay unit (1ms)
+					uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
+					delay_us(ui32RandomUs + 2000);
+
+					responseDistanceAndLocationToNeighbor(ui32RequestRobotID, ui16Distance);
+				}
+				// else { Do nothing! }
+			}
+			// else { Do nothing! Because the neighbor too far }
+		}
+		// else { Do nothing! Because of the bad results }
+	}
+}
+
+void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	// Get neighbor measure results
+	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
+	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
+
+	// Filtered the invalid results measurement
+	if (ui16Distance > 0 && ui16Distance < MAXIMUM_DISTANCE)
+	{
+		// Get neighbor distance
+		NeighborsTable_updateNewDistanceForNeighbor(ui32ResponseRobotId, ui16Distance);
+
+		// Get neighbor vector
+		int32_t i32Data = construct4Byte(&pui8MessageData[6]);
+		float x = i32Data / 65536.0f;
+
+		i32Data = construct4Byte(&pui8MessageData[10]);
+		float y = i32Data / 65536.0f;
+
+		RobotLocationsTable_updateLocation(ui32ResponseRobotId, x, y);
+	}
+}
+
+bool tryToRequestLocalNeighborsFoLocolization(void)
+{
+	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
+	int16_t i16Intercept = (int16_t)(TDOA_getIntercept() * 1024 + 0.5);	// Fixed-point 6.10
+	int16_t i16Slope = (int16_t)(TDOA_getSlope() * 1024 + 0.5);			// Fixed-point 6.10
+
+	triggerSamplingMicSignalsWithPreDelay(0);
+	while(!isSamplingCompleted());
+
+	TDOA_filterSignalsMic(getMicrophone0BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	TDOA_filterSignalsMic(getMicrophone1BufferPointer());
+	if(TDOA_isFilteredSignalNoisy())
+		return false;
+
+	broadcastMeasureDistanceCommandToLocalNeighbors(ROBOT_REQUEST_LOCOLIZATION, i16Intercept, i16Slope);
+	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
+
+	return true;
+}
+
+bool responseDistanceAndLocationToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
+{
+	//NOTE: ui16Distance is Fixed-point <8.8> format
+
+	uint8_t pui8ResponseData[14];	// <4-byte self id><2-byte distance><4-byte x><4-byte y>
+
+	parse32bitTo4Bytes(pui8ResponseData, g_RobotIdentity.Self_ID);
+
+	parse16bitTo2Bytes(&pui8ResponseData[4], ui16Distance);
+
+	int32_t i32Data = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseData[6], i32Data);
+
+	i32Data = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseData[10], i32Data);
+
+	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR, pui8ResponseData, 14);
+}
+
+void broadcastLocationMessageToLocalNeighbors(void)
+{
+	uint8_t pui8MessageData[12]; // <4-byte SelfId><4-byte x><4-byte y>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	int32_t i32Data = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[4], i32Data);
+
+	i32Data = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[8], i32Data);
+
+	broadcastToLocalNeighbors(ROBOT_REQUEST_UPDATE_NEIGHBOR_VECTOR, pui8MessageData, 12);
+}
+
+void updateNeighborLocationRequestHandler(uint8_t* pui8RequestData)
+{
+	uint32_t ui32NeighborID = construct4Byte(pui8RequestData);
+
+	int32_t i32Data = construct4Byte(&pui8RequestData[4]);
+	float x = i32Data / 65536.0f;
+
+	i32Data = construct4Byte(&pui8RequestData[8]);
+	float y = i32Data / 65536.0f;
+
+	RobotLocationsTable_updateLocation(ui32NeighborID, x, y);
 }
 
 #endif
@@ -2304,7 +2690,7 @@ void testRfTransmister(uint8_t* pui8Data)
 	{
 		DEBUG_PRINT("Test RF Transmission TX: Connection failed...\n");
 	}
-	
+
 	delete[] pui16TestData;
 }
 
@@ -3154,7 +3540,7 @@ void transmitRobotIdentityToHost(void)
 
 	pui8ResponseBuffer[35] = (g_RobotIdentity.ValidOrientation) ? (0x01) : (0x00);
 	pui8ResponseBuffer[36] = (int8_t)g_RobotIdentity.Locomotion;
-	
+
 	// GradientMap
 	parse32bitTo4Bytes(&pui8ResponseBuffer[37], g_pGradientMap->Height);
 	parse32bitTo4Bytes(&pui8ResponseBuffer[41], g_pGradientMap->Width);
@@ -3381,256 +3767,14 @@ void GradientMapUpdater_sendNACKToHost(void)
 
 #endif
 
-#ifdef REGION_UPDATE_LOCATION
-//-----------------------------------------------------------------------------
-//  bool updateLocation(void)
-//
-//  DESCRIPTION:
-//		This is blocking call function
-//		if not enough neighbors to relocate then return false
-//		else three action will be involke
-//			1/ the new location will be store at g_RobotIdentity
-//			2/ synchronous in Robot Locations Table
-//			3/ broadcast new location to all neighbors
-//
-//-----------------------------------------------------------------------------
-bool updateLocation(void)
-{
-	turnOffLED(LED_ALL);
-
-	// 1/ Send request
-	turnOnLED(LED_GREEN);
-	bool bIsRequestSuccess = false;
-	do
-	{
-		bIsRequestSuccess = tryToRequestLocalNeighborsFoLocolization();
-	} while(!bIsRequestSuccess);
-
-	NeighborsTable_clear();
-	OneHopNeighborsTable_clear();
-	RobotLocationsTable_clear();
-
-	// 2/ Wait
-	turnOffLED(LED_GREEN);
-	turnOnLED(LED_BLUE);
-	bool isRfFlagAssert;
-	do
-	{
-		isRfFlagAssert = RfTryToCaptureRfSignal(WAIT_FOR_LOCATION_RESPONSE_IN_US, updateLocationDelayHandler);
-	}
-	while (isRfFlagAssert);
-
-	// 3/ Calculation
-	if(RobotLocationsTable_getSize() < 3)
-	{
-		turnOnLED(LED_ALL);
-		return false; // Not enough neighbor for relocalization
-	}
-
-	// 4/ Gradient descent:: result store in g_RobotIdentity
-	RobotLocation selfTarget(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
-
-	GradientDescentNode correctLocationAlgorithm;
-	correctLocationAlgorithm.init(&selfTarget);
-	while(!correctLocationAlgorithm.isGradientSearchStop)
-		correctLocationAlgorithm.run();
-
-	g_RobotIdentity.x = selfTarget.vector.x;
-	g_RobotIdentity.y = selfTarget.vector.y;
-
-	// 5/ synchronous
-	RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
-
-	// notifyNewVectorToNeigbors();
-	broadcastLocationMessageToLocalNeighbors();
-
-	g_RobotIdentity.ValidLocation = true;
-
-    turnOffLED(LED_BLUE);
-    return true;
-}
-
-bool updateLocationDelayHandler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
-}
-
-void updateLocationResquestHanlder(uint8_t* pui8RequestData)
-{
-	bool bIsSkipTheRest = false;
-
-	uint8_t* pui8RxBuffer = 0;
-	uint32_t ui32MessageSize;
-
-	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
-	float fInterceptOfRequestRobot = (int16_t)((pui8RequestData[4] << 8) | pui8RequestData[5]) / 1024.0f;
-	float fSlopeOfRequestRobot = (int16_t)((pui8RequestData[6] << 8) | pui8RequestData[7]) / 1024.0f;
-
-	float fPeakA, fMaxA;
-	float fPeakB, fMaxB;
-
-	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted())
-	{
-		if (MCU_RF_IsInterruptPinAsserted())
-		{
-			MCU_RF_ClearIntFlag();
-
-			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-			{
-				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
-						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_LOCOLIZATION)
-				{
-					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
-					bIsSkipTheRest = true;
-				}
-				// else { Do nothing! Because other command is not collision with the sampling process }
-			}
-			Network_deleteBuffer(pui8RxBuffer);
-		}
-	}
-
-	if(!bIsSkipTheRest)
-	{
-		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
-		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
-
-		if(TDOA_isGoodQualityMeasurement(fMaxA, fMaxB))
-		{
-			uint16_t ui16Distance = TDOA_calculateDistanceFromTwoPeaks(fPeakA, fPeakB, fInterceptOfRequestRobot, fSlopeOfRequestRobot);	// Fixed-point <8.8>
-
-			if (ui16Distance > 0)
-			{
-				NeighborsTable_updateNewDistanceForNeighbor(ui32RequestRobotID, ui16Distance);
-
-				if (g_RobotIdentity.ValidLocation)
-				{
-					// random 1->100: delay unit (1ms)
-					uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
-					delay_us(ui32RandomUs + 2000);
-
-					responseDistanceAndLocationToNeighbor(ui32RequestRobotID, ui16Distance);
-				}
-				// else { Do nothing! }
-			}
-			// else { Do nothing! Because the neighbor too far }
-		}
-		// else { Do nothing! Because of the bad results }
-	}
-}
-
-void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSize)
-{
-	// Get neighbor measure results
-	uint32_t ui32ResponseRobotId = construct4Byte(pui8MessageData);
-	uint16_t ui16Distance = (pui8MessageData[4] << 8) | pui8MessageData[5];
-
-	// Filtered the invalid results measurement
-	if (ui16Distance > 0 && ui16Distance < MAXIMUM_DISTANCE)
-	{
-		// Get neighbor distance
-		NeighborsTable_updateNewDistanceForNeighbor(ui32ResponseRobotId, ui16Distance);
-
-		// Get neighbor vector
-		int32_t i32Data = construct4Byte(&pui8MessageData[6]);
-		float x = i32Data / 65536.0f;
-
-		i32Data = construct4Byte(&pui8MessageData[10]);
-		float y = i32Data / 65536.0f;
-
-		RobotLocationsTable_updateLocation(ui32ResponseRobotId, x, y);
-	}
-}
-
-bool tryToRequestLocalNeighborsFoLocolization(void)
-{
-	//NOTE: i16Intercept and i16Slope is Fixed-point <6.10> format
-	int16_t i16Intercept = (int16_t)(TDOA_getIntercept() * 1024 + 0.5);	// Fixed-point 6.10
-	int16_t i16Slope = (int16_t)(TDOA_getSlope() * 1024 + 0.5);			// Fixed-point 6.10
-
-	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted());
-
-	TDOA_filterSignalsMic(getMicrophone0BufferPointer());
-	if(TDOA_isFilteredSignalNoisy())
-		return false;
-
-	TDOA_filterSignalsMic(getMicrophone1BufferPointer());
-	if(TDOA_isFilteredSignalNoisy())
-		return false;
-
-	broadcastMeasureDistanceCommandToLocalNeighbors(ROBOT_REQUEST_LOCOLIZATION, i16Intercept, i16Slope);
-	triggerSpeakerWithPreDelay(DELAY_BEFORE_START_SPEAKER_US);
-
-	return true;
-}
-
-bool responseDistanceAndLocationToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
-{
-	//NOTE: ui16Distance is Fixed-point <8.8> format
-
-	uint8_t pui8ResponseData[14];	// <4-byte self id><2-byte distance><4-byte x><4-byte y>
-
-	parse32bitTo4Bytes(pui8ResponseData, g_RobotIdentity.Self_ID);
-
-	parse16bitTo2Bytes(&pui8ResponseData[4], ui16Distance);
-
-	int32_t i32Data = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseData[6], i32Data);
-
-	i32Data = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseData[10], i32Data);
-
-	return responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR, pui8ResponseData, 14);
-}
-
-void broadcastLocationMessageToLocalNeighbors(void)
-{
-	uint8_t pui8MessageData[12]; // <4-byte SelfId><4-byte x><4-byte y>
-
-	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
-
-	int32_t i32Data = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8MessageData[4], i32Data);
-
-	i32Data = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8MessageData[8], i32Data);
-
-	broadcastToLocalNeighbors(ROBOT_REQUEST_UPDATE_NEIGHBOR_VECTOR, pui8MessageData, 12);
-}
-
-void updateNeighborLocationRequestHandler(uint8_t* pui8RequestData)
-{
-	uint32_t ui32NeighborID = construct4Byte(pui8RequestData);
-
-	int32_t i32Data = construct4Byte(&pui8RequestData[4]);
-	float x = i32Data / 65536.0f;
-
-	i32Data = construct4Byte(&pui8RequestData[8]);
-	float y = i32Data / 65536.0f;
-
-	RobotLocationsTable_updateLocation(ui32NeighborID, x, y);
-}
-
-#endif
-
 #ifdef REGION_MOVING_CONTOLLER
-int8_t g_i8StepForwardRotateLastCount;
+e_MotorDirection g_eMovementDirection;
 float g_pfStepForwardRotateTrackingAngle[4];
 int8_t g_i8StepForwardRotateTrackingPoint;
 int8_t g_i8StepForwardRotate;
 int8_t g_i8StepForwardRotateReverse;
 //-----------------------------------------------------------------------------
-//  void forwardStep(int8_t i8StepOfFour)
+//  void moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
 //
 //  DESCRIPTION:
 //		This is blocking call function
@@ -3647,17 +3791,28 @@ int8_t g_i8StepForwardRotateReverse;
 //		This broadcast message may contain odometry position of the robot.
 //
 //  ARGUMENTS:
+//		e_MotorDirection eDirection
+//			The movement direction is FORWARD or REVERSE
+//
 //      int8_t i8StepOfFour
 //          The number of moving step Of 4, 1 step Of 4 equal 2cm
 //-----------------------------------------------------------------------------
-bool forwardStep(int8_t i8StepOfFour)
+bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
 {
 	bool bIsMoveCompleted = false;
 
-	g_i8StepForwardRotateLastCount = i8StepOfFour << 2;
+	int8_t i8StepRotateLastCount = i8StepOfFour << 2;
 
-	g_i8StepForwardRotate = g_i8StepForwardRotateLastCount;
-	g_i8StepForwardRotateReverse = 0;
+	if (eDirection == FORWARD)
+	{
+		g_i8StepForwardRotate = i8StepRotateLastCount;
+		g_i8StepForwardRotateReverse = 0;
+	}
+	else
+	{
+		g_i8StepForwardRotate = 0;
+		g_i8StepForwardRotateReverse = i8StepRotateLastCount;
+	}
 
 	float fCurrentAngle = IMU_getYawAngle();
 	g_pfStepForwardRotateTrackingAngle[0] = fCurrentAngle - STEP_CONTROLLER_ROTATE_STEP_ANGLE;
@@ -3667,43 +3822,43 @@ bool forwardStep(int8_t i8StepOfFour)
 
 	g_i8StepForwardRotateTrackingPoint = 2;
 
-	while(!forwardActivate(&bIsMoveCompleted));
+	g_eMovementDirection = eDirection;
+
+	while(!moveActivate(&bIsMoveCompleted, i8StepRotateLastCount, eDirection));
 
 	return bIsMoveCompleted;
 }
 
-bool forwardActivate(bool *bIsMoveCompleted)
+bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection)
 {
-	static e_MotorDirection direction = FORWARD;
-
 	Motor_t mLeft, mRight;
-	mLeft.eDirection = direction;
-	mRight.eDirection = direction;
+	mLeft.eDirection = g_eMovementDirection;
+	mRight.eDirection = g_eMovementDirection;
 
 	float theta = IMU_getYawAngle();
 	if(detectedRotateCollision(theta, 5))
 	{
 		g_ui8RepeatIMUAngleCounter = 0;
 
-		if(direction == FORWARD)
+		if(g_eMovementDirection == FORWARD)
 		{
-			direction = REVERSE;
+			g_eMovementDirection = REVERSE;
 
 			g_i8StepForwardRotateTrackingPoint--;
 			if(g_i8StepForwardRotateTrackingPoint < 0)
 				g_i8StepForwardRotateTrackingPoint = 3;
 
-			g_i8StepForwardRotateReverse = g_i8StepForwardRotateLastCount - g_i8StepForwardRotate + 1;
+			g_i8StepForwardRotateReverse = i8StepRotateLastCount - g_i8StepForwardRotate + 1;
 		}
 		else
 		{
-			direction = FORWARD;
+			g_eMovementDirection = FORWARD;
 
 			g_i8StepForwardRotateTrackingPoint++;
 			if(g_i8StepForwardRotateTrackingPoint > 3)
 				g_i8StepForwardRotateTrackingPoint = 0;
 
-			g_i8StepForwardRotate = g_i8StepForwardRotateLastCount - g_i8StepForwardRotateReverse + 1;
+			g_i8StepForwardRotate = i8StepRotateLastCount - g_i8StepForwardRotateReverse + 1;
 		}
 
 		if (updateLocation())
@@ -3716,12 +3871,7 @@ bool forwardActivate(bool *bIsMoveCompleted)
 
 	if (isTwoAngleOverlay(theta, g_pfStepForwardRotateTrackingAngle[g_i8StepForwardRotateTrackingPoint], CONTROLLER_ANGLE_ERROR_DEG))
 	{
-//		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
-//			broadcastMovingMessageToLocalNeighbors();
-//		else
-//			broadcastLocationMessageToLocalNeighbors();
-
-		if(direction == FORWARD)
+		if(g_eMovementDirection == FORWARD)
 		{
 			g_i8StepForwardRotateTrackingPoint++;
 			if(g_i8StepForwardRotateTrackingPoint > 3)
@@ -3734,8 +3884,6 @@ bool forwardActivate(bool *bIsMoveCompleted)
 			}
 			else
 			{
-				// direction = FORWARD; // optimized
-
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
@@ -3746,7 +3894,7 @@ bool forwardActivate(bool *bIsMoveCompleted)
 					}
 				}
 
-				*bIsMoveCompleted = true;
+				*bIsMoveCompleted = (g_eMovementDirection == eDirection);
 				return true;
 			}
 		}
@@ -3763,8 +3911,6 @@ bool forwardActivate(bool *bIsMoveCompleted)
 			}
 			else
 			{
-				direction = FORWARD;
-
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
@@ -3775,7 +3921,7 @@ bool forwardActivate(bool *bIsMoveCompleted)
 					}
 				}
 
-				*bIsMoveCompleted = false;
+				*bIsMoveCompleted = (g_eMovementDirection == eDirection);
 				return true;
 			}
 		}
@@ -3784,14 +3930,14 @@ bool forwardActivate(bool *bIsMoveCompleted)
 	float fAngleInRadian = g_pfStepForwardRotateTrackingAngle[g_i8StepForwardRotateTrackingPoint] - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
-	if (fAngleInRadian > 0)
+	if (g_eMovementDirection == FORWARD)
 	{
-		if(direction == FORWARD)
+		if (fAngleInRadian > 0) // Lock left, move right
 		{
 			mLeft.ui8Speed = STEP_MIN_SPEED;
 			mRight.ui8Speed = STEP_MAX_SPEED;
 		}
-		else
+		else	// Move left, lock right
 		{
 			mLeft.ui8Speed = STEP_MAX_SPEED;
 			mRight.ui8Speed = STEP_MIN_SPEED;
@@ -3799,17 +3945,44 @@ bool forwardActivate(bool *bIsMoveCompleted)
 	}
 	else
 	{
-		if(direction == FORWARD)
+		if (fAngleInRadian > 0)	// Move left, lock right
 		{
 			mLeft.ui8Speed = STEP_MAX_SPEED;
 			mRight.ui8Speed = STEP_MIN_SPEED;
 		}
-		else
+		else	// Lock left, move right
 		{
 			mLeft.ui8Speed = STEP_MIN_SPEED;
 			mRight.ui8Speed = STEP_MAX_SPEED;
 		}
 	}
+
+//	if (fAngleInRadian > 0)
+//	{
+//		if(g_eMovementDirection == FORWARD)
+//		{
+//			mLeft.ui8Speed = STEP_MIN_SPEED;
+//			mRight.ui8Speed = STEP_MAX_SPEED;
+//		}
+//		else
+//		{
+//			mLeft.ui8Speed = STEP_MAX_SPEED;
+//			mRight.ui8Speed = STEP_MIN_SPEED;
+//		}
+//	}
+//	else
+//	{
+//		if(g_eMovementDirection == FORWARD)
+//		{
+//			mLeft.ui8Speed = STEP_MAX_SPEED;
+//			mRight.ui8Speed = STEP_MIN_SPEED;
+//		}
+//		else
+//		{
+//			mLeft.ui8Speed = STEP_MIN_SPEED;
+//			mRight.ui8Speed = STEP_MAX_SPEED;
+//		}
+//	}
 
 	Motors_configure(mLeft, mRight);
 	MovementTimer_delay_ms(STEP_CONTROLLER_MOTOR_ACTIVE_MS);
@@ -3817,13 +3990,15 @@ bool forwardActivate(bool *bIsMoveCompleted)
 	Motors_stop();
 	MovementTimer_delay_ms(STEP_CONTROLLER_MOTOR_DEACTIVE_MS);
 
-	if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
-		broadcastMovingMessageToLocalNeighbors();
-	else
-		broadcastLocationMessageToLocalNeighbors();
-
 	if(g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation)
+	{
 		calculateNewRobotStateAfterRotated(theta, mLeft, mRight);
+		broadcastLocationMessageToLocalNeighbors();
+	}
+	else
+	{
+		broadcastNOPMessageToLocalNeighbors();
+	}
 
 	return false;
 }
@@ -3909,12 +4084,13 @@ bool rotateActivate(void)
 			theta = IMU_getYawAngle() - theta;
 		theta = atan2f(sinf(theta), cosf(theta));
 		g_RobotIdentity.theta += theta;
-	}
 
-	if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
-		broadcastMovingMessageToLocalNeighbors();
-	else
 		broadcastLocationMessageToLocalNeighbors();
+	}
+	else
+	{
+		broadcastNOPMessageToLocalNeighbors();
+	}
 	
 	return false;
 }
@@ -3958,15 +4134,6 @@ void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t 
 	g_RobotIdentity.x = g_RobotIdentity.x + factor * (sinPhi * cosTo - sinTo * one_minus_cosPhi);
 	g_RobotIdentity.y = g_RobotIdentity.y + factor * (cosTo * one_minus_cosPhi + sinTo * sinPhi);
 	g_RobotIdentity.theta += phi;
-}
-
-void broadcastMovingMessageToLocalNeighbors(void)
-{
-	uint8_t pui8MessageData[4];	// <4-byte SelfId>
-
-	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
-
-	broadcastToLocalNeighbors(ROBOT_REQUEST_MOVING, pui8MessageData, 4);
 }
 
 #endif

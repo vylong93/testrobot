@@ -80,7 +80,7 @@ bool calculateLastBackwardOrientation(float *pTheta)
 	return true;
 }
 
-e_Locomotion calculateLastLocomotion(Vector2<float> pPoint[])
+e_Locomotion tryToCalculateLastLocomotion(Vector2<float> pPoint[])
 {
 	Vector2<float> diff;
 
