@@ -137,6 +137,10 @@ float TDOA_getDistances(float *myData, float *peakEnvelope, float *maxEnvelope)
 			ValuesArray[1] = *(myData + (uint32_t) PositionsArray[1]);
 			ValuesArray[2] = *(myData + (uint32_t) PositionsArray[2]);
 			localMaxValue[i] = *(myData + (uint32_t) localPeaksPosition[i]);
+
+            if (PositionsArray[0] == 0 || PositionsArray[2] == (NUM_DATAS - 1))
+                continue;
+
 			TDOA_interPeak(PositionsArray, ValuesArray, localPeaksPosition[i],
 					localMaxValue[i], step, &localPeaksPosition[i],
 					&localMaxValue[i]);
@@ -185,7 +189,7 @@ uint32_t TDOA_reachBottom(float *myData, uint32_t const PeakPosition,
 		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
-	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
+	while (SamplePosition >= 1 && SamplePosition < (NUM_DATAS - 1))
 	{
 		if (*(myData + SamplePosition)
 				< *(myData + SamplePosition + PointerIncreaseNumber))
@@ -197,15 +201,15 @@ uint32_t TDOA_reachBottom(float *myData, uint32_t const PeakPosition,
 			SamplePosition += PointerIncreaseNumber;
 		}
 	}
-	SamplePosition = 0;
-	return 0;
+
+	return (SamplePosition - PointerIncreaseNumber);
 }
 
 uint32_t TDOA_reachPeak(float *myData, uint32_t const PeakPosition,
 		int32_t const PointerIncreaseNumber)
 {
 	uint32_t SamplePosition = PeakPosition;
-	while (SamplePosition > 1 && SamplePosition < NUM_DATAS)
+	while (SamplePosition >= 1 && SamplePosition < (NUM_DATAS - 1))
 	{
 		if (*(myData + SamplePosition)
 				> *(myData + SamplePosition + PointerIncreaseNumber))
@@ -217,8 +221,8 @@ uint32_t TDOA_reachPeak(float *myData, uint32_t const PeakPosition,
 			SamplePosition += PointerIncreaseNumber;
 		}
 	}
-	SamplePosition = 0;
-	return 0;
+
+	return (SamplePosition - PointerIncreaseNumber);
 }
 
 void TDOA_interPeak(float* PositionsArray, float* ValuesArray,
