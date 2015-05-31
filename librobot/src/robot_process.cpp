@@ -2246,7 +2246,7 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 
 	rotateAngleInDeg(90); // Blocking-call
 
-	if (moveStep(FORWARD, 3)) // Blocking-call
+	if (moveStep(FORWARD, 2)) // Blocking-call
 	{
 		if (getSavePointCounter() < 3)
 			return false; // Continues this TASK
