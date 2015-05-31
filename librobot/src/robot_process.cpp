@@ -31,19 +31,23 @@
 #include "libalgorithm/inc/GradientMap.h"
 
 #include "libcontroller/inc/Controller.h"
+#include "libcontroller/inc/DASHController.h"
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
 #ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
 
-RobotIdentity_t g_RobotIdentity;
+static RobotIdentity_t g_RobotIdentity;
 
 static e_RobotState g_eRobotState = ROBOT_STATE_IDLE;
+static e_RobotState g_eRobotPreviousState = ROBOT_STATE_IDLE;
 static e_RobotResponseState g_eRobotResponseState = ROBOT_RESPONSE_STATE_NONE;
 
 static uint8_t* g_pui8RequestData;
 
 static GradientMap* g_pGradientMap;
+
+static DASHController* g_pDASHController;
 
 static uint32_t g_ui32RandomW;
 static uint32_t g_ui32RandomWIndex;
@@ -162,6 +166,12 @@ void initRobotProcess(void)
 	DEBUG_PRINTS3("init DASH::Gradient Map [%d][%d] at 0x%08x\n", g_pGradientMap->Height, g_pGradientMap->Width, g_pGradientMap->pGradientMap);
 
 	//
+	// Initialize DASH Controller
+	//
+	g_pDASHController = new DASHController(g_pGradientMap, &g_RobotIdentity);
+	DEBUG_PRINT("init DASH Controller\n");
+
+	//
 	// Initialize Random Word
 	//
 	if(!getRandomWordInEEPROM(&g_ui32RandomW))
@@ -205,11 +215,19 @@ void resetRobotIdentity(void)
 void setRobotState(e_RobotState eState)
 {
 	Motors_stop();
+	g_eRobotPreviousState = g_eRobotState;
 	g_eRobotState = eState;
 }
+
 e_RobotState getRobotState(void)
 {
 	return g_eRobotState;
+}
+
+void switchBackToPreviousState(void)
+{
+	Motors_stop();
+	g_eRobotState = g_eRobotPreviousState;
 }
 
 void setRobotResponseState(e_RobotResponseState eState)
@@ -1874,8 +1892,7 @@ void StateSix_CorrectLocations(void)
 
 	activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
 
-	setRobotState(ROBOT_STATE_IDLE);  //TODO: next state
-//	setRobotState(ROBOT_STATE_LOCOMOTION);
+	setRobotState(ROBOT_STATE_IDLE);
 }
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void)
@@ -2177,10 +2194,10 @@ void StateSeven_Locomotion(void)
 {
 	turnOffLED(LED_ALL);
 
-	//
-	// Synchornous delay for previous state
-	//
-	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+//	//
+//	// Synchornous delay for previous state
+//	//
+//	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	turnOnLED(LED_BLUE);
 
@@ -2188,10 +2205,12 @@ void StateSeven_Locomotion(void)
 
 	turnOffLED(LED_BLUE);
 
-	if (g_RobotIdentity.ValidOrientation)
-		setRobotState(ROBOT_STATE_IDLE);
-	else
-		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
+//	if (g_RobotIdentity.ValidOrientation)
+//		setRobotState(ROBOT_STATE_IDLE);
+//	else
+//		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
+
+	switchBackToPreviousState();
 }
 
 bool StateSeven_Locomotion_MainTask(va_list argp)
@@ -2346,10 +2365,10 @@ void StateEight_UpdateOrientation(void)
 
 	turnOffLED(LED_ALL);
 
-	//
-	// Synchornous delay for previous state
-	//
-	delay_us(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+//	//
+//	// Synchornous delay for previous state
+//	//
+//	delay_us(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	turnOnLED(LED_GREEN);
 
@@ -2357,7 +2376,9 @@ void StateEight_UpdateOrientation(void)
 
 	turnOffLED(LED_GREEN);
 
-	setRobotState(ROBOT_STATE_IDLE);
+//	setRobotState(ROBOT_STATE_IDLE);
+
+	switchBackToPreviousState();
 }
 
 bool StateEight_UpdateOrientation_MainTask(va_list argp)
@@ -2373,7 +2394,7 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 	do
 	{
 		 // 1s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateEight_UpdateOrientation_SubTask_DelayRandom_Handler);
 	}
@@ -2409,11 +2430,60 @@ bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp)
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
 void StateNine_FollowGradientMap(void)
 {
-	//TODO: implement
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_RED);
 
-	rotateAngleInRad(-g_RobotIdentity.theta);
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		 // 1s to 6s
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-	setRobotState(ROBOT_STATE_IDLE);
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateNine_FollowGradientMap_SubTask_DelayRandom_Handler);
+	}
+	while (isRfFlagAssert);
+
+	// Now, robot timer delay random is expired
+	if (!updateLocation())
+		return;
+
+	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
+	{
+		setRobotState(ROBOT_STATE_LOCOMOTION);
+		return;
+	}
+
+	if (!g_RobotIdentity.ValidOrientation)
+	{
+		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
+		return;
+	}
+
+	Vector2<float> pointNextGoal;
+	g_pDASHController->calculateTheNextGoal(&pointNextGoal);
+
+	//
+	// TODO: Actuator Execute Command to pointNextGoal
+	//
+
+
+
+	turnOffLED(LED_RED);
+}
+
+bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp)
+{
+	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument
+
+	// Valid commands in this state: many
+	handleCommonSubTaskDelayRandomState();
+
+	return true; // Terminal the subTask after handle
 }
 
 #endif
@@ -2463,19 +2533,23 @@ bool updateLocation(void)
 	if(RobotLocationsTable_getSize() < 3)
 	{
 		turnOnLED(LED_ALL);
-		return false; // Not enough neighbor for relocalization
+
+		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID || !g_RobotIdentity.ValidLocation || !g_RobotIdentity.ValidOrientation)
+			return false; // Not enough neighbor for relocalization
 	}
+	else
+	{
+		// 4/ Gradient descent:: result store in g_RobotIdentity
+		RobotLocation selfTarget(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
 
-	// 4/ Gradient descent:: result store in g_RobotIdentity
-	RobotLocation selfTarget(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+		GradientDescentNode correctLocationAlgorithm;
+		correctLocationAlgorithm.init(&selfTarget);
+		while(!correctLocationAlgorithm.isGradientSearchStop)
+			correctLocationAlgorithm.run();
 
-	GradientDescentNode correctLocationAlgorithm;
-	correctLocationAlgorithm.init(&selfTarget);
-	while(!correctLocationAlgorithm.isGradientSearchStop)
-		correctLocationAlgorithm.run();
-
-	g_RobotIdentity.x = selfTarget.vector.x;
-	g_RobotIdentity.y = selfTarget.vector.y;
+		g_RobotIdentity.x = selfTarget.vector.x;
+		g_RobotIdentity.y = selfTarget.vector.y;
+	}
 
 	// 5/ synchronous
 	RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);

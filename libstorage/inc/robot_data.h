@@ -62,6 +62,7 @@ int RobotLocationsTable_getIndexOfRobot(uint32_t ui32RobotID);
 bool RobotLocationsTable_isContainRobot(uint32_t ui32RobotId);
 bool RobotLocationsTable_getVectorOfRobot(uint32_t ui32RobotId, float* pfX, float *pfY);
 uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index);
+void RobotLocationsTable_getLocationAtIndex(uint32_t ui32Index, float *pfX, float *pfY);
 bool RobotLocationTable_setVectorOfRobot(uint32_t ui32RobotId, float fX, float fY);
 void RobotLocationsTable_rotate(float fAngle, bool bFlipXaxis);
 void RobotLocationsTable_transformToWorldFrame(RobotIdentity_t* pRobotIdentity);

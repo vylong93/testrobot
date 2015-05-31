@@ -53,6 +53,15 @@
 #define SEGMENT_PIXEL_MASK_NON_MANHATTAN	-1
 #define SEGMENT_PIXEL_MASK_NON_VECTOR		-1
 
+#define START_PIXEL_VALUE_OF_NON_SHAPE_SEGMENT	-1
+
+typedef enum tag_SegmentType
+{
+	SEGMENT_SHAPE,
+	SEGMENT_EXTERNAL,
+	SEGMENT_TRAPPED
+} e_SegmentType;
+
 class GradientMap {
 public: //TODO: change to private members
 	typedef int16_t GradientMapPixel_t;
@@ -70,7 +79,9 @@ public: //TODO: change to private members
 
 	// Methods
 	void reset(void);
+	e_SegmentType getSegmentType(Vector2<float>& rvectLocation);
 	bool modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width);
+
 
 	void coordinateOfTheCenterGradientPixelOfRobotLocation(Vector2<float>& rvectLocation, Vector2<float>& rvectCenterLocation);
 	int32_t valueOf(Vector2<float>& rvectLocation);

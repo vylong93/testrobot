@@ -121,3 +121,4 @@ bool solveQuadraticEquation(float A, float _B, float C, float* pX1, float *pX2)
 	return true;
 }
 
+

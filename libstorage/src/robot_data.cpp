@@ -316,6 +316,12 @@ uint32_t RobotLocationsTable_getIdAtIndex(uint32_t ui32Index)
 	return g_RobotLocationsTable[ui32Index].ID;
 }
 
+void RobotLocationsTable_getLocationAtIndex(uint32_t ui32Index, float *pfX, float *pfY)
+{
+	*pfX = g_RobotLocationsTable[ui32Index].vector.x;
+	*pfY = g_RobotLocationsTable[ui32Index].vector.y;
+}
+
 bool RobotLocationTable_setVectorOfRobot(uint32_t ui32RobotId, float fX, float fY)
 {
 	int i;

@@ -64,7 +64,6 @@ bool solveQuadraticEquation(float A, float _B, float C, float* pX1, float *pX2);
 
 #ifdef __cplusplus
 }
-
 #endif
 
 #endif /* LIBMATH_INC_CUSTOM_MATH_H_ */

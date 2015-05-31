@@ -42,6 +42,8 @@ public:
     float getMagnitude();
     void normalize();
     Vector2<T> getNormalized();
+    void rotate(float angleInRad);
+    Vector2<T> getRotate(float angleInRad);
 };
 
 //***************
@@ -108,6 +110,27 @@ Vector2<T> Vector2<T>::getNormalized()
 {
 	Vector2<T> r(x, y);
 	r.normalize();
+	return r;
+}
+
+//*********************
+// Rotate the Vector. *
+//*********************
+template <typename T>
+void Vector2<T>::rotate(float angleInRad)
+{
+	x = x * cosf(angleInRad) - y * sinf(angleInRad);
+	y = x * sinf(angleInRad) + y * cosf(angleInRad);
+}
+
+//*************************************
+// Get rotated version of the Vector. *
+//*************************************
+template <typename T>
+Vector2<T> Vector2<T>::getRotate(float angleInRad)
+{
+	Vector2<T> r(x, y);
+	r.rotate(angleInRad);
 	return r;
 }
 

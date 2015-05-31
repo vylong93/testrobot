@@ -66,6 +66,27 @@ void GradientMap::reset(void)
 		pGradientMap[i] = (GradientMapPixel_t) pMap[i];
 }
 
+e_SegmentType GradientMap::getSegmentType(Vector2<float>& rvectLocation)
+{
+	Vector2<int> vectIndex;
+	convertRobotCoordinateToGradientMapIndex(rvectLocation, vectIndex);
+
+	if (vectIndex.x >= 0 && vectIndex.x < (int32_t) Height
+			&& vectIndex.y >= 0 && vectIndex.y < (int32_t) Width)
+	{
+		int8_t imagePixelValue = pImage[vectIndex.x * Width + vectIndex.y];
+
+		if (imagePixelValue == SHAPE_PIXEL)
+			return SEGMENT_SHAPE;
+
+		if (imagePixelValue == EXTERNAL_PIXEL)
+			return SEGMENT_EXTERNAL;
+
+		return SEGMENT_TRAPPED;
+	}
+	return SEGMENT_EXTERNAL;
+}
+
 bool GradientMap::modifyGradientMap(int8_t* pi8Image, uint32_t ui32Height, uint32_t ui32Width)
 {
 	if (pGradientMap != 0)

@@ -91,6 +91,7 @@ void resetRobotIdentity(void);
 
 void setRobotState(e_RobotState eState);
 e_RobotState getRobotState(void);
+void switchBackToPreviousState(void);
 
 void setRobotResponseState(e_RobotResponseState eState);
 e_RobotResponseState getRobotResponseState(void);
@@ -136,7 +137,10 @@ void broadcastNOPMessageToLocalNeighbors(void);
 
 #define UPDATE_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS	10000	// 10s
 #define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 3s
-#define FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 6s
+#define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 6s
+
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 1s
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 3s
 
 #define WAIT_FOR_LOCATION_RESPONSE_IN_US 500000 // 500ms
 #endif
@@ -252,6 +256,7 @@ bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp);
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
 void StateNine_FollowGradientMap(void);
+bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp);
 
 #endif
 

@@ -12,10 +12,11 @@
 #include "libstorage/inc/RobotIdentity.h"
 #include "libdynamic/inc/UnicycleModel.h"
 
-#define CONTROLLER_VALID_GOAL_DISTANCE		1.3f
-#define CONTROLLER_POSITION_ERROR			0.1f
 #define CONTROLLER_ANGLE_ERROR_DEG			2.0f
-#define CONTROLLER_POSITION_MOVE_MARRGIN	0.707f
+#define CONTROLLER_POSITION_ERROR_CM		2.0f
+#define CONTROLLER_POSITION_MOVE_MARRGIN_CM	15.0f	// 2*R (5) + 2 * Margin (1.5)
+
+#define CONTROLLER_VALID_GOAL_DISTANCE		1.3f
 
 class Controller
 {
