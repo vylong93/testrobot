@@ -115,6 +115,7 @@ typedef struct tag_MessageHeader
 #define ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_PLEASE_WAIT		0xB9
 #define ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE		0xBA
 #define ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR			0xBB
+#define ROBOT_RESPONSE_VALID_LOCATION						0xBC
 //------------------------------------------------------
 #define ROBOT_REQUEST_CALIBRATE_SAMPLING_MICS		0xA0
 #define ROBOT_REQUEST_SAMPLING_MICS					0xA1
@@ -128,6 +129,7 @@ typedef struct tag_MessageHeader
 #define ROBOT_REQUEST_UPDATE_NEIGHBOR_VECTOR		0xA9
 #define ROBOT_REQUEST_NOP							0xAA
 #define ROBOT_REQUEST_UPDATE_LOCOMOTION				0xAB
+#define ROBOT_REQUEST_VALID_LOCATION				0xAC
 //------------------------------------------------------
 
 void RobotResponseIntHandler(void);

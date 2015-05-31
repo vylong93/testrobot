@@ -748,7 +748,7 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	{
 		if((OneHopNeighborsTable_getSize() == NeighborsTable_getSize()))
 		{
-			RobotLocationsTable_add(g_RobotIdentity.Self_ID, 0, 0);
+			RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, 0, 0);
 
 			if(Tri_tryToCalculateRobotLocationsTable(g_RobotIdentity.Self_ID))
 			{
@@ -1057,7 +1057,7 @@ void indicatesOriginIdToLEDs(uint32_t ui32Id)
 RobotRotationFlag_t* g_pCoordinatesRotationFlagTable;
 int32_t g_i32FlagTableLength;
 int32_t g_i32TargetFlagPointer;
-//bool g_bIsCoordinatesRotated;
+bool g_bIsCoordinatesRotated;
 uint8_t* g_pui8LocationsTableBuffer;
 uint32_t g_ui32LocationsTableBufferLength;
 
@@ -1159,8 +1159,7 @@ void StateFour_RotateCoordinates(void)
 	if(g_pui8LocationsTableBuffer != 0)
 		delete[] g_pui8LocationsTableBuffer;
 
-	//if(g_bIsCoordinatesRotated)
-	if(g_RobotIdentity.ValidLocation)
+	if(g_bIsCoordinatesRotated)
 		setRobotState(ROBOT_STATE_AVERAGE_VECTOR);
 	else
 		setRobotState(ROBOT_STATE_VOTE_ORIGIN);
@@ -1204,8 +1203,7 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 		g_RobotIdentity.RotationHop_ID = g_RobotIdentity.Self_ID;
 		g_RobotIdentity.x = 0;
 		g_RobotIdentity.y = 0;
-		// g_bIsCoordinatesRotated = true;
-		g_RobotIdentity.ValidLocation = true;
+		g_bIsCoordinatesRotated = true;
 
 		prepareLocationsTableBuffer();
 
@@ -1215,8 +1213,7 @@ bool StateFour_RotateCoordinates_ResetFlag(void)
 	}
 	else
 	{
-		// g_bIsCoordinatesRotated = false;
-		g_RobotIdentity.ValidLocation = false;
+		 g_bIsCoordinatesRotated = false;
 	}
 
 	DEBUG_PRINT("........Returning TRUE from StateFour_RotateCoordinates_ResetFlag\n");
@@ -1269,8 +1266,7 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	while (isRfFlagAssert);
 
 	// In here, robot timer delay is expired
-	// if (g_bIsCoordinatesRotated == true && getRotationFlagOfRobot(ui32TargetId) == false)
-	if (g_RobotIdentity.ValidLocation == true && getRotationFlagOfRobot(ui32TargetId) == false)
+	 if (g_bIsCoordinatesRotated && getRotationFlagOfRobot(ui32TargetId) == false)
 	{
 		if(sendRequestRotateCoordinatesCommandToNeighbor(ui32TargetId))
 			setRotationFlagOfRobotTo(ui32TargetId, true);
@@ -1308,8 +1304,7 @@ void StateFour_RotateCoordinates_RotateCoordinatesHandler(uint8_t* pui8RequestDa
 
 	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
 
-	//if(g_bIsCoordinatesRotated)
-	if(g_RobotIdentity.ValidLocation)
+	if(g_bIsCoordinatesRotated)
 	{
 		DEBUG_PRINTS("send ROBOT_RESPONSE_COORDINATES_ROTATED to 0x%06x\n", ui32RequestRobotID);
 		responseMessageToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_COORDINATES_ROTATED, pui8MessageData, 4);
@@ -1358,14 +1353,16 @@ void StateFour_RotateCoordinates_ReceivedLocationsTableHandler(uint8_t* pui8Mess
 	g_RobotIdentity.RotationHop_y = fRequestRobot_y;
 
 	if(Tri_tryToRotateLocationsTable(&g_RobotIdentity, &pui8MessageData[12], (int32_t)((ui32DataSize - 12) / SIZE_OF_ROBOT_LOCATION)))
+	{
 		RobotLocationsTable_transformToWorldFrame(&g_RobotIdentity);
 
-	//g_bIsCoordinatesRotated = true;
-	g_RobotIdentity.ValidLocation = true;
+		g_bIsCoordinatesRotated = true;
 
-	prepareLocationsTableBuffer();
+		prepareLocationsTableBuffer();
 
-	turnOnLED(LED_ALL);
+		turnOnLED(LED_ALL);
+	}
+	// else TODO: handle if cannot rotate location table
 }
 
 void prepareLocationsTableBuffer(void)
@@ -1492,6 +1489,8 @@ void StateFive_AverageVector(void)
 	// Synchornous delay for previous state
 	//
 	delay_us(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+
+	//TODO: original do not need to run this state, just set it location to (0, 0)
 
 	do
 	{
@@ -1812,13 +1811,7 @@ void StateSix_CorrectLocations(void)
 	//
 	delay_us(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
-	if (g_RobotIdentity.Self_ID == g_RobotIdentity.Origin_ID)
-	{
-		StateSix_CorrectLocations_Task1_ResetFlag();
-
-//		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK1_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
-	}
-	else
+	if (g_RobotIdentity.Self_ID != g_RobotIdentity.Origin_ID)
 	{
 		g_bIsActiveCoordinatesFixing = true;
 		g_ui32LocalLoop = 1;
@@ -1877,17 +1870,26 @@ void StateSix_CorrectLocations(void)
 		g_bIsActiveCoordinatesFixing = false;
 	}
 
-//	setRobotState(ROBOT_STATE_IDLE); // TODO: switch to next state
+	StateSix_CorrectLocations_Task1_ResetFlag();
 
-	setRobotState(ROBOT_STATE_LOCOMOTION);
+	activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask1);
+
+	setRobotState(ROBOT_STATE_IDLE);  //TODO: next state
+//	setRobotState(ROBOT_STATE_LOCOMOTION);
 }
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void)
 {
-	g_bIsActiveCoordinatesFixing = false;
-	g_RobotIdentity.x = 0;
-	g_RobotIdentity.y = 0;
+	if (g_RobotIdentity.Self_ID == g_RobotIdentity.Origin_ID)
+	{
+		g_bIsActiveCoordinatesFixing = false;
+		g_RobotIdentity.x = 0;
+		g_RobotIdentity.y = 0;
+	}
 	g_RobotIdentity.ValidLocation = true;
+
+	RobotLocationsTable_clear();
+	g_ui8TargetNeighborPointer = 0;
 }
 
 bool StateSix_CorrectLocations_MainTask1(va_list argp)
@@ -1899,20 +1901,42 @@ bool StateSix_CorrectLocations_MainTask1(va_list argp)
 	//			This list containt no argument.
 
 	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
 
 	do
 	{
-		isRfFlagAssert = RfTryToCaptureRfSignal(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX, StateSix_CorrectLocations_SubTask1_Delay_Handler);
+		// 100ms to 1000ms
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSix_CorrectLocations_SubTask1_DelayRandom_Handler);
 
 		if (isRfFlagAssert)
 			resetRobotTaskTimer();
 	}
 	while(isRfFlagAssert);
 
+	// Now, robot timer delay random is expired
+	uint8_t ui8NumberOfNeighbors = NeighborsTable_getSize();
+	if (RobotLocationsTable_getSize() == ui8NumberOfNeighbors)
+	{
+		RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+		return true; // Terminal this task
+	}
+
+	uint32_t ui32TargetId = NeighborsTable_getIdAtIndex(g_ui8TargetNeighborPointer);
+
+	sendRequestValidLocationCommandToNeighbor(ui32TargetId);
+
+	g_ui8TargetNeighborPointer++;
+	if (g_ui8TargetNeighborPointer >= ui8NumberOfNeighbors)
+		g_ui8TargetNeighborPointer = 0;
+
+	resetRobotTaskTimer();
+
 	return false; // Continue the main task
 }
 
-bool StateSix_CorrectLocations_SubTask1_Delay_Handler(va_list argp)
+bool StateSix_CorrectLocations_SubTask1_DelayRandom_Handler(va_list argp)
 {
 	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
 
@@ -1920,10 +1944,66 @@ bool StateSix_CorrectLocations_SubTask1_Delay_Handler(va_list argp)
 	//		va_list argp
 	//			This list containt no argument
 
-	// No valid commands in this state
+	// Valid commands in this state: ROBOT_RESPONSE_VALID_LOCATION
 	handleCommonSubTaskDelayRandomState();
 
 	return true; // Terminal the subTask after handle
+}
+
+void StateSix_CorrectLocations_ReadValidLocationHandler(uint8_t* pui8RequestData)
+{
+	uint32_t ui32NeighborId = construct4Byte(pui8RequestData);
+
+	if (g_RobotIdentity.ValidLocation)
+	{
+		responseValidLocationToRequestRobot(ui32NeighborId);
+	}
+	else
+	{
+		// reponseCommandToNeighbor(ui32NeighborId, ROBOT_RESPONSE_INVALID_LOCATION); // Optimized
+	}
+}
+
+void StateSix_CorrectLocations_ReceivedValidLocationgHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
+{
+	uint32_t ui32NeighborId = construct4Byte(pui8MessageData);
+
+	int32_t i32Template;
+	i32Template = construct4Byte(&pui8MessageData[4]);
+	float fXAxisOfNeighbor = i32Template / 65536.0f;
+
+	i32Template = construct4Byte(&pui8MessageData[8]);
+	float fYAxisOfNeighbor = i32Template / 65536.0f;
+
+	RobotLocationsTable_updateLocation(ui32NeighborId, fXAxisOfNeighbor, fYAxisOfNeighbor);
+}
+
+void sendRequestValidLocationCommandToNeighbor(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[4];	// <4-byte SelfId>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	DEBUG_PRINTS("send ROBOT_REQUEST_VALID_LOCATION to 0x%06x\n", ui32NeighborId);
+
+	sendMessageToNeighbor(ui32NeighborId, ROBOT_REQUEST_VALID_LOCATION, pui8MessageData, 4);
+}
+
+void responseValidLocationToRequestRobot(uint32_t ui32NeighborId)
+{
+	uint8_t pui8MessageData[12];	// <4-byte sefId><4-byte vectSelf.x><4-byte vectSelf.y>
+
+	parse32bitTo4Bytes(pui8MessageData, g_RobotIdentity.Self_ID);
+
+	int32_t i32Template;
+
+	i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[4], i32Template);
+
+	i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8MessageData[8], i32Template);
+
+	responseMessageToNeighbor(ui32NeighborId, ROBOT_RESPONSE_VALID_LOCATION, pui8MessageData, 12);
 }
 
 void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void)
@@ -1932,7 +2012,7 @@ void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void)
 
 	do
 	{
-		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK2_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask2);
+		activeRobotTask(CORRECT_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS, StateSix_CorrectLocations_MainTask2);
 	}
 	while(g_ui8TargetNeighborPointer < NeighborsTable_getSize());
 }
@@ -1940,8 +2020,8 @@ void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void)
 void StateSix_CorrectLocations_Task2_ResetFlag(void)
 {
 	RobotLocationsTable_clear();
-	RobotLocationsTable_add(g_RobotIdentity.Origin_ID, 0, 0);
-	RobotLocationsTable_add(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
+	RobotLocationsTable_updateLocation(g_RobotIdentity.Origin_ID, 0, 0);
+	RobotLocationsTable_updateLocation(g_RobotIdentity.Self_ID, g_RobotIdentity.x, g_RobotIdentity.y);
 	g_ui8TargetNeighborPointer = 0;
 }
 
@@ -1959,7 +2039,7 @@ bool StateSix_CorrectLocations_MainTask2(va_list argp)
 	do
 	{
 		// 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX);
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSix_CorrectLocations_SubTask2_DelayRandom_Handler);
 
@@ -2034,7 +2114,7 @@ void StateSix_CorrectLocations_ReceivedSelfVectorAndFlagHandler(uint8_t* pui8Mes
 
 	bool bNeighborGradientSearchStopFlag = (pui8MessageData[12] == 0x01) ? (true) : (false);
 
-	RobotLocationsTable_add(ui32NeighborId, fXAxisOfNeighbor, fYAxisOfNeighbor);
+	RobotLocationsTable_updateLocation(ui32NeighborId, fXAxisOfNeighbor, fYAxisOfNeighbor);
 
 	g_bIsGradientSearchStopFlag = g_bIsGradientSearchStopFlag && bNeighborGradientSearchStopFlag;
 
@@ -2100,7 +2180,7 @@ void StateSeven_Locomotion(void)
 	//
 	// Synchornous delay for previous state
 	//
-	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK2_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+	delay_us(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
 
 	turnOnLED(LED_BLUE);
 
@@ -2111,7 +2191,7 @@ void StateSeven_Locomotion(void)
 	if (g_RobotIdentity.ValidOrientation)
 		setRobotState(ROBOT_STATE_IDLE);
 	else
-		setRobotState(ROBOT_STATE_FIND_ORIENTATION);
+		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
 }
 
 bool StateSeven_Locomotion_MainTask(va_list argp)
@@ -2164,7 +2244,7 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 		getLastPoint(-2, &pPoint[0]);
 	}
 
-	rotateAngle(90); // Blocking-call
+	rotateAngleInDeg(90); // Blocking-call
 
 	if (moveStep(FORWARD, 3)) // Blocking-call
 	{
@@ -2229,8 +2309,8 @@ void broadcastLocomotionResultToLocalNeighbors(void)
 
 #endif
 
-#ifdef REGION_STATE_EIGHT_FIND_ORIENTATION
-void StateEight_FindOrientation(void)
+#ifdef REGION_STATE_EIGHT_UPDATE_ORIENTATION
+void StateEight_UpdateOrientation(void)
 {
 	/* Pseudo-Code
 	   call Robot timer delay [FIND_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS] with TASK()
@@ -2273,14 +2353,14 @@ void StateEight_FindOrientation(void)
 
 	turnOnLED(LED_GREEN);
 
-	activeRobotTask(FIND_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS, StateEight_FindOrientation_MainTask);
+	activeRobotTask(UPDATE_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS, StateEight_UpdateOrientation_MainTask);
 
 	turnOffLED(LED_GREEN);
 
 	setRobotState(ROBOT_STATE_IDLE);
 }
 
-bool StateEight_FindOrientation_MainTask(va_list argp)
+bool StateEight_UpdateOrientation_MainTask(va_list argp)
 {
 	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
 
@@ -2293,25 +2373,25 @@ bool StateEight_FindOrientation_MainTask(va_list argp)
 	do
 	{
 		 // 1s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FIND_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateEight_FindOrientation_SubTask_DelayRandom_Handler);
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateEight_UpdateOrientation_SubTask_DelayRandom_Handler);
 	}
 	while (isRfFlagAssert);
 	// Now, robot timer delay random is expired
-
-	if (g_RobotIdentity.ValidOrientation)
-		return true; // Ternimate this TASK
 
 	broadcastNOPMessageToLocalNeighbors();
 
 	if (moveStep(FORWARD, 2))
 		moveStep(REVERSE, 2);
 
+	if (g_RobotIdentity.ValidOrientation)
+		return true; // Ternimate this TASK
+
 	return false; // continue the main TASK
 }
 
-bool StateEight_FindOrientation_SubTask_DelayRandom_Handler(va_list argp)
+bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp)
 {
 	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
 
@@ -2330,6 +2410,9 @@ bool StateEight_FindOrientation_SubTask_DelayRandom_Handler(va_list argp)
 void StateNine_FollowGradientMap(void)
 {
 	//TODO: implement
+
+	rotateAngleInRad(-g_RobotIdentity.theta);
+
 	setRobotState(ROBOT_STATE_IDLE);
 }
 
@@ -3406,49 +3489,15 @@ bool forwardInRotateUseStepController(void)
 		MovementTimer_delay_ms(g_ui8StepFwRtPauseInMs);
 	}
 
-	if (g_RobotIdentity.ValidLocation && g_RobotIdentity.ValidOrientation)
-		calculateNewPositionAndOrentation(theta, mLeft, mRight);
+	if(g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation && g_RobotIdentity.ValidLocation)
+	{
+		calculateNewRobotStateAfterRotated(theta, mLeft, mRight);
+		broadcastLocationMessageToLocalNeighbors();
+	}
 
 	return false;
 }
 
-//------------------------------------------------------------------------------------------------------------------------
-void calculateNewPositionAndOrentation(float theta_old, Motor_t mLeft, Motor_t mRight)
-{
-	float phi = IMU_getYawAngle() - theta_old;
-	phi = atan2f(sinf(phi), cosf(phi));
-
-	int sign;
-	e_MotorDirection direction;
-	if(mRight.ui8Speed - mLeft.ui8Speed > 0)
-	{
-		sign = 1;
-		direction = mRight.eDirection;
-	}
-	else
-	{
-		sign = -1;
-		direction = mLeft.eDirection;
-	}
-
-	float to;
-	if (direction == FORWARD)
-		to = g_RobotIdentity.theta;
-	else
-		to = g_RobotIdentity.theta + phi;
-
-	#define R_CENTER 5.0f		// Wheel base line divived by two
-	float factor = sign * R_CENTER;
-	float sinTo = sinf(to);
-	float cosTo = cosf(to);
-	float sinPhi = sinf(phi);
-	float one_minus_cosPhi = 1 - cosf(phi);
-
-	g_RobotIdentity.x = g_RobotIdentity.x + factor * (sinPhi * cosTo - sinTo * one_minus_cosPhi);
-	g_RobotIdentity.y = g_RobotIdentity.y + factor * (cosTo * one_minus_cosPhi + sinTo * sinPhi);
-	g_RobotIdentity.theta += phi;
-}
-//------------------------------------------------------------------------------------------------------------------------
 #endif
 
 #ifdef REGION_DEBUG
@@ -3510,20 +3559,11 @@ void transmitRobotIdentityToHost(void)
 
 	int32_t i32Template;
 
-	if(g_RobotIdentity.ValidLocation)
-	{
-		i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
-		parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
+	i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
 
-		i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
-		parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
-	}
-	else
-	{
-		parse32bitTo4Bytes(&pui8ResponseBuffer[15], 0);
-
-		parse32bitTo4Bytes(&pui8ResponseBuffer[19], 0);
-	}
+	i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
 
 	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65536 + 0.5);
 	parse32bitTo4Bytes(&pui8ResponseBuffer[23], i32Template);
@@ -3956,40 +3996,13 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 		}
 	}
 
-//	if (fAngleInRadian > 0)
-//	{
-//		if(g_eMovementDirection == FORWARD)
-//		{
-//			mLeft.ui8Speed = STEP_MIN_SPEED;
-//			mRight.ui8Speed = STEP_MAX_SPEED;
-//		}
-//		else
-//		{
-//			mLeft.ui8Speed = STEP_MAX_SPEED;
-//			mRight.ui8Speed = STEP_MIN_SPEED;
-//		}
-//	}
-//	else
-//	{
-//		if(g_eMovementDirection == FORWARD)
-//		{
-//			mLeft.ui8Speed = STEP_MAX_SPEED;
-//			mRight.ui8Speed = STEP_MIN_SPEED;
-//		}
-//		else
-//		{
-//			mLeft.ui8Speed = STEP_MIN_SPEED;
-//			mRight.ui8Speed = STEP_MAX_SPEED;
-//		}
-//	}
-
 	Motors_configure(mLeft, mRight);
 	MovementTimer_delay_ms(STEP_CONTROLLER_MOTOR_ACTIVE_MS);
 
 	Motors_stop();
 	MovementTimer_delay_ms(STEP_CONTROLLER_MOTOR_DEACTIVE_MS);
 
-	if(g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation)
+	if(g_RobotIdentity.Locomotion != LOCOMOTION_INVALID && g_RobotIdentity.ValidOrientation && g_RobotIdentity.ValidLocation)
 	{
 		calculateNewRobotStateAfterRotated(theta, mLeft, mRight);
 		broadcastLocationMessageToLocalNeighbors();
@@ -4003,7 +4016,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 }
 
 float g_fEndThetaAngle;
-void rotateAngle(float fAngleInDeg)
+void rotateAngleInDeg(float fAngleInDeg)
 {
 	float startAngle = IMU_getYawAngle();
 
@@ -4017,6 +4030,25 @@ void rotateAngle(float fAngleInDeg)
 			g_fEndThetaAngle = startAngle - fAngleInDeg * MATH_DEG2RAD;
 		else
 			g_fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
+	}
+
+	while(!rotateActivate());
+}
+
+void rotateAngleInRad(float fAngleInRad)
+{
+	float startAngle = IMU_getYawAngle();
+
+	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
+	{
+		g_fEndThetaAngle = startAngle + fAngleInRad;
+	}
+	else
+	{
+		if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
+			g_fEndThetaAngle = startAngle - fAngleInRad;
+		else
+			g_fEndThetaAngle = startAngle + fAngleInRad;
 	}
 
 	while(!rotateActivate());

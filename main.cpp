@@ -70,15 +70,12 @@ int main(void)
 #endif
 
 #ifdef HAVE_IMU
-	turnOnLED(LED_GREEN);
-
-	DEBUG_PRINT("delay 30s for DMP output stablized...\n");
-	delay_ms(30000);
-
-	turnOffLED(LED_GREEN);
-	turnOnLED(LED_RED);
-
-	DEBUG_PRINT("IMU DMP: Ready\n");
+//	turnOnLED(LED_GREEN);
+//	DEBUG_PRINT("delay 30s for DMP output stablized...\n");
+//	delay_ms(30000);
+//	turnOffLED(LED_GREEN);
+//	turnOnLED(LED_RED);
+//	DEBUG_PRINT("IMU DMP: Ready\n");
 #endif
 
 #ifdef REGION_COMMENT
@@ -221,9 +218,9 @@ int main(void)
 				StateSeven_Locomotion();
 				break;
 
-			case ROBOT_STATE_FIND_ORIENTATION:
-				DEBUG_PRINT("goto State EIGHT: Find Orientation\n");
-				StateEight_FindOrientation();
+			case ROBOT_STATE_UPDATE_ORIENTATION:
+				DEBUG_PRINT("goto State EIGHT: Update Orientation\n");
+				StateEight_UpdateOrientation();
 				break;
 
 			case ROBOT_STATE_FOLLOW_GRADIENT_MAP:
