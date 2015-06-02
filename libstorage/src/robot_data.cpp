@@ -77,6 +77,13 @@ void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance)
 	}
 }
 
+void NeighborsTable_remove(uint32_t ui32NeighborId)
+{
+	RobotMeas robotMeas(ui32NeighborId);
+
+	g_NeighborsTable.remove(robotMeas);
+}
+
 void NeighborsTable_updateNewDistanceForNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance)
 {
 	int i;

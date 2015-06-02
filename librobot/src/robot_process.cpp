@@ -2256,9 +2256,6 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	while (isRfFlagAssert);
 
 	// Now, robot timer delay random is expired
-	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
-		return true; // Terminate this task
-
 	broadcastNOPMessageToLocalNeighbors();
 
 	if (!updateLocation())
@@ -2312,8 +2309,8 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
 	{
 		broadcastLocomotionResultToLocalNeighbors();
+		return true; // Terminate this task
 	}
-
 	return false; // Continues this task
 }
 
@@ -2541,7 +2538,7 @@ void StateNine_FollowGradientMap_ExecuteActuator()
 		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
 
 		// 1/ cal the head angle -> rotate
-		if (rotateAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
+		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
 		{
 			// 2/ cal the distance step -> forward
 			moveStep(FORWARD, (int8_t)(vectorGO.getMagnitude() / 2.0f));
@@ -2569,8 +2566,12 @@ bool updateLocation(void)
 {
 	turnOffLED(LED_ALL);
 
+//	NeighborsTable_clear();
+	OneHopNeighborsTable_clear();
+	RobotLocationsTable_clear();
+
 	// 1/ Send request
-	turnOnLED(LED_GREEN);
+	turnOnLED(LED_BLUE);
 	while(true)
 	{
 		if (tryToRequestLocalNeighborsFoLocolization())
@@ -2579,13 +2580,7 @@ bool updateLocation(void)
 			broadcastNOPMessageToLocalNeighbors();
 	};
 
-	NeighborsTable_clear();
-	OneHopNeighborsTable_clear();
-	RobotLocationsTable_clear();
-
 	// 2/ Wait
-	turnOffLED(LED_GREEN);
-	turnOnLED(LED_BLUE);
 	bool isRfFlagAssert;
 	do
 	{
@@ -2623,6 +2618,42 @@ bool updateLocation(void)
 	broadcastLocationMessageToLocalNeighbors();
 
 	g_RobotIdentity.ValidLocation = true;
+
+	// 6/ Try to get back lost neighbors location
+#define TRY_TIMES 3
+#define DELAY_BEFORE_NEXT_REQUEST_IN_MS	100
+	uint32_t ui32NeighborId;
+	int i, j;
+	int iLastNumberOfNeighbor = NeighborsTable_getSize();
+	bool bIsSkipAll;
+
+	for(j = 0; j < TRY_TIMES; j++)
+	{
+		bIsSkipAll = true;
+		for(i = 0; i < iLastNumberOfNeighbor; i++)
+		{
+			ui32NeighborId = NeighborsTable_getIdAtIndex(i);
+			if (RobotLocationsTable_isContainRobot(ui32NeighborId))
+				continue;
+
+			bIsSkipAll = false;
+			sendRequestValidLocationCommandToNeighbor(ui32NeighborId);
+			MovementTimer_delay_ms(DELAY_BEFORE_NEXT_REQUEST_IN_MS);
+		}
+
+		if (bIsSkipAll)
+			break;
+	}
+
+	// 7/ Clean up neighbors table
+	iLastNumberOfNeighbor = NeighborsTable_getSize();
+	for(i = 0; i < iLastNumberOfNeighbor; i++)
+	{
+		ui32NeighborId = NeighborsTable_getIdAtIndex(i);
+		if (RobotLocationsTable_isContainRobot(ui32NeighborId))
+			continue;
+		NeighborsTable_remove(ui32NeighborId);
+	}
 
     turnOffLED(LED_BLUE);
     return true;
@@ -2692,7 +2723,7 @@ void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 
 				if (g_RobotIdentity.ValidLocation)
 				{
-					// random 1->100: delay unit (1ms)
+					// random 1ms ->100ms
 					uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
 					delay_us(ui32RandomUs + 2000);
 
@@ -3289,6 +3320,8 @@ bool detectedRotateCollision(float fCurrentAngle, int windowTimes)
 uint8_t g_ui8StepActivateInMs;
 uint8_t g_ui8StepPauseInMs;
 float g_fEndThetaOfCalibrateController;
+float g_fLastCalibrateIMUTheta;
+bool g_fbCalibrateRotateToEnd;
 void testStepRotateController(uint8_t* pui8Data)
 {
 	g_ui8StepActivateInMs = pui8Data[0];
@@ -3296,12 +3329,14 @@ void testStepRotateController(uint8_t* pui8Data)
 	int32_t i32Angle = construct4Byte(&pui8Data[2]);
 	float goalAngleInDeg = i32Angle / 65536.0f;
 
-	float startAngle = IMU_getYawAngle();
-	g_fEndThetaOfCalibrateController = startAngle + goalAngleInDeg * MATH_DEG2RAD;
+	g_fLastCalibrateIMUTheta = IMU_getYawAngle();
+	g_fEndThetaOfCalibrateController = g_fLastCalibrateIMUTheta + goalAngleInDeg * MATH_DEG2RAD;
 
 	g_ui8RepeatIMUAngleCounter = 0;
-	g_i32LastIMUAngle = (int32_t)(startAngle * MATH_RAD2DEG);
+	g_i32LastIMUAngle = (int32_t)(g_fLastCalibrateIMUTheta * MATH_RAD2DEG);
 	DEBUG_PRINTS2("Collision test: alpha = %d, collapse %d\n", g_i32LastIMUAngle, g_ui8RepeatIMUAngleCounter);
+
+	g_fbCalibrateRotateToEnd = true;
 
 	setRobotState(ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP);
 	DEBUG_PRINT("goto state ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP\n");
@@ -3318,20 +3353,33 @@ bool rotateToAngleUseStepController(void)
 		Motors_stop();
 		turnOnLED(LED_BLUE);
 		DEBUG_PRINT("Detected collision...\n");
-		return true;
+		g_fbCalibrateRotateToEnd = false;
 	}
 
-	if (isTwoAngleOverlay(theta, g_fEndThetaOfCalibrateController, CONTROLLER_ANGLE_ERROR_DEG))
+	float fEndTheta = 0;
+	if (g_fbCalibrateRotateToEnd)
+		fEndTheta = g_fEndThetaOfCalibrateController;
+	else
+		fEndTheta = g_fLastCalibrateIMUTheta;
+
+	if (isTwoAngleOverlay(theta, fEndTheta, CONTROLLER_ANGLE_ERROR_DEG))
 	{
 		Motors_stop();
 		turnOffLED(LED_GREEN | LED_BLUE);
-		DEBUG_PRINT("Arrived the goal!!!\n");
+
+		if (g_fbCalibrateRotateToEnd)
+		{
+			DEBUG_PRINT("Arrived the goal!!!\n");
+		}
+		else
+		{
+			DEBUG_PRINT("Back to start point!!!\n");
+		}
 		return true;
 	}
 
-	float fAngleInRadian = g_fEndThetaOfCalibrateController - theta;
+	float fAngleInRadian = fEndTheta - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
-
 
 	Motor_t mRight;
 	Motor_t mLeft;
@@ -4197,24 +4245,40 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 	return false;
 }
 
+float g_fLastIMUTheta;
+bool g_bRotateToEndTheta;
+
+bool rotateToAngleInRad(float fAngleInRad)
+{
+	if (g_RobotIdentity.ValidOrientation)
+	{
+		float fPhi = g_RobotIdentity.theta - fAngleInRad;
+		fPhi = atan2f(sinf(fPhi), cosf(fPhi));
+		return rotateAngleInRad(fPhi);
+	}
+	return false;
+}
+
 bool rotateAngleInDeg(float fAngleInDeg)
 {
 	bool bIsRotateCompleted = false;
 
-	float startAngle = IMU_getYawAngle();
+	g_fLastIMUTheta = IMU_getYawAngle();
 	float fEndThetaAngle = 0;
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
-		fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
+		fEndThetaAngle = g_fLastIMUTheta + fAngleInDeg * MATH_DEG2RAD;
 	}
 	else
 	{
 		if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
-			fEndThetaAngle = startAngle - fAngleInDeg * MATH_DEG2RAD;
+			fEndThetaAngle = g_fLastIMUTheta + fAngleInDeg * MATH_DEG2RAD;
 		else
-			fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
+			fEndThetaAngle = g_fLastIMUTheta - fAngleInDeg * MATH_DEG2RAD;
 	}
+
+	g_bRotateToEndTheta = true;
 
 	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
 
@@ -4225,20 +4289,22 @@ bool rotateAngleInRad(float fAngleInRad)
 {
 	bool bIsRotateCompleted = false;
 
-	float startAngle = IMU_getYawAngle();
+	g_fLastIMUTheta= IMU_getYawAngle();
 	float fEndThetaAngle = 0;
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
-		fEndThetaAngle = startAngle + fAngleInRad;
+		fEndThetaAngle = g_fLastIMUTheta + fAngleInRad;
 	}
 	else
 	{
 		if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
-			fEndThetaAngle = startAngle - fAngleInRad;
+			fEndThetaAngle = g_fLastIMUTheta + fAngleInRad;
 		else
-			fEndThetaAngle = startAngle + fAngleInRad;
+			fEndThetaAngle = g_fLastIMUTheta - fAngleInRad;
 	}
+
+	g_bRotateToEndTheta = true;
 
 	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
 
@@ -4253,19 +4319,34 @@ bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 	{
 		Motors_stop();
 		DEBUG_PRINT("Detected collision...\n");
-		*bIsRotateCompleted = false;
-		return true;
+		g_bRotateToEndTheta = false;
 	}
 
-	if (isTwoAngleOverlay(theta, fEndThetaAngle, CONTROLLER_ANGLE_ERROR_DEG))
+	float fEndTheta = 0;
+	if (g_bRotateToEndTheta)
+		fEndTheta = fEndThetaAngle;
+	else
+		fEndTheta = g_fLastIMUTheta;
+
+	if (isTwoAngleOverlay(theta, fEndTheta, CONTROLLER_ANGLE_ERROR_DEG))
 	{
 		Motors_stop();
-		DEBUG_PRINT("Arrived the goal!!!\n");
-		*bIsRotateCompleted = true;
+
+		if (g_bRotateToEndTheta)
+		{
+			DEBUG_PRINT("Arrived the goal!!!\n");
+			*bIsRotateCompleted = true;
+		}
+		else
+		{
+			DEBUG_PRINT("Back to the start point!!!\n");
+			*bIsRotateCompleted = false;
+		}
+
 		return true;
 	}
 
-	float fAngleInRadian = fEndThetaAngle - theta;
+	float fAngleInRadian = fEndTheta - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
 	Motor_t mRight;

@@ -145,7 +145,7 @@ void broadcastNOPMessageToLocalNeighbors(void);
 #define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 1s
 #define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 3s
 
-#define WAIT_FOR_LOCATION_RESPONSE_IN_US 500000 // 500ms
+#define WAIT_FOR_LOCATION_RESPONSE_IN_US 1000000 // 1s
 #endif
 
 #ifdef REGION_STATE_ONE_MEASURE_DISTANCE
@@ -340,6 +340,8 @@ void GradientMapUpdater_sendNACKToHost(void);
 #ifdef REGION_MOVING_CONTOLLER
 bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour);
 bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection);
+
+bool rotateToAngleInRad(float fAngleInRad);
 
 bool rotateAngleInDeg(float fAngleInDeg);
 bool rotateAngleInRad(float fAngleInRad);

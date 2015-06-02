@@ -36,6 +36,7 @@ void NeighborsTable_clear(void);
 
 void NeighborsTable_addOverride(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void NeighborsTable_add(uint32_t ui32NeighborId, uint16_t ui16Distance);
+void NeighborsTable_remove(uint32_t ui32NeighborId);
 void NeighborsTable_updateNewDistanceForNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 bool NeighborsTable_isContainRobot(uint32_t ui32RobotId);
 uint32_t NeighborsTable_getIdAtIndex(uint32_t ui32Index);
