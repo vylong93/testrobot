@@ -44,6 +44,7 @@ public:
     Vector2<T> getNormalized();
     void rotate(float angleInRad);
     Vector2<T> getRotate(float angleInRad);
+    T DotProduct(const Vector2<T>& v1);
 };
 
 //***************
@@ -132,6 +133,15 @@ Vector2<T> Vector2<T>::getRotate(float angleInRad)
 	Vector2<T> r(x, y);
 	r.rotate(angleInRad);
 	return r;
+}
+
+//*****************************************
+// Cal dot product version of the Vector. *
+//*****************************************
+template <typename T>
+T Vector2<T>::DotProduct(const Vector2<T>& v1)
+{
+	return ((this->x * v1.x) + (this->y * v1.y));
 }
 
 #endif /* LIBSTORAGE_INC_VECTOR2_H_ */

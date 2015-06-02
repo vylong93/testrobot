@@ -12,9 +12,12 @@
 #include "libstorage/inc/RobotIdentity.h"
 #include "libdynamic/inc/UnicycleModel.h"
 
-#define CONTROLLER_ANGLE_ERROR_DEG			2.0f
-#define CONTROLLER_POSITION_ERROR_CM		2.0f
-#define CONTROLLER_POSITION_MOVE_MARRGIN_CM	15.0f	// 2*R (5) + 2 * Margin (1.5)
+#define MOVE_MARRGIN	2.5f
+#define R_CENTER 5.0f		// Wheel base line divived by two
+
+#define CONTROLLER_ANGLE_ERROR_DEG				2.0f
+#define CONTROLLER_POSITION_ERROR_CM			3.0f
+#define CONTROLLER_POSITION_MOVE_MARRGIN_CM		13.0f	// 2*R (5) + Margin (3.0)
 
 #define CONTROLLER_VALID_GOAL_DISTANCE		1.3f
 

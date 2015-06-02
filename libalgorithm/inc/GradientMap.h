@@ -34,8 +34,8 @@
 //	int *ary = new int[sizeX*sizeY];
 //	ary[i][j] is then rewritten as ary[i*sizeY+j]
 
-#define PIXEL_SIZE_IN_CM		20
-#define PIXEL_HALFSIZE_IN_CM	10
+#define PIXEL_SIZE_IN_CM		16
+#define PIXEL_HALFSIZE_IN_CM	8
 
 #define SHAPE_PIXEL		1
 #define EXTERNAL_PIXEL 	0

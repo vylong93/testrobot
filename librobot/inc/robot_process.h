@@ -55,6 +55,9 @@ typedef enum tag_RobotState
 
 	ROBOT_STATE_UPDATE_LOCATION = 10,
 
+	ROBOT_STATE_UPDATE_GRADIENT_GOAL = 11,
+	ROBOT_STATE_ACTUATOR_EXECUTE = 12,
+
 	ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP,	 	// Movement testing state
 	ROBOT_STATE_FORWARD_IN_ROTATE_USE_STEP, 	// Movement testing state
 	ROBOT_STATE_FORWARD_IN_PERIOD_USE_STEP,	 	// Movement testing state
@@ -257,7 +260,8 @@ bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp);
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
 void StateNine_FollowGradientMap(void);
 bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp);
-
+void StateNine_FollowGradientMap_UpdateGoal();
+void StateNine_FollowGradientMap_ExecuteActuator();
 #endif
 
 #ifdef REGION_UPDATE_LOCATION
@@ -337,9 +341,9 @@ void GradientMapUpdater_sendNACKToHost(void);
 bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour);
 bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection);
 
-void rotateAngleInDeg(float fAngleInDeg);
-void rotateAngleInRad(float fAngleInRad);
-bool rotateActivate(void);
+bool rotateAngleInDeg(float fAngleInDeg);
+bool rotateAngleInRad(float fAngleInRad);
+bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle);
 
 void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t mRight);
 #endif

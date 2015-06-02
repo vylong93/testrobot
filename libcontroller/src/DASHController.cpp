@@ -8,6 +8,7 @@
 #include "libcontroller/inc/DASHController.h"
 #include "libcontroller/inc/Controller.h"
 #include "libmath/inc/custom_math.h"
+#include "libalgorithm/inc/Trilateration.h"
 
 bool DASHController::isTwoPositionOverlay(Vector2<float>* pPointA, Vector2<float>* pPointB, float errorInCm)
 {
@@ -22,25 +23,118 @@ bool DASHController::isTwoPositionOverlay(Vector2<float>* pPointA, Vector2<float
 bool DASHController::isHaveClearshotToTheGoal(Vector2<float>* pPointCurrent, Vector2<float>* pPointGoal)
 {
 	/* Pseudo-code
-	 	 :--------::
-	   H |_       |_
-	 	 |        |
-	 	 :--------::
-	         W
-	   H = 2 * Robot's radius (6.0cm) + 2 * Moving Margin (1.5cm)
-	   W = distance between current and goal  +  Robot's radius (6.0cm)
+	   R |
+	   M :--------::
+	   R |_       |_..
+	     |        |
+	     :--------::
+	     |
+	         d    R M
+	   Height = 2 * Robot's radius (5.0cm) + Moving Margin (2.5cm)
+	   Width = distance between current and goal  +  Robot's radius (5.0cm) + Moving Margin (2.5cm)
 	 */
+	// 0/ Find the rectangle
+	Vector2<float> point[4];
+
+	Vector2<float> n(pPointGoal->x - pPointCurrent->x, pPointGoal->y - pPointCurrent->y);
+	LineEquation_t lineCurrent;
+	lineCurrent.a = n.x;
+	lineCurrent.b = n.y;
+	lineCurrent.c = -(lineCurrent.a * pPointCurrent->x + lineCurrent.b * pPointCurrent->y);
+	CircleEquation_t circleCurrent;
+	circleCurrent.x0 = pPointCurrent->x;
+	circleCurrent.y0 = pPointCurrent->y;
+	circleCurrent.R = 2 * R_CENTER + MOVE_MARRGIN;
+	if (!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineCurrent, circleCurrent, &point[0], &point[1]))
+		return false;
+
+	float distance = n.getMagnitude() + R_CENTER + MOVE_MARRGIN;
+	n.normalize();
+	n = n * distance;
+	n.x = n.x + pPointCurrent->x;
+	n.y = n.y + pPointCurrent->y;
+
+	LineEquation_t lineGoal;
+	lineGoal.a = lineCurrent.a;
+	lineGoal.b = lineCurrent.b;
+	lineGoal.c = -(lineGoal.a * n.x + lineGoal.b * n.y);
+	CircleEquation_t circleGoal;
+	circleGoal.x0 = n.x;
+	circleGoal.y0 = n.y ;
+	circleGoal.R = 2 * R_CENTER + MOVE_MARRGIN;
+	if (!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineGoal, circleGoal, &point[2], &point[3]))
+		return false;
+
+	// 1/ Find point arrangement
+	Vector2<float> vect01(point[1].x - point[0].x, point[1].y - point[0].y);
+	Vector2<float> vect02(point[2].x - point[0].x, point[2].y - point[0].y);
+	Vector2<float> vect03(point[3].x - point[0].x, point[3].y - point[0].y);
+	Vector2<float>* pPointA;
+	Vector2<float>* pPointB;
+	Vector2<float>* pPointD;
+	if (fabsf(vect01.DotProduct(vect02)) < 0.02)
+	{
+		pPointA = &point[0];
+		pPointB = &point[1];
+		pPointD = &point[2];
+	}
+	else if (fabsf(vect01.DotProduct(vect03)) < 0.02)
+	{
+		pPointA = &point[0];
+		pPointB = &point[1];
+		pPointD = &point[3];
+	}
+	else if (fabsf(vect02.DotProduct(vect03)) < 0.02)
+	{
+		pPointA = &point[0];
+		pPointB = &point[2];
+		pPointD = &point[3];
+	}
+	else
+		return false;
+
+	// 2/ Check for collision: M(x,y) is inside if (0 < AM.AB < AB.AB) ^ (0 < AM.AD < AD.AD)
+	Vector2<float> vectorAM;
+	Vector2<float> vectorBM;
+	Vector2<float> vectorDM;
+	Vector2<float> vectorAB(pPointB->x - pPointA->x, pPointB->y - pPointA->y);
+	Vector2<float> vectorAD(pPointD->x - pPointA->x, pPointD->y - pPointA->y);
 
 	int i;
+	int iNumberOfNeighbors = RobotLocationsTable_getSize();
 	Vector2<float> neighborLocation;
-	for(i = 0; i < RobotLocationsTable_getSize(); i++)
+	for(i = 0; i < iNumberOfNeighbors; i++)
 	{
+		if (RobotLocationsTable_getIdAtIndex(i) == pRobotIdentity->Self_ID)
+			continue;
+
 		RobotLocationsTable_getLocationAtIndex(i, &neighborLocation.x, &neighborLocation.y);
 
-//		if (isTwoPositionOverlay(&pPointGoal, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-//			return true;
+		// AB.AM tu continue
+		vectorAM.x = neighborLocation.x - pPointA->x;
+		vectorAM.y = neighborLocation.y - pPointA->y;
+		if (vectorAB.DotProduct(vectorAM) < 0)
+			continue;
+
+		// AD.AM tu continue
+		if (vectorAD.DotProduct(vectorAM) < 0)
+			continue;
+
+		// AB.BM nhon continue
+		vectorBM.x = neighborLocation.x - pPointB->x;
+		vectorBM.y = neighborLocation.y - pPointB->y;
+		if (vectorAB.DotProduct(vectorBM) > 0)
+			continue;
+
+		// AD.DM nhon continue
+		vectorDM.x = neighborLocation.x - pPointD->x;
+		vectorDM.y = neighborLocation.y - pPointD->y;
+		if (vectorAD.DotProduct(vectorDM) > 0)
+			continue;
+
+		return false;
 	}
-	return false;
+	return true;
 }
 
 DASHController::DASHController(GradientMap* pGMap, RobotIdentity_t* pRobotId)
@@ -99,7 +193,6 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 
 		bool bIsTargetUpdate = false;
 
-		//TODO: set guGoal to static variable
 		GradientUnit guGoal;
 
 		int i;
@@ -112,7 +205,7 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 				{
 					guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
 
-					if(isHaveClearshotToTheGoal(guRobot.pPosition, guGoal.pPosition))
+					if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
 					{
 						bIsTargetUpdate = true;
 						break;
@@ -133,7 +226,7 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 				{
 					guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
 
-					if(isHaveClearshotToTheGoal(guRobot.pPosition, guGoal.pPosition))
+					if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
 					{
 						bIsTargetUpdate = true;
 						break;
@@ -249,9 +342,17 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 	}
 	else
 	{
-		pPointNextGoal->x = pointCenter.x;
-		pPointNextGoal->y = pointCenter.y;
-		return;
+		if(isHaveClearshotToTheGoal(&pointCurrent, &pointCenter))
+		{
+			pPointNextGoal->x = pointCenter.x;
+			pPointNextGoal->y = pointCenter.y;
+			return;
+		}
+		else
+		{
+			pPointNextGoal->x = pRobotIdentity->x;
+			pPointNextGoal->y = pRobotIdentity->y;
+		}
 	}
 }
 

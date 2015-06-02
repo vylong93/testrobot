@@ -10,7 +10,6 @@
 #include "librobot/inc/robot_lpm.h"
 #include "librobot/inc/robot_speaker.h"
 #include "librobot/inc/robot_analog.h"
-//#include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_eeprom.h"
 #include "librobot/inc/robot_task_timer.h"
 #include "librobot/inc/robot_imu.h"
@@ -58,27 +57,51 @@ void test(void) // Test Only
 //	Self neighbors = 6
 //	Origin:0xBEAD01, neighbors = 6, Hopth = 1
 //	Rotation Hop:0xBEAD01 (0; 0)
-	g_RobotIdentity.Self_ID = 0xBEAD08;
-	g_RobotIdentity.Self_NeighborsCount = 6;
 
-	g_RobotIdentity.x = 0.0f;
-	g_RobotIdentity.y = 0.0f;
-	g_RobotIdentity.theta = 0.0f;
+//	g_RobotIdentity.Self_ID = 0xBEAD03;
+//	g_RobotIdentity.Self_NeighborsCount = 6;
 
-	g_RobotIdentity.Origin_ID = 0xBEAD01;
-	g_RobotIdentity.Origin_NeighborsCount = 6;
-	g_RobotIdentity.Origin_Hopth = 1;
+//	g_RobotIdentity.x = 0.0f;
+//	g_RobotIdentity.y = 0.0f;
+//	g_RobotIdentity.theta = 0.0f;
+//
+//	g_RobotIdentity.Origin_ID = 0xBEAD01;
+//	g_RobotIdentity.Origin_NeighborsCount = 6;
+//	g_RobotIdentity.Origin_Hopth = 1;
+//
+//	g_RobotIdentity.RotationHop_ID = 0xBEAD01;
+//	g_RobotIdentity.RotationHop_x = 0;
+//	g_RobotIdentity.RotationHop_y = 0;
+//
+//	uint8_t* pui8MessageData = new uint8_t[72];
+//	initData(pui8MessageData);
+//
+//	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 72 / 12);
+//
+//	delete[] pui8MessageData;
 
-	g_RobotIdentity.RotationHop_ID = 0xBEAD01;
-	g_RobotIdentity.RotationHop_x = 0;
-	g_RobotIdentity.RotationHop_y = 0;
-
-	uint8_t* pui8MessageData = new uint8_t[72];
-	initData(pui8MessageData);
-
-	Tri_tryToRotateLocationsTable(&g_RobotIdentity, pui8MessageData, 72 / 12);
-
-	delete[] pui8MessageData;
+//	initLinkedList();
+//	RobotLocationsTable_updateLocation(0xBEAD02, -0.11882, -23.8036);
+//	RobotLocationsTable_updateLocation(0xBEAD06, -11.4223, -14.1566);
+//	RobotLocationsTable_updateLocation(0xBEAD05, 11.2923, -11.9437);
+//	RobotLocationsTable_updateLocation(0xBEAD08, -20.258, -1.65297);
+//	RobotLocationsTable_updateLocation(0xBEAD04, 0.583817, 21.8226);
+//	RobotLocationsTable_updateLocation(0xBEAD09, 23.412, -0.834045);
+//	RobotLocationsTable_updateLocation(0xBEAD01, 4, 4);
+//	RobotLocationsTable_updateLocation(0xBEAD03, 0.467957, -2.7841);
+//
+//	g_pDASHController = new DASHController(g_pGradientMap, &g_RobotIdentity);
+//
+//	Vector2<float> current(0.4679f, -2.7841);
+//	Vector2<float> goal(0, 0);
+//
+//	if (g_pDASHController->isHaveClearshotToTheGoal(&current, &goal))
+//		turnOnLED(LED_GREEN);
+//	else
+//		turnOnLED(LED_ALL);
+//
+//	delete g_pDASHController;
+//	g_pDASHController = NULL;
 }
 
 int readChipRev(void)
@@ -2428,25 +2451,12 @@ bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp)
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
+
+Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
 	turnOffLED(LED_ALL);
 	turnOnLED(LED_RED);
-
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 1s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateNine_FollowGradientMap_SubTask_DelayRandom_Handler);
-	}
-	while (isRfFlagAssert);
-
-	// Now, robot timer delay random is expired
-	if (!updateLocation())
-		return;
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
@@ -2460,16 +2470,41 @@ void StateNine_FollowGradientMap(void)
 		return;
 	}
 
-	Vector2<float> pointNextGoal;
-	g_pDASHController->calculateTheNextGoal(&pointNextGoal);
+	bool isRfFlagAssert;
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		 // 1s to 6s
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-	//
-	// TODO: Actuator Execute Command to pointNextGoal
-	//
+		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateNine_FollowGradientMap_SubTask_DelayRandom_Handler);
+	}
+	while (isRfFlagAssert);
 
+//	// Now, robot timer delay random is expired
+//	if (!updateLocation())
+//		return;
+//
+//	Vector2<float> pointNextGoal;
+//	g_pDASHController->calculateTheNextGoal(&pointNextGoal);
 
+//	// TODO: Actuator Execute Command to pointNextGoal
+//	if (pointNextGoal.x != g_RobotIdentity.x || pointNextGoal.y != g_RobotIdentity.y)
+//	{
+//		pointNextGoal.y = pointNextGoal.y - g_RobotIdentity.y;
+//		pointNextGoal.x = pointNextGoal.x - g_RobotIdentity.x;
+//
+//		// 1/ cal the head angle -> rotate
+//		if (rotateAngleInRad(atan2f(pointNextGoal.y, pointNextGoal.x)))
+//		{
+//			// 2/ cal the distance step -> forward
+//			moveStep(FORWARD, (int8_t)(pointNextGoal.getMagnitude() / 2.0f));
+//		}
+//	}
 
 	turnOffLED(LED_RED);
+
+	setRobotState(ROBOT_STATE_IDLE);
 }
 
 bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp)
@@ -2486,6 +2521,35 @@ bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp)
 	return true; // Terminal the subTask after handle
 }
 
+void StateNine_FollowGradientMap_UpdateGoal()
+{
+	// Now, robot timer delay random is expired
+	if (!updateLocation())
+		return;
+
+	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
+
+	setRobotState(ROBOT_STATE_IDLE);
+}
+
+void StateNine_FollowGradientMap_ExecuteActuator()
+{
+	if (g_pointNextGoal.x != g_RobotIdentity.x || g_pointNextGoal.y != g_RobotIdentity.y)
+	{
+		Vector2<float> vectorGO;
+		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+
+		// 1/ cal the head angle -> rotate
+		if (rotateAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
+		{
+			// 2/ cal the distance step -> forward
+			moveStep(FORWARD, (int8_t)(vectorGO.getMagnitude() / 2.0f));
+		}
+	}
+
+	setRobotState(ROBOT_STATE_IDLE);
+}
 #endif
 
 #ifdef REGION_UPDATE_LOCATION
@@ -2532,10 +2596,11 @@ bool updateLocation(void)
 	// 3/ Calculation
 	if(RobotLocationsTable_getSize() < 3)
 	{
-		turnOnLED(LED_ALL);
-
 		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID || !g_RobotIdentity.ValidLocation || !g_RobotIdentity.ValidOrientation)
+		{
+			turnOnLED(LED_ALL);
 			return false; // Not enough neighbor for relocalization
+		}
 	}
 	else
 	{
@@ -3621,47 +3686,85 @@ void transmitRobotIdentityToHost(void)
 {
 	turnOnLED(LED_ALL);
 
-	uint8_t pui8ResponseBuffer[49] = { 0 };
+	uint8_t pui8ResponseBuffer[57] = { 0 };
 
-	parse32bitTo4Bytes(pui8ResponseBuffer, g_RobotIdentity.Self_ID);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[4], g_RobotIdentity.Origin_ID);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[8], g_RobotIdentity.RotationHop_ID);
-
-	pui8ResponseBuffer[12] = g_RobotIdentity.Self_NeighborsCount;
-	pui8ResponseBuffer[13] = g_RobotIdentity.Origin_NeighborsCount;
-	pui8ResponseBuffer[14] = g_RobotIdentity.Origin_Hopth;
+	/*
+	 <4-byte> self ID
+	 <1-byte> Self Neighbors Count
+	 <4-byte> x
+	 <4-byte> y
+	 <4-byte> theta
+	 <1-byte> ValidOrientation
+	 <1-byte> Locomotion
+	 --- 19 bytes
+//	 <4-byte> Origin ID
+//	 <1-byte> Origin Neighbors Count
+//	 <1-byte> Origin Hopth
+	 --- 6 bytes
+//	 <4-byte> Rotation Hop ID
+//	 <4-byte> Rotation x
+//	 <4-byte> Rotation y
+     --- 12 bytes
+	 <4-byte> Gradient Map Height
+	 <4-byte> Gradient Map Width
+	 <4-byte> Gradient Map Value
+	 <4-byte> Next goal x
+	 <4-byte> Next goal y
+	 --- 20 bytes
+	 */
 
 	int32_t i32Template;
 
+	uint32_t ui32BufferPointer = 0;
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], g_RobotIdentity.Self_ID);		ui32BufferPointer += 4;
+
+	pui8ResponseBuffer[ui32BufferPointer] = g_RobotIdentity.Self_NeighborsCount;	ui32BufferPointer += 1;
+
 	i32Template = (int32_t)(g_RobotIdentity.x * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[15], i32Template);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
 
 	i32Template = (int32_t)(g_RobotIdentity.y * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[19], i32Template);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
 
-	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[23], i32Template);
+	i32Template = (int32_t)(g_RobotIdentity.theta * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
 
-	i32Template = (int32_t)(g_RobotIdentity.RotationHop_y * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[27], i32Template);
+	pui8ResponseBuffer[ui32BufferPointer] = (g_RobotIdentity.ValidOrientation) ? (0x01) : (0x00);	ui32BufferPointer += 1;
 
-	if (g_RobotIdentity.ValidOrientation)
-		i32Template = (int32_t)(g_RobotIdentity.theta * 65536 + 0.5);
-	else
-		i32Template = (int32_t)(IMU_getYawAngle() * 65536 + 0.5);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[31], i32Template);
+	pui8ResponseBuffer[ui32BufferPointer] = (int8_t)g_RobotIdentity.Locomotion;	ui32BufferPointer += 1;
 
-	pui8ResponseBuffer[35] = (g_RobotIdentity.ValidOrientation) ? (0x01) : (0x00);
-	pui8ResponseBuffer[36] = (int8_t)g_RobotIdentity.Locomotion;
+	// Origin
+//	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], g_RobotIdentity.Origin_ID);		ui32BufferPointer += 4;
+//
+//	pui8ResponseBuffer[ui32BufferPointer] = g_RobotIdentity.Origin_NeighborsCount;	ui32BufferPointer += 1;
+//
+//	pui8ResponseBuffer[ui32BufferPointer] = g_RobotIdentity.Origin_Hopth;			ui32BufferPointer += 1;
+
+	// Rotation Hop
+//	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], g_RobotIdentity.RotationHop_ID);	ui32BufferPointer+= 4;
+//
+//	i32Template = (int32_t)(g_RobotIdentity.RotationHop_x * 65536 + 0.5);
+//	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
+//
+//	i32Template = (int32_t)(g_RobotIdentity.RotationHop_y * 65536 + 0.5);
+//	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
 
 	// GradientMap
-	parse32bitTo4Bytes(&pui8ResponseBuffer[37], g_pGradientMap->Height);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[41], g_pGradientMap->Width);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], g_pGradientMap->Height);	ui32BufferPointer += 4;
+
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], g_pGradientMap->Width);	ui32BufferPointer += 4;
 
 	int32_t gmValue = g_pGradientMap->valueOf(g_RobotIdentity.x, g_RobotIdentity.y);
-	parse32bitTo4Bytes(&pui8ResponseBuffer[45], gmValue);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], gmValue);	ui32BufferPointer += 4;
 
-	sendDataToHost(pui8ResponseBuffer, 49);
+	i32Template = (int32_t)(g_pointNextGoal.x * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
+
+	i32Template = (int32_t)(g_pointNextGoal.y * 65536 + 0.5);
+	parse32bitTo4Bytes(&pui8ResponseBuffer[ui32BufferPointer], i32Template);	ui32BufferPointer += 4;
+
+
+	sendDataToHost(pui8ResponseBuffer, ui32BufferPointer);
 
 	turnOffLED(LED_ALL);
 }
@@ -3944,6 +4047,8 @@ bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
 
 bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection)
 {
+#define DELAY_BEFORE_UPDATE_LOCATION_IN_MS	100
+
 	Motor_t mLeft, mRight;
 	mLeft.eDirection = g_eMovementDirection;
 	mRight.eDirection = g_eMovementDirection;
@@ -3974,6 +4079,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 			g_i8StepForwardRotate = i8StepRotateLastCount - g_i8StepForwardRotateReverse + 1;
 		}
 
+		MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
 		if (updateLocation())
 		{
 			pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
@@ -3997,6 +4103,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 			}
 			else
 			{
+				MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
@@ -4024,6 +4131,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 			}
 			else
 			{
+				MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
@@ -4089,46 +4197,55 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 	return false;
 }
 
-float g_fEndThetaAngle;
-void rotateAngleInDeg(float fAngleInDeg)
+bool rotateAngleInDeg(float fAngleInDeg)
 {
+	bool bIsRotateCompleted = false;
+
 	float startAngle = IMU_getYawAngle();
+	float fEndThetaAngle = 0;
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
-		g_fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
+		fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
 	}
 	else
 	{
 		if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
-			g_fEndThetaAngle = startAngle - fAngleInDeg * MATH_DEG2RAD;
+			fEndThetaAngle = startAngle - fAngleInDeg * MATH_DEG2RAD;
 		else
-			g_fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
+			fEndThetaAngle = startAngle + fAngleInDeg * MATH_DEG2RAD;
 	}
 
-	while(!rotateActivate());
+	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
+
+	return bIsRotateCompleted;
 }
 
-void rotateAngleInRad(float fAngleInRad)
+bool rotateAngleInRad(float fAngleInRad)
 {
+	bool bIsRotateCompleted = false;
+
 	float startAngle = IMU_getYawAngle();
+	float fEndThetaAngle = 0;
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
-		g_fEndThetaAngle = startAngle + fAngleInRad;
+		fEndThetaAngle = startAngle + fAngleInRad;
 	}
 	else
 	{
 		if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
-			g_fEndThetaAngle = startAngle - fAngleInRad;
+			fEndThetaAngle = startAngle - fAngleInRad;
 		else
-			g_fEndThetaAngle = startAngle + fAngleInRad;
+			fEndThetaAngle = startAngle + fAngleInRad;
 	}
 
-	while(!rotateActivate());
+	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
+
+	return bIsRotateCompleted;
 }
 
-bool rotateActivate(void)
+bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 {
 	float theta = IMU_getYawAngle();
 
@@ -4136,17 +4253,19 @@ bool rotateActivate(void)
 	{
 		Motors_stop();
 		DEBUG_PRINT("Detected collision...\n");
-		return false;
-	}
-
-	if (isTwoAngleOverlay(theta, g_fEndThetaAngle, CONTROLLER_ANGLE_ERROR_DEG))
-	{
-		Motors_stop();
-		DEBUG_PRINT("Arrived the goal!!!\n");
+		*bIsRotateCompleted = false;
 		return true;
 	}
 
-	float fAngleInRadian = g_fEndThetaAngle - theta;
+	if (isTwoAngleOverlay(theta, fEndThetaAngle, CONTROLLER_ANGLE_ERROR_DEG))
+	{
+		Motors_stop();
+		DEBUG_PRINT("Arrived the goal!!!\n");
+		*bIsRotateCompleted = true;
+		return true;
+	}
+
+	float fAngleInRadian = fEndThetaAngle - theta;
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
 	Motor_t mRight;
@@ -4229,7 +4348,6 @@ void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t 
 	else
 		to = g_RobotIdentity.theta + phi;
 
-	#define R_CENTER 5.0f		// Wheel base line divived by two
 	float factor = sign * R_CENTER;
 	float sinTo = sinf(to);
 	float cosTo = cosf(to);

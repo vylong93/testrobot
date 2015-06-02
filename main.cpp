@@ -238,6 +238,14 @@ int main(void)
 				setRobotState(ROBOT_STATE_IDLE);
 				break;
 
+			case ROBOT_STATE_UPDATE_GRADIENT_GOAL:
+				StateNine_FollowGradientMap_UpdateGoal();
+				break;
+
+			case ROBOT_STATE_ACTUATOR_EXECUTE:
+				StateNine_FollowGradientMap_ExecuteActuator();
+				break;
+
 			case ROBOT_STATE_ROTATE_TO_ANGLE_USE_STEP:
 				if(rotateToAngleUseStepController())
 					setRobotState(ROBOT_STATE_IDLE);

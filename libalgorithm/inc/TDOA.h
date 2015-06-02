@@ -32,8 +32,11 @@ extern "C"
 #define NUM_BLOCKS                      (NUMBER_OF_SAMPLE / BLOCK_SIZE)
 #define NUM_DATAS                       (NUMBER_OF_SAMPLE - START_SAMPLES_POSTITION)
 
-#define NOISY_THRESHOLD					50	// ~0.040	(x 3.3 / 2^12)
-#define GOOD_QUALITY_THRESHOLD			70	// ~0.056	(x 3.3 / 2^12)
+//#define NOISY_THRESHOLD					50	// ~0.040	(x 3.3 / 2^12)
+//#define GOOD_QUALITY_THRESHOLD			70	// ~0.056	(x 3.3 / 2^12)
+
+#define NOISY_THRESHOLD					72	// ~0.058	(x 3.3 / 2^12)
+#define GOOD_QUALITY_THRESHOLD			80	// ~0.065	(x 3.3 / 2^12)
 
 #define MAXIMUM_DISTANCE				12160	// 47.5cm * 256 = <8.8> format
 
