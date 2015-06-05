@@ -7,6 +7,7 @@
 
 #include "libstorage/inc/MovementSavePoint.h"
 #include "libmath/inc/custom_math.h"
+#include "libcontroller/inc/Controller.h"
 
 Vector2<float> g_pSavePoint[NUMBER_OF_SAVE_POINTS];
 int g_Pointer = 0;
@@ -75,6 +76,9 @@ bool calculateLastBackwardOrientation(float *pTheta)
 
 	pointPre.x = pointPre.x - pointNow.x;
 	pointPre.y = pointPre.y - pointNow.y;
+
+	if (pointPre.getMagnitude() < CONTROLLER_POSITION_ERROR_CM)
+		return true;
 
 	*pTheta = atan2f(pointPre.y, pointPre.x);
 	return true;

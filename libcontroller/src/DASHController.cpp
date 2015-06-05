@@ -170,7 +170,7 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 	Vector2<float> pointCenter;
 	pGradientMap->coordinateOfTheCenterGradientPixelOfRobotLocation(pointCurrent, pointCenter);
 
-	if (isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM))
+	if (isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM * 1.7f))
 	{
 		Vector2<float> pointLeft(pointCenter.x - PIXEL_SIZE_IN_CM, pointCenter.y);
 		Vector2<float> pointRight(pointCenter.x + PIXEL_SIZE_IN_CM, pointCenter.y);

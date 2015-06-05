@@ -2229,11 +2229,11 @@ void StateSeven_Locomotion(void)
 	turnOffLED(LED_BLUE);
 
 //	if (g_RobotIdentity.ValidOrientation)
-//		setRobotState(ROBOT_STATE_IDLE);
+		setRobotState(ROBOT_STATE_IDLE);
 //	else
 //		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
 
-	switchBackToPreviousState();
+//	switchBackToPreviousState();
 }
 
 bool StateSeven_Locomotion_MainTask(va_list argp)
@@ -2254,6 +2254,12 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSeven_Locomotion_SubTask_DelayRandom_Handler);
 	}
 	while (isRfFlagAssert);
+
+	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
+	{
+		broadcastLocomotionResultToLocalNeighbors();
+		return true; // Terminate this task
+	}
 
 	// Now, robot timer delay random is expired
 	broadcastNOPMessageToLocalNeighbors();
@@ -2309,8 +2315,8 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
 	{
 		broadcastLocomotionResultToLocalNeighbors();
-		return true; // Terminate this task
 	}
+
 	return false; // Continues this task
 }
 
@@ -2396,9 +2402,9 @@ void StateEight_UpdateOrientation(void)
 
 	turnOffLED(LED_GREEN);
 
-//	setRobotState(ROBOT_STATE_IDLE);
+	setRobotState(ROBOT_STATE_IDLE);
 
-	switchBackToPreviousState();
+//	switchBackToPreviousState();
 }
 
 bool StateEight_UpdateOrientation_MainTask(va_list argp)
@@ -2471,37 +2477,41 @@ void StateNine_FollowGradientMap(void)
 	uint32_t ui32LifeTimeInUsOfSubTask;
 	do
 	{
-		 // 1s to 6s
+		 // 3s to 6s
 		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateNine_FollowGradientMap_SubTask_DelayRandom_Handler);
 	}
 	while (isRfFlagAssert);
 
-//	// Now, robot timer delay random is expired
-//	if (!updateLocation())
-//		return;
-//
-//	Vector2<float> pointNextGoal;
-//	g_pDASHController->calculateTheNextGoal(&pointNextGoal);
+	// Now, robot timer delay random is expired
+	if (!updateLocation())
+		return;
 
-//	// TODO: Actuator Execute Command to pointNextGoal
-//	if (pointNextGoal.x != g_RobotIdentity.x || pointNextGoal.y != g_RobotIdentity.y)
-//	{
-//		pointNextGoal.y = pointNextGoal.y - g_RobotIdentity.y;
-//		pointNextGoal.x = pointNextGoal.x - g_RobotIdentity.x;
-//
-//		// 1/ cal the head angle -> rotate
-//		if (rotateAngleInRad(atan2f(pointNextGoal.y, pointNextGoal.x)))
-//		{
-//			// 2/ cal the distance step -> forward
-//			moveStep(FORWARD, (int8_t)(pointNextGoal.getMagnitude() / 2.0f));
-//		}
-//	}
+	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
+
+	if (g_pointNextGoal.x != g_RobotIdentity.x || g_pointNextGoal.y != g_RobotIdentity.y)
+	{
+		Vector2<float> vectorGO;
+
+		// 1/ cal the head angle -> rotate
+		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
+		{
+			if (updateLocation())
+			{
+				// 2/ cal the distance step -> forward
+				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+				moveStep(FORWARD, (int8_t)(vectorGO.getMagnitude() / 2.0f));
+			}
+		}
+	}
 
 	turnOffLED(LED_RED);
 
-	setRobotState(ROBOT_STATE_IDLE);
+	setRobotState(getRobotState());
 }
 
 bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp)
