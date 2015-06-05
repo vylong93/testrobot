@@ -170,7 +170,7 @@ void IMU_updateNewRaw(void)
 	while(true)
 	{
 		lifetimes++;
-		if(lifetimes >= 2000)
+		if(lifetimes >= 1000)
 		{
 			lifetimes = 0;
 

@@ -102,6 +102,7 @@ uint8_t* getRequestMessageDataPointer(void);
 
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
 
+void blockingDelayInRobotState(uint32_t ui32MinPeriodInUs, uint32_t ui32MaxPeriodInUs);
 void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 void broadcastNOPMessageToLocalNeighbors(void);
@@ -119,31 +120,31 @@ void broadcastNOPMessageToLocalNeighbors(void);
 #define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	500000		// 500ms
 
 #define VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
-#define VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	10000		// 10ms
+#define VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	20000		// 20ms
 #define VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	100000		// 100ms
 
 #define ROTATE_COORDINATES_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
-#define ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	10000		// 10ms
+#define ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	15000		// 15ms
 #define ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	100000		// 100ms
 
 #define AVERAGE_VECTOR_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
-#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	10000		// 100ms
-#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	100000		// 1s
+#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	15000		// 15ms
+#define AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	100000		// 100ms
 
 #define CORRECT_LOCATIONS_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
 #define CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN		10000		// 10ms
 #define CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX		100000		// 100ms
 
 #define LOCOMOTION_STATE_MAINTASK_LIFE_TIME_IN_MS		10000	// 10s
-#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 3s
-#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 6s
+#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	2000000		// 2s
+#define LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	4000000		// 4s
 
 #define UPDATE_ORIENTATION_STATE_MAINTASK_LIFE_TIME_IN_MS	10000	// 10s
-#define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 3s
-#define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 6s
+#define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	2000000		// 2s
+#define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	4000000		// 4s
 
-#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	3000000		// 3s
-#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	6000000		// 6s
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	2000000		// 2s
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	4000000		// 4s
 
 #define WAIT_FOR_LOCATION_RESPONSE_IN_US 1000000 // 1s
 #endif
@@ -152,7 +153,6 @@ void broadcastNOPMessageToLocalNeighbors(void);
 void StateOne_MeasureDistance(void);
 void StateOne_MeasureDistance_ResetFlag(void);
 bool StateOne_MeasureDistance_MainTask(va_list argp);
-bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp);
 void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData);
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
@@ -165,7 +165,6 @@ bool responseDistanceToNeighbor(uint32_t ui32NeighborId, uint16_t ui16Distance);
 void StateTwo_ExchangeTable(void);
 void StateTwo_ExchangeTable_ResetFlag(void);
 bool StateTwo_ExchangeTable_MainTask(va_list argp);
-bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp);
 void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData);
 void StateTwo_ExchangeTable_UpdateOneHopNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
@@ -178,7 +177,6 @@ void sendRequestNeighborsTableCommandToNeighbor(uint32_t ui32NeighborId);
 void StateThree_VoteTheOrigin(void);
 void StateThree_VoteTheOrigin_ResetFlag(void);
 bool StateThree_VoteTheOrigin_MainTask(va_list argp);
-bool StateThree_VoteTheOrigin_SubTask_DelayRandom_Handler(va_list argp);
 void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData);
 
 void broadcastVoteTheOriginCommandToLocalNeighbors(void);
@@ -189,7 +187,6 @@ void indicatesOriginIdToLEDs(uint32_t ui32Id);
 void StateFour_RotateCoordinates(void);
 bool StateFour_RotateCoordinates_ResetFlag(void);
 bool StateFour_RotateCoordinates_MainTask(va_list argp);
-bool StateFour_RotateCoordinates_SubTask_DelayRandom_Handler(va_list argp);
 void StateFour_RotateCoordinates_RotateCoordinatesHandler(uint8_t* pui8RequestData);
 void StateFour_RotateCoordinates_UpdateRotationFlagTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 void StateFour_RotateCoordinates_ReadLocationsTableHandler(uint8_t* pui8RequestData);
@@ -205,7 +202,6 @@ bool getRotationFlagOfRobot(uint32_t ui32RobotID);
 void StateFive_AverageVector(void);
 void StateFive_AverageVector_ResetFlag(void);
 bool StateFive_AverageVector_MainTask(va_list argp);
-bool StateFive_AverageVector_SubTask_DelayRandom_Handler(va_list argp);
 void StateFive_AverageVector_ReadNeighborVectorHandler(uint8_t* pui8RequestData);
 void StateFive_AverageVector_ReceivedSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 void StateFive_AverageVector_NotFoundSelfVectorHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
@@ -220,7 +216,6 @@ void StateSix_CorrectLocations(void);
 
 void StateSix_CorrectLocations_Task1_ResetFlag(void);
 bool StateSix_CorrectLocations_MainTask1(va_list argp);
-bool StateSix_CorrectLocations_SubTask1_DelayRandom_Handler(va_list argp);
 void StateSix_CorrectLocations_ReadValidLocationHandler(uint8_t* pui8RequestData);
 void StateSix_CorrectLocations_ReceivedValidLocationgHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 
@@ -230,7 +225,6 @@ void responseValidLocationToRequestRobot(uint32_t ui32NeighborId);
 void StateSix_CorrectLocations_UpdateLocsByOtherRobotCurrentPosition(void);
 void StateSix_CorrectLocations_Task2_ResetFlag(void);
 bool StateSix_CorrectLocations_MainTask2(va_list argp);
-bool StateSix_CorrectLocations_SubTask2_DelayRandom_Handler(va_list argp);
 void StateSix_CorrectLocations_ReadSelfVectorAndFlagHanlder(uint8_t* pui8RequestData);
 void StateSix_CorrectLocations_ReceivedSelfVectorAndFlagHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
 void StateSix_CorrectLocations_PleaseWaitHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize);
@@ -245,7 +239,6 @@ void indicatesLocalLoopToLEDs(void);
 //========= State 7 - Locomotion ===================================
 void StateSeven_Locomotion(void);
 bool StateSeven_Locomotion_MainTask(va_list argp);
-bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp);
 void StateSeven_Locomotion_updateLocomotionRequestHandler(uint8_t* pui8RequestData);
 
 void broadcastLocomotionResultToLocalNeighbors(void);
@@ -254,12 +247,10 @@ void broadcastLocomotionResultToLocalNeighbors(void);
 #ifdef REGION_STATE_EIGHT_UPDATE_ORIENTATION
 void StateEight_UpdateOrientation(void);
 bool StateEight_UpdateOrientation_MainTask(va_list argp);
-bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp);
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
 void StateNine_FollowGradientMap(void);
-bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp);
 void StateNine_FollowGradientMap_UpdateGoal();
 void StateNine_FollowGradientMap_ExecuteActuator();
 #endif

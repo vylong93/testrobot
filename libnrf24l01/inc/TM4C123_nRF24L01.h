@@ -58,6 +58,7 @@ void MCU_RF_WaitUs(unsigned int cycles);
 void MCU_RF_InitTimerDelay(void);
 void MCU_RF_ConfigureRfTimer(uint64_t ui64PeriodInUs);
 bool MCU_RF_IsRfTimerExpired(void);
+void MCU_RF_TimerDelayUs(uint32_t ui32PeriodInUs);
 
 inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage);
 inline void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState);

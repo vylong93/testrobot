@@ -36,6 +36,8 @@ extern "C" {
 	void MCU_RF_IRQ_handler(void);
 }
 
+bool g_bIsRfFlagAsserted;
+
 void initSystem(void);
 
 int main(void)
@@ -334,6 +336,8 @@ void MCU_RF_IRQ_handler(void)
 
 	if (MCU_RF_IsInterruptPinAsserted())
 	{
+		g_bIsRfFlagAsserted = true;
+
 		MCU_RF_ClearIntFlag();
 
 		MCU_RF_DisableInterrupt();

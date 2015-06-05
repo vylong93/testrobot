@@ -34,6 +34,8 @@
 #include "interrupt_definition.h"
 #include "data_manipulation.h"
 
+extern bool g_bIsRfFlagAsserted;
+
 #ifdef REGION_ROBOT_VARIABLES_AND_FUNCTIONS
 
 static RobotIdentity_t g_RobotIdentity;
@@ -251,6 +253,7 @@ void switchBackToPreviousState(void)
 {
 	Motors_stop();
 	g_eRobotState = g_eRobotPreviousState;
+	g_eRobotPreviousState = ROBOT_STATE_IDLE;
 }
 
 void setRobotResponseState(e_RobotResponseState eState)
@@ -294,6 +297,21 @@ void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestDa
 	}
 
 	IntTrigger(INT_SW_TRIGGER_ROBOT_RESPONSE);
+}
+
+void blockingDelayInRobotState(uint32_t ui32MinPeriodInUs, uint32_t ui32MaxPeriodInUs)
+{
+	uint32_t ui32LifeTimeInUsOfSubTask;
+	do
+	{
+		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(ui32MinPeriodInUs, ui32MaxPeriodInUs);
+
+		g_bIsRfFlagAsserted = false;
+		MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
+		if (g_bIsRfFlagAsserted)
+			resetRobotTaskTimer();
+	}
+	while (g_bIsRfFlagAsserted);
 }
 
 void handleCommonSubTaskDelayRandomState(void)
@@ -424,19 +442,8 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateOne_MeasureDistance_SubTask_DelayRandom_Handler);
-
-		if (isRfFlagAssert)		// if subtask 1 is forced to terminal then reset delay
-			resetRobotTaskTimer();
-	}
-	while (isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
+	blockingDelayInRobotState(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
 	if(g_bIsSuccessMeasuredDistances == false)
@@ -457,20 +464,6 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 	// else { Nothing to do! Already broadcast request successed! }
 
 	return false; // continue the main TASK
-}
-
-bool StateOne_MeasureDistance_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_SAMPLING_MICS, ROBOT_RESPONSE_DISTANCE_RESULT and ROBOT_RESPONSE_SAMPLING_COLLISION
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
@@ -768,21 +761,8 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-
-	do
-	{
-		// 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateTwo_ExchangeTable_SubTask_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while(isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_NEIGHBORS_TABLE and ROBOT_RESPONSE_NEIGHBORS_TABLE
+	blockingDelayInRobotState(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
 	if(!g_bIsNewLocationsTableAvailable)
@@ -822,20 +802,6 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	}
 
 	return false; // continue the main TASK
-}
-
-bool StateTwo_ExchangeTable_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_NEIGHBORS_TABLE and ROBOT_RESPONSE_NEIGHBORS_TABLE
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateTwo_ExchangeTable_TransmitNeighborsTableHandler(uint8_t* pui8RequestData)
@@ -984,19 +950,8 @@ bool StateThree_VoteTheOrigin_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateThree_VoteTheOrigin_SubTask_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while (isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_VOTE_THE_ORIGIN
+	blockingDelayInRobotState(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
 
@@ -1007,20 +962,6 @@ bool StateThree_VoteTheOrigin_MainTask(va_list argp)
 	}
 
 	return false; // continue the main TASK
-}
-
-bool StateThree_VoteTheOrigin_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_VOTE_THE_ORIGIN
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateThree_VoteTheOrigin_VoteTheOriginHandler(uint8_t* pui8RequestData)
@@ -1292,19 +1233,8 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 
 	DEBUG_PRINTS3("Select target neighbor: pointer = %d, ID = 0x%06x, flag = %d\n", g_i32TargetFlagPointer, ui32TargetId, g_pCoordinatesRotationFlagTable[g_i32TargetFlagPointer].isRotated);
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateFour_RotateCoordinates_SubTask_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while (isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_ROTATE_COORDINATES, ROBOT_REQUEST_READ_LOCATIONS_TABLE, ROBOT_RESPONSE_COORDINATES_ROTATED and ROBOT_RESPONSE_LOCATIONS_TABLE
+	blockingDelayInRobotState(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
 	 if (g_bIsCoordinatesRotated && getRotationFlagOfRobot(ui32TargetId) == false)
@@ -1318,20 +1248,6 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	DEBUG_PRINT("........Returning from StateFour_RotateCoordinates_MainTask\n");
 
 	return false; // continue the main TASK
-}
-
-bool StateFour_RotateCoordinates_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_ROTATE_COORDINATES, ROBOT_REQUEST_READ_LOCATIONS_TABLE, ROBOT_RESPONSE_COORDINATES_ROTATED and ROBOT_RESPONSE_LOCATIONS_TABLE
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateFour_RotateCoordinates_RotateCoordinatesHandler(uint8_t* pui8RequestData)
@@ -1560,21 +1476,8 @@ bool StateFive_AverageVector_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-
-	do
-	{
-		// 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateFive_AverageVector_SubTask_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while(isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_NEIGHBOR_VECTOR, ROBOT_RESPONSE_NEIGHBOR_VECTOR and ROBOT_RESPONSE_NOT_FOUND_NEIGHBOR_VECTOR
+	blockingDelayInRobotState(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
 	if(!g_bIsCalculatedAverageVector)
@@ -1603,20 +1506,6 @@ bool StateFive_AverageVector_MainTask(va_list argp)
 	}
 
 	return false; // continue the main TASK
-}
-
-bool StateFive_AverageVector_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_NEIGHBOR_VECTOR, ROBOT_RESPONSE_NEIGHBOR_VECTOR and ROBOT_RESPONSE_NOT_FOUND_NEIGHBOR_VECTOR
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateFive_AverageVector_ReadNeighborVectorHandler(uint8_t* pui8RequestData)
@@ -1940,20 +1829,8 @@ bool StateSix_CorrectLocations_MainTask1(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-
-	do
-	{
-		// 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSix_CorrectLocations_SubTask1_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while(isRfFlagAssert);
+	// Valid commands in this state: ROBOT_RESPONSE_VALID_LOCATION
+	blockingDelayInRobotState(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
 	uint8_t ui8NumberOfNeighbors = NeighborsTable_getSize();
@@ -1974,20 +1851,6 @@ bool StateSix_CorrectLocations_MainTask1(va_list argp)
 	resetRobotTaskTimer();
 
 	return false; // Continue the main task
-}
-
-bool StateSix_CorrectLocations_SubTask1_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_RESPONSE_VALID_LOCATION
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateSix_CorrectLocations_ReadValidLocationHandler(uint8_t* pui8RequestData)
@@ -2073,20 +1936,8 @@ bool StateSix_CorrectLocations_MainTask2(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-
-	do
-	{
-		// 100ms to 1000ms
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSix_CorrectLocations_SubTask2_DelayRandom_Handler);
-
-		if (isRfFlagAssert)
-			resetRobotTaskTimer();
-	}
-	while(isRfFlagAssert);
+	// Valid commands in this state: ROBOT_REQUEST_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_PLEASE_WAIT and ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE
+	blockingDelayInRobotState(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
 	uint32_t ui32TargetId = NeighborsTable_getIdAtIndex(g_ui8TargetNeighborPointer);
@@ -2106,20 +1957,6 @@ bool StateSix_CorrectLocations_MainTask2(va_list argp)
 	}
 
 	return false; // Continue the main task
-}
-
-bool StateSix_CorrectLocations_SubTask2_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG, ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_PLEASE_WAIT and ROBOT_RESPONSE_SELF_VECTOR_AND_FLAG_UNACTIVE
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateSix_CorrectLocations_ReadSelfVectorAndFlagHanlder(uint8_t* pui8RequestData)
@@ -2228,12 +2065,8 @@ void StateSeven_Locomotion(void)
 
 	turnOffLED(LED_BLUE);
 
-//	if (g_RobotIdentity.ValidOrientation)
-		setRobotState(ROBOT_STATE_IDLE);
-//	else
-//		setRobotState(ROBOT_STATE_UPDATE_ORIENTATION);
-
-//	switchBackToPreviousState();
+	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
+		switchBackToPreviousState();
 }
 
 bool StateSeven_Locomotion_MainTask(va_list argp)
@@ -2244,24 +2077,16 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 1s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	// Valid commands in this state: ROBOT_REQUEST_MOVING, ROBOT_REQUEST_UPDATE_LOCOMOTION
+	blockingDelayInRobotState(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateSeven_Locomotion_SubTask_DelayRandom_Handler);
-	}
-	while (isRfFlagAssert);
-
+	// Now, robot timer delay random is expired
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
 	{
 		broadcastLocomotionResultToLocalNeighbors();
 		return true; // Terminate this task
 	}
 
-	// Now, robot timer delay random is expired
 	broadcastNOPMessageToLocalNeighbors();
 
 	if (!updateLocation())
@@ -2318,20 +2143,6 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	}
 
 	return false; // Continues this task
-}
-
-bool StateSeven_Locomotion_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_REQUEST_MOVING, ROBOT_REQUEST_UPDATE_LOCOMOTION
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateSeven_Locomotion_updateLocomotionRequestHandler(uint8_t* pui8RequestData)
@@ -2402,9 +2213,8 @@ void StateEight_UpdateOrientation(void)
 
 	turnOffLED(LED_GREEN);
 
-	setRobotState(ROBOT_STATE_IDLE);
-
-//	switchBackToPreviousState();
+	if (g_RobotIdentity.ValidOrientation)
+		switchBackToPreviousState();
 }
 
 bool StateEight_UpdateOrientation_MainTask(va_list argp)
@@ -2415,18 +2225,10 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 	//		va_list argp
 	//			This list containt no argument.
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 1s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	// Valid commands in this state: none
+	blockingDelayInRobotState(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateEight_UpdateOrientation_SubTask_DelayRandom_Handler);
-	}
-	while (isRfFlagAssert);
 	// Now, robot timer delay random is expired
-
 	broadcastNOPMessageToLocalNeighbors();
 
 	if (moveStep(FORWARD, 2))
@@ -2436,20 +2238,6 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 		return true; // Ternimate this TASK
 
 	return false; // continue the main TASK
-}
-
-bool StateEight_UpdateOrientation_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: none
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 #endif
 
@@ -2473,18 +2261,16 @@ void StateNine_FollowGradientMap(void)
 		return;
 	}
 
-	bool isRfFlagAssert;
-	uint32_t ui32LifeTimeInUsOfSubTask;
-	do
-	{
-		 // 3s to 6s
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-
-		isRfFlagAssert = RfTryToCaptureRfSignal(ui32LifeTimeInUsOfSubTask, StateNine_FollowGradientMap_SubTask_DelayRandom_Handler);
-	}
-	while (isRfFlagAssert);
+	// Valid commands in this state: many
+	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
+	{
+		setRobotState(getRobotState());
+		return;
+	}
+
 	if (!updateLocation())
 		return;
 
@@ -2510,22 +2296,6 @@ void StateNine_FollowGradientMap(void)
 	}
 
 	turnOffLED(LED_RED);
-
-	setRobotState(getRobotState());
-}
-
-bool StateNine_FollowGradientMap_SubTask_DelayRandom_Handler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: many
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void StateNine_FollowGradientMap_UpdateGoal()
@@ -2591,12 +2361,13 @@ bool updateLocation(void)
 	};
 
 	// 2/ Wait
-	bool isRfFlagAssert;
 	do
 	{
-		isRfFlagAssert = RfTryToCaptureRfSignal(WAIT_FOR_LOCATION_RESPONSE_IN_US, updateLocationDelayHandler);
+		// Valid commands in this state: ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR
+		g_bIsRfFlagAsserted = false;
+		MCU_RF_TimerDelayUs(WAIT_FOR_LOCATION_RESPONSE_IN_US);
 	}
-	while (isRfFlagAssert);
+	while (g_bIsRfFlagAsserted);
 
 	// 3/ Calculation
 	if(RobotLocationsTable_getSize() < 3)
@@ -2667,20 +2438,6 @@ bool updateLocation(void)
 
     turnOffLED(LED_BLUE);
     return true;
-}
-
-bool updateLocationDelayHandler(va_list argp)
-{
-	//NOTE: This task will be call every time RF interrupt pin asserted in delay random of The Main Task
-
-	//  ARGUMENTS:
-	//		va_list argp
-	//			This list containt no argument
-
-	// Valid commands in this state: ROBOT_RESPONSE_DISTANCE_RESULT_AND_VECTOR
-	handleCommonSubTaskDelayRandomState();
-
-	return true; // Terminal the subTask after handle
 }
 
 void updateLocationResquestHanlder(uint8_t* pui8RequestData)

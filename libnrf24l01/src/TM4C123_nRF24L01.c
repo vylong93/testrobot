@@ -138,10 +138,39 @@ bool MCU_RF_IsRfTimerExpired(void)
 	uint32_t ui32Status = ROM_TimerIntStatus(RF_TIMER, false);
 
 	if (ui32Status & TIMER_TIMA_TIMEOUT)
+	{
+		ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
 		return true;
+	}
 	else
 		return false;
 }
+
+void MCU_RF_TimerDelayUs(uint32_t ui32PeriodInUs)
+{
+	if (ui32PeriodInUs == 0)
+		return;
+
+	uint32_t ui32DelayPeriod = (ROM_SysCtlClockGet() / 1000000) * ui32PeriodInUs;
+
+	ROM_TimerLoadSet(RF_TIMER, TIMER_A, ui32DelayPeriod);
+
+	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
+
+	ROM_TimerEnable(RF_TIMER, TIMER_A);
+
+	uint32_t ui32Status;
+	while(true)
+	{
+		ui32Status = ROM_TimerIntStatus(RF_TIMER, false);
+
+		if (ui32Status & TIMER_TIMA_TIMEOUT)
+			break;
+	}
+
+	ROM_TimerIntClear(RF_TIMER, TIMER_TIMA_TIMEOUT);
+}
+
 
 inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
 {
