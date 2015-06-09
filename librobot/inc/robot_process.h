@@ -143,8 +143,8 @@ void broadcastNOPMessageToLocalNeighbors(void);
 #define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	2000000		// 2s
 #define UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	4000000		// 4s
 
-#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	2000000		// 2s
-#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	4000000		// 4s
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	1500000		// 1.5s
+#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	2500000		// 2.5s
 
 #define WAIT_FOR_LOCATION_RESPONSE_IN_US 1000000 // 1s
 #endif
@@ -250,6 +250,7 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp);
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
+#define MAXIMUM_MOVING_STEP_OF_FOUR	5	// 5 * 2cm = ~ 10cm
 void StateNine_FollowGradientMap(void);
 void StateNine_FollowGradientMap_UpdateGoal();
 void StateNine_FollowGradientMap_ExecuteActuator();

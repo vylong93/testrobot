@@ -235,6 +235,8 @@ void resetRobotIdentity(void)
 	g_RobotIdentity.ValidOrientation = false;
 
 	g_RobotIdentity.Locomotion = LOCOMOTION_INVALID;
+
+	g_RobotIdentity.IsMoving = false;
 }
 
 void setRobotState(e_RobotState eState)
@@ -477,8 +479,8 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 	float fPeakA, fMaxA;
 	float fPeakB, fMaxB;
 
-//	bool bCurrentInterruptStage;
-//	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
 
 	triggerSamplingMicSignalsWithPreDelay(0);
 	while(!isSamplingCompleted())
@@ -531,7 +533,7 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 		// else { Do nothing! Because of the bad results }
 	}
 
-//	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -2114,6 +2116,8 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 		getLastPoint(-2, &pPoint[0]);
 	}
 
+	g_RobotIdentity.ValidOrientation = false;
+
 	rotateAngleInDeg(90); // Blocking-call
 
 	if (moveStep(FORWARD, 2)) // Blocking-call
@@ -2202,6 +2206,8 @@ void StateEight_UpdateOrientation(void)
 
 	turnOffLED(LED_ALL);
 
+	g_RobotIdentity.ValidOrientation = false;
+
 //	//
 //	// Synchornous delay for previous state
 //	//
@@ -2231,8 +2237,8 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 	// Now, robot timer delay random is expired
 	broadcastNOPMessageToLocalNeighbors();
 
-	if (moveStep(FORWARD, 2))
-		moveStep(REVERSE, 2);
+	if (moveStep(FORWARD, 3))
+		moveStep(REVERSE, 3);
 
 	if (g_RobotIdentity.ValidOrientation)
 		return true; // Ternimate this TASK
@@ -2271,6 +2277,13 @@ void StateNine_FollowGradientMap(void)
 		return;
 	}
 
+//	if (generateRandomByte() > 38) // 14.84%
+//	{
+//		broadcastLocationMessageToLocalNeighbors();
+//		return;
+//	}
+	broadcastNOPMessageToLocalNeighbors();
+
 	if (!updateLocation())
 		return;
 
@@ -2290,7 +2303,9 @@ void StateNine_FollowGradientMap(void)
 				// 2/ cal the distance step -> forward
 				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
-				moveStep(FORWARD, (int8_t)(vectorGO.getMagnitude() / 2.0f));
+				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
+				i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
+				moveStep(FORWARD, i8MoveStep);
 			}
 		}
 	}
@@ -2370,7 +2385,7 @@ bool updateLocation(void)
 	while (g_bIsRfFlagAsserted);
 
 	// 3/ Calculation
-	if(RobotLocationsTable_getSize() < 3)
+	if(RobotLocationsTable_getSize() < 2)
 	{
 		if(g_RobotIdentity.Locomotion == LOCOMOTION_INVALID || !g_RobotIdentity.ValidLocation || !g_RobotIdentity.ValidOrientation)
 		{
@@ -2442,6 +2457,12 @@ bool updateLocation(void)
 
 void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 {
+	if (g_RobotIdentity.IsMoving)
+		return;
+
+	bool bCurrentRfInterruptState;
+	MCU_RF_PauseInterruptState(&bCurrentRfInterruptState);
+
 	bool bIsSkipTheRest = false;
 
 	uint8_t* pui8RxBuffer = 0;
@@ -2502,6 +2523,8 @@ void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 		}
 		// else { Do nothing! Because of the bad results }
 	}
+
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentRfInterruptState);
 }
 
 void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -3862,6 +3885,8 @@ bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
 
 bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection)
 {
+	g_RobotIdentity.IsMoving = true;
+
 #define DELAY_BEFORE_UPDATE_LOCATION_IN_MS	100
 
 	Motor_t mLeft, mRight;
@@ -3922,14 +3947,20 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-					if (calculateLastForwardOrientation(&theta))
+					if (!g_RobotIdentity.ValidOrientation)
 					{
-						g_RobotIdentity.ValidOrientation = true;
-						g_RobotIdentity.theta = theta;
+						if (calculateLastForwardOrientation(&theta))
+						{
+							g_RobotIdentity.ValidOrientation = true;
+							g_RobotIdentity.theta = theta;
+						}
 					}
 				}
 
 				*bIsMoveCompleted = (g_eMovementDirection == eDirection);
+
+				g_RobotIdentity.IsMoving = false;
+
 				return true;
 			}
 		}
@@ -3950,14 +3981,20 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 				if (updateLocation())
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-					if (calculateLastBackwardOrientation(&theta))
+					if (!g_RobotIdentity.ValidOrientation)
 					{
-						g_RobotIdentity.ValidOrientation = true;
-						g_RobotIdentity.theta = theta;
+						if (calculateLastBackwardOrientation(&theta))
+						{
+							g_RobotIdentity.ValidOrientation = true;
+							g_RobotIdentity.theta = theta;
+						}
 					}
 				}
 
 				*bIsMoveCompleted = (g_eMovementDirection == eDirection);
+
+				g_RobotIdentity.IsMoving = false;
+
 				return true;
 			}
 		}
@@ -4080,6 +4117,8 @@ bool rotateAngleInRad(float fAngleInRad)
 
 bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 {
+	g_RobotIdentity.IsMoving = true;
+
 	float theta = IMU_getYawAngle();
 
 	if(detectedRotateCollision(theta, 16))
@@ -4109,6 +4148,8 @@ bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 			DEBUG_PRINT("Back to the start point!!!\n");
 			*bIsRotateCompleted = false;
 		}
+
+		g_RobotIdentity.IsMoving = false;
 
 		return true;
 	}

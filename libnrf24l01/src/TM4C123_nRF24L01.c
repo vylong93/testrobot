@@ -172,13 +172,13 @@ void MCU_RF_TimerDelayUs(uint32_t ui32PeriodInUs)
 }
 
 
-inline void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
+void MCU_RF_PauseInterruptState(bool *pbCurrentInterruptStateStorage)
 {
 	*pbCurrentInterruptStateStorage = g_bIsIntEnable;
 	MCU_RF_DisableInterrupt();
 }
 
-inline void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState)
+void MCU_RF_ContinueInterruptStateBeforePause(bool bPreviousInterruptState)
 {
     MCU_RF_ClearIntFlag();
     MCU_RF_ClearPending();

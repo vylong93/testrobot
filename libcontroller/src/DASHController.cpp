@@ -170,189 +170,180 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 	Vector2<float> pointCenter;
 	pGradientMap->coordinateOfTheCenterGradientPixelOfRobotLocation(pointCurrent, pointCenter);
 
-	if (isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM * 1.7f))
-	{
-		Vector2<float> pointLeft(pointCenter.x - PIXEL_SIZE_IN_CM, pointCenter.y);
-		Vector2<float> pointRight(pointCenter.x + PIXEL_SIZE_IN_CM, pointCenter.y);
-		Vector2<float> pointUp(pointCenter.x, pointCenter.y + PIXEL_SIZE_IN_CM);
-		Vector2<float> pointDown(pointCenter.x, pointCenter.y - PIXEL_SIZE_IN_CM);
+	Vector2<float> pointLeft(pointCenter.x - PIXEL_SIZE_IN_CM, pointCenter.y);
+	Vector2<float> pointRight(pointCenter.x + PIXEL_SIZE_IN_CM, pointCenter.y);
+	Vector2<float> pointUp(pointCenter.x, pointCenter.y + PIXEL_SIZE_IN_CM);
+	Vector2<float> pointDown(pointCenter.x, pointCenter.y - PIXEL_SIZE_IN_CM);
 
-		int32_t gmCenterValue = pGradientMap->valueOf(pointCenter);
-		GradientUnit guRobot(&pointCurrent, gmCenterValue);
+	int32_t gmCenterValue = pGradientMap->valueOf(pointCenter);
+	GradientUnit guRobot(&pointCurrent, gmCenterValue);
 
 #define GRADIENT_UNIT_BUFFER_LENGTH	4
-		GradientUnit pGu[GRADIENT_UNIT_BUFFER_LENGTH];
-		pGu[0].setContent(&pointLeft, pGradientMap->valueOf(pointLeft));
-		pGu[1].setContent(&pointRight, pGradientMap->valueOf(pointRight));
-		pGu[2].setContent(&pointUp, pGradientMap->valueOf(pointUp));
-		pGu[3].setContent(&pointDown, pGradientMap->valueOf(pointDown));
+	GradientUnit pGu[GRADIENT_UNIT_BUFFER_LENGTH];
+	pGu[0].setContent(&pointLeft, pGradientMap->valueOf(pointLeft));
+	pGu[1].setContent(&pointRight, pGradientMap->valueOf(pointRight));
+	pGu[2].setContent(&pointUp, pGradientMap->valueOf(pointUp));
+	pGu[3].setContent(&pointDown, pGradientMap->valueOf(pointDown));
 
-		selectionSortGradientUnitArray(pGu, GRADIENT_UNIT_BUFFER_LENGTH);
+	selectionSortGradientUnitArray(pGu, GRADIENT_UNIT_BUFFER_LENGTH);
 
-		reArangeGradientUnitArray(pGu, guRobot);
+	reArangeGradientUnitArray(pGu, guRobot);
 
-		bool bIsTargetUpdate = false;
+	bool bIsTargetUpdate = false;
 
-		GradientUnit guGoal;
+	GradientUnit guGoal;
 
-		int i;
-		e_SegmentType segmentType = pGradientMap->getSegmentType(pointCenter);
-		if (segmentType == SEGMENT_SHAPE)
+	int i;
+	e_SegmentType segmentType = pGradientMap->getSegmentType(pointCenter);
+	if (segmentType == SEGMENT_SHAPE)
+	{
+		for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
 		{
-			for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
+			if(pGu[i].Value > 0 && pGu[i].Value > guRobot.Value)
 			{
-				if(pGu[i].Value > 0 && pGu[i].Value > guRobot.Value)
-				{
-					guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
+				guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
 
-					if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
-					{
-						bIsTargetUpdate = true;
-						break;
-					}
+				if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
+				{
+					bIsTargetUpdate = true;
+					break;
 				}
 			}
 		}
+	}
 //		else if (segmentType == SEGMENT_TRAPPED
 //				&& gmCurrentValue == START_PIXEL_VALUE_OF_NON_SHAPE_SEGMENT)
 //		{
 //			//TODO: implement
 //		}
-		else // External Segment & Trapped Segment
+	else // External Segment & Trapped Segment
+	{
+		for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
 		{
-			for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
+			if(pGu[i].Value > guRobot.Value)
 			{
-				if(pGu[i].Value > guRobot.Value)
-				{
-					guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
+				guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
 
-					if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
-					{
-						bIsTargetUpdate = true;
-						break;
-					}
-#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
-					else
-					{
-						if(pGu[i].Value >= 0) // at outside of the bolder of shape segment
-							break;
-					}
-#endif
+				if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
+				{
+					bIsTargetUpdate = true;
+					break;
 				}
+#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
+				else
+				{
+					if(pGu[i].Value >= 0) // at outside of the bolder of shape segment
+						break;
+				}
+#endif
 			}
 		}
+	}
 
-		if (bIsTargetUpdate)
+	if (bIsTargetUpdate)
+	{
+		pPointNextGoal->x = guGoal.pPosition->x;
+		pPointNextGoal->y = guGoal.pPosition->y;
+	}
+	else
+	{
+#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
+	// Target cannot update, calculate the sliding goal
+	if(guRobot.Value < 0 && guGoal.Value >= 0) // at outside of the bolder of shape segment
+	{
+		Vector2<float> vectorToGoal(guGoal.pPosition->x - pointCurrent.x, guGoal.pPosition->y - pointCurrent.y);
+		vectorToGoal.normalize();
+
+		Vector2<float> vectorToSlidingGoal = vectorToGoal.getRotate(MATH_PI_DIV_2);
+		vectorToSlidingGoal.x *= PIXEL_SIZE_IN_CM;
+		vectorToSlidingGoal.y *= PIXEL_SIZE_IN_CM;
+
+		vectorToSlidingGoal.x += pointCurrent.x;
+		vectorToSlidingGoal.y += pointCurrent.y;
+
+		bool bIsSlidingGoalStuck = false;
+
+		bool bIsLeftPositive = (pGu[0].Value >= 0);
+		bool bIsRightPositive = (pGu[1].Value >= 0);
+		bool bIsUpPositive = (pGu[2].Value >= 0);
+		bool bIsDownPositive = (pGu[3].Value >= 0);
+
+		bool bLeftClear = true;
+		bool bRightClear = true;
+		bool bUpClear = true;
+		bool bDownClear = true;
+
+		Vector2<float> neighborLocation;
+		for(i = 0; i < RobotLocationsTable_getSize(); i++)
 		{
-			pPointNextGoal->x = guGoal.pPosition->x;
-			pPointNextGoal->y = guGoal.pPosition->y;
+			RobotLocationsTable_getLocationAtIndex(i, &neighborLocation.x, &neighborLocation.y));
+			if (isTwoPositionOverlay(&vectorToSlidingGoal, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
+			{
+				pGradientMap->coordinateOfTheCenterGradientPixelOfRobotLocation(neighborLocation, *(guGoal.pPosition));
+				guGoal.Value = pGradientMap->valueOf((*guGoal.pPosition));
+				bIsSlidingGoalStuck = true;
+			}
+
+			if(isTwoPositionOverlay(pointLeft, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
+				bLeftClear = false;
+
+			if(isTwoPositionOverlay(pointRight, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
+				bRightClear = false;
+
+			if(isTwoPositionOverlay(pointUp, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM)
+				bUpClear = false;
+
+			if(isTwoPositionOverlay(pointDown, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
+				bDownClear = false;
+		}
+
+		if(bLeftClear && bIsLeftPositive)
+		{
+			pPointNextGoal->x = pointLeft.x;
+			pPointNextGoal->y = pointLeft.y;
 			return;
 		}
 
-#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
-		// Target cannot update, calculate the sliding goal
-		if(guRobot.Value < 0 && guGoal.Value >= 0) // at outside of the bolder of shape segment
+		if(bRightClear && bIsRightPositive)
 		{
-			Vector2<float> vectorToGoal(guGoal.pPosition->x - pointCurrent.x, guGoal.pPosition->y - pointCurrent.y);
-			vectorToGoal.normalize();
-
-			Vector2<float> vectorToSlidingGoal = vectorToGoal.getRotate(MATH_PI_DIV_2);
-			vectorToSlidingGoal.x *= PIXEL_SIZE_IN_CM;
-			vectorToSlidingGoal.y *= PIXEL_SIZE_IN_CM;
-
-			vectorToSlidingGoal.x += pointCurrent.x;
-			vectorToSlidingGoal.y += pointCurrent.y;
-
-			bool bIsSlidingGoalStuck = false;
-
-			bool bIsLeftPositive = (pGu[0].Value >= 0);
-			bool bIsRightPositive = (pGu[1].Value >= 0);
-			bool bIsUpPositive = (pGu[2].Value >= 0);
-			bool bIsDownPositive = (pGu[3].Value >= 0);
-
-			bool bLeftClear = true;
-			bool bRightClear = true;
-			bool bUpClear = true;
-			bool bDownClear = true;
-
-			Vector2<float> neighborLocation;
-			for(i = 0; i < RobotLocationsTable_getSize(); i++)
-			{
-				RobotLocationsTable_getLocationAtIndex(i, &neighborLocation.x, &neighborLocation.y));
-				if (isTwoPositionOverlay(&vectorToSlidingGoal, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-				{
-					pGradientMap->coordinateOfTheCenterGradientPixelOfRobotLocation(neighborLocation, *(guGoal.pPosition));
-					guGoal.Value = pGradientMap->valueOf((*guGoal.pPosition));
-					bIsSlidingGoalStuck = true;
-				}
-
-				if(isTwoPositionOverlay(pointLeft, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-					bLeftClear = false;
-
-				if(isTwoPositionOverlay(pointRight, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-					bRightClear = false;
-
-				if(isTwoPositionOverlay(pointUp, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM)
-					bUpClear = false;
-
-				if(isTwoPositionOverlay(pointDown, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-					bDownClear = false;
-			}
-
-			if(bLeftClear && bIsLeftPositive)
-			{
-				pPointNextGoal->x = pointLeft.x;
-				pPointNextGoal->y = pointLeft.y;
-				return;
-			}
-
-			if(bRightClear && bIsRightPositive)
-			{
-				pPointNextGoal->x = pointRight.x;
-				pPointNextGoal->y = pointRight.y;
-				return;
-			}
-
-			if(bUpClear && bIsUpPositive)
-			{
-				pPointNextGoal->x = pointUp.x;
-				pPointNextGoal->y = pointUp.y;
-				return;
-			}
-
-			if(bDownClear && bIsDownPositive)
-			{
-				pPointNextGoal->x = pointDown.x;
-				pPointNextGoal->y = pointDown.y;
-				return;
-			}
-
-			if (!bIsSlidingGoalStuck)
-			{
-				pPointNextGoal->x = vectorToSlidingGoal->x;
-				pPointNextGoal->y = vectorToSlidingGoal->y;
-				return;
-			}
+			pPointNextGoal->x = pointRight.x;
+			pPointNextGoal->y = pointRight.y;
+			return;
 		}
+
+		if(bUpClear && bIsUpPositive)
+		{
+			pPointNextGoal->x = pointUp.x;
+			pPointNextGoal->y = pointUp.y;
+			return;
+		}
+
+		if(bDownClear && bIsDownPositive)
+		{
+			pPointNextGoal->x = pointDown.x;
+			pPointNextGoal->y = pointDown.y;
+			return;
+		}
+
+		if (!bIsSlidingGoalStuck)
+		{
+			pPointNextGoal->x = vectorToSlidingGoal->x;
+			pPointNextGoal->y = vectorToSlidingGoal->y;
+			return;
+		}
+	}
 #endif
 
 		pPointNextGoal->x = pRobotIdentity->x;
 		pPointNextGoal->y = pRobotIdentity->y;
-		return;
 	}
-	else
+
+	if (pPointNextGoal->x == pRobotIdentity->x && pPointNextGoal->y == pRobotIdentity->y
+			&& !isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM)
+				&& isHaveClearshotToTheGoal(&pointCurrent, &pointCenter))
 	{
-		if(isHaveClearshotToTheGoal(&pointCurrent, &pointCenter))
-		{
-			pPointNextGoal->x = pointCenter.x;
-			pPointNextGoal->y = pointCenter.y;
-			return;
-		}
-		else
-		{
-			pPointNextGoal->x = pRobotIdentity->x;
-			pPointNextGoal->y = pRobotIdentity->y;
-		}
+		pPointNextGoal->x = pointCenter.x;
+		pPointNextGoal->y = pointCenter.y;
 	}
 }
 

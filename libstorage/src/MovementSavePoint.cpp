@@ -59,7 +59,7 @@ bool calculateLastForwardOrientation(float *pTheta)
 	pointNow.x = pointNow.x - pointPre.x;
 	pointNow.y = pointNow.y - pointPre.y;
 
-	if (pointPre.getMagnitude() < (CONTROLLER_POSITION_ERROR_CM * 1.3f)) // 3.9cm
+	if (pointPre.getMagnitude() < CONTROLLER_VALID_ORIENTATION_VECTOR)
 		return false;
 
 	*pTheta = atan2f(pointNow.y, pointNow.x);
@@ -80,7 +80,7 @@ bool calculateLastBackwardOrientation(float *pTheta)
 	pointPre.x = pointPre.x - pointNow.x;
 	pointPre.y = pointPre.y - pointNow.y;
 
-	if (pointPre.getMagnitude() < (CONTROLLER_POSITION_ERROR_CM * 1.3f)) // 3.9cm
+	if (pointPre.getMagnitude() < CONTROLLER_VALID_ORIENTATION_VECTOR)
 		return false;
 
 	*pTheta = atan2f(pointPre.y, pointPre.x);
