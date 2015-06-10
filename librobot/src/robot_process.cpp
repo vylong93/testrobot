@@ -237,6 +237,7 @@ void resetRobotIdentity(void)
 	g_RobotIdentity.Locomotion = LOCOMOTION_INVALID;
 
 	g_RobotIdentity.IsMoving = false;
+	g_RobotIdentity.IsSampling = false;
 }
 
 void setRobotState(e_RobotState eState)
@@ -448,6 +449,9 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 	blockingDelayInRobotState(MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
+	if (getRobotState() != ROBOT_STATE_MEASURE_DISTANCE)
+		return true;
+
 	if(g_bIsSuccessMeasuredDistances == false)
 	{
 		resetRobotTaskTimer();
@@ -470,41 +474,44 @@ bool StateOne_MeasureDistance_MainTask(va_list argp)
 
 void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 {
-	bool bIsSkipTheRest = false;
+	if (g_RobotIdentity.IsMoving || g_RobotIdentity.IsSampling)
+		return;
 
-	uint8_t* pui8RxBuffer = 0;
-	uint32_t ui32MessageSize;
+//	bool bIsSkipTheRest = false;
+//	uint8_t* pui8RxBuffer = 0;
+//	uint32_t ui32MessageSize;
 
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 	float fPeakA, fMaxA;
 	float fPeakB, fMaxB;
 
-	bool bCurrentInterruptStage;
-	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+//	bool bCurrentInterruptStage;
+//	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
 
 	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted())
-	{
-		if (MCU_RF_IsInterruptPinAsserted())
-		{
-			MCU_RF_ClearIntFlag();
+	g_RobotIdentity.IsSampling = true;
+	while(!isSamplingCompleted());
+//	{
+//		if (MCU_RF_IsInterruptPinAsserted())
+//		{
+//			MCU_RF_ClearIntFlag();
+//
+//			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+//			{
+//				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
+//						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_SAMPLING_MICS)
+//				{
+//					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
+//					bIsSkipTheRest = true;
+//				}
+//				// else { Do nothing! Because other command is not collision with the sampling process }
+//			}
+//			Network_deleteBuffer(pui8RxBuffer);
+//		}
+//	}
 
-			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-			{
-				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
-						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_SAMPLING_MICS)
-				{
-					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
-					bIsSkipTheRest = true;
-				}
-				// else { Do nothing! Because other command is not collision with the sampling process }
-			}
-			Network_deleteBuffer(pui8RxBuffer);
-		}
-	}
-
-	if(!bIsSkipTheRest)
-	{
+//	if(!bIsSkipTheRest)
+//	{
 		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
 		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
 
@@ -530,10 +537,12 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 			}
 			// else { Do nothing! Because the neigbor too far }
 		}
-		// else { Do nothing! Because of the bad results }
-	}
+//		// else { Do nothing! Because of the bad results }
+//	}
 
-	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
+	g_RobotIdentity.IsSampling = false;
+
+//	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
 void StateOne_MeasureDistance_UpdateNeighborsTableHandler(uint8_t* pui8MessageData, uint32_t ui32DataSize)
@@ -767,6 +776,9 @@ bool StateTwo_ExchangeTable_MainTask(va_list argp)
 	blockingDelayInRobotState(EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if (getRobotState() != ROBOT_STATE_EXCHANGE_TABLE)
+		return true;
+
 	if(!g_bIsNewLocationsTableAvailable)
 	{
 		if((OneHopNeighborsTable_getSize() == NeighborsTable_getSize()))
@@ -956,6 +968,8 @@ bool StateThree_VoteTheOrigin_MainTask(va_list argp)
 	blockingDelayInRobotState(VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
+	if (getRobotState() != ROBOT_STATE_VOTE_ORIGIN)
+		return true;
 
 	if (g_ui8BroadcastVoteCommandCounter < BROADCAST_VOTE_TIMES)
 	{
@@ -1239,6 +1253,9 @@ bool StateFour_RotateCoordinates_MainTask(va_list argp)
 	blockingDelayInRobotState(ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, ROTATE_COORDINATES_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// In here, robot timer delay is expired
+	if(getRobotState() != ROBOT_STATE_ROTATE_COORDINATES)
+		return true;
+
 	 if (g_bIsCoordinatesRotated && getRotationFlagOfRobot(ui32TargetId) == false)
 	{
 		if(sendRequestRotateCoordinatesCommandToNeighbor(ui32TargetId))
@@ -1457,8 +1474,8 @@ void StateFive_AverageVector(void)
 	}
 	while(g_ui8NeighborsTablePointer < NeighborsTable_getSize());
 
-//	setRobotState(ROBOT_STATE_CORRECT_LOCATIONS);
-	setRobotState(ROBOT_STATE_IDLE);
+	setRobotState(ROBOT_STATE_CORRECT_LOCATIONS);
+	// setRobotState(ROBOT_STATE_IDLE);
 }
 
 void StateFive_AverageVector_ResetFlag(void)
@@ -1482,6 +1499,9 @@ bool StateFive_AverageVector_MainTask(va_list argp)
 	blockingDelayInRobotState(AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, AVERAGE_VECTOR_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_AVERAGE_VECTOR)
+		return true;
+
 	if(!g_bIsCalculatedAverageVector)
 	{
 		if(g_ui8NeighborsTablePointer >= NeighborsTable_getSize())
@@ -1835,6 +1855,9 @@ bool StateSix_CorrectLocations_MainTask1(va_list argp)
 	blockingDelayInRobotState(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_CORRECT_LOCATIONS)
+		return true;
+
 	uint8_t ui8NumberOfNeighbors = NeighborsTable_getSize();
 	if (RobotLocationsTable_getSize() == ui8NumberOfNeighbors)
 	{
@@ -1942,6 +1965,9 @@ bool StateSix_CorrectLocations_MainTask2(va_list argp)
 	blockingDelayInRobotState(CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CORRECT_LOCATIONS_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_CORRECT_LOCATIONS)
+		return true;
+
 	uint32_t ui32TargetId = NeighborsTable_getIdAtIndex(g_ui8TargetNeighborPointer);
 
 	if (ui32TargetId == g_RobotIdentity.Origin_ID)
@@ -2083,6 +2109,9 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	blockingDelayInRobotState(LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, LOCOMOTION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_LOCOMOTION)
+		return true;
+
 	if (g_RobotIdentity.Locomotion != LOCOMOTION_INVALID)
 	{
 		broadcastLocomotionResultToLocalNeighbors();
@@ -2235,6 +2264,9 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 	blockingDelayInRobotState(UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, UPDATE_ORIENTATION_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
+	if(getRobotState() != ROBOT_STATE_UPDATE_ORIENTATION)
+		return true;
+
 	broadcastNOPMessageToLocalNeighbors();
 
 	if (moveStep(FORWARD, 3))
@@ -2272,10 +2304,7 @@ void StateNine_FollowGradientMap(void)
 
 	// Now, robot timer delay random is expired
 	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
-	{
-		setRobotState(getRobotState());
 		return;
-	}
 
 //	if (generateRandomByte() > 38) // 14.84%
 //	{
@@ -2457,16 +2486,15 @@ bool updateLocation(void)
 
 void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 {
-	if (g_RobotIdentity.IsMoving)
+	if (g_RobotIdentity.IsMoving || g_RobotIdentity.IsSampling)
 		return;
 
-	bool bCurrentRfInterruptState;
-	MCU_RF_PauseInterruptState(&bCurrentRfInterruptState);
+//	bool bCurrentRfInterruptState;
+//	MCU_RF_PauseInterruptState(&bCurrentRfInterruptState);
 
-	bool bIsSkipTheRest = false;
-
-	uint8_t* pui8RxBuffer = 0;
-	uint32_t ui32MessageSize;
+//	bool bIsSkipTheRest = false;
+//	uint8_t* pui8RxBuffer = 0;
+//	uint32_t ui32MessageSize;
 
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 	float fInterceptOfRequestRobot = (int16_t)((pui8RequestData[4] << 8) | pui8RequestData[5]) / 1024.0f;
@@ -2476,28 +2504,29 @@ void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 	float fPeakB, fMaxB;
 
 	triggerSamplingMicSignalsWithPreDelay(0);
-	while(!isSamplingCompleted())
-	{
-		if (MCU_RF_IsInterruptPinAsserted())
-		{
-			MCU_RF_ClearIntFlag();
+	g_RobotIdentity.IsSampling = true;
+	while(!isSamplingCompleted());
+//	{
+//		if (MCU_RF_IsInterruptPinAsserted())
+//		{
+//			MCU_RF_ClearIntFlag();
+//
+//			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+//			{
+//				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
+//						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_LOCOLIZATION)
+//				{
+//					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
+//					bIsSkipTheRest = true;
+//				}
+//				// else { Do nothing! Because other command is not collision with the sampling process }
+//			}
+//			Network_deleteBuffer(pui8RxBuffer);
+//		}
+//	}
 
-			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-			{
-				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
-						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_LOCOLIZATION)
-				{
-					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
-					bIsSkipTheRest = true;
-				}
-				// else { Do nothing! Because other command is not collision with the sampling process }
-			}
-			Network_deleteBuffer(pui8RxBuffer);
-		}
-	}
-
-	if(!bIsSkipTheRest)
-	{
+//	if(!bIsSkipTheRest)
+//	{
 		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
 		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
 
@@ -2521,10 +2550,12 @@ void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 			}
 			// else { Do nothing! Because the neighbor too far }
 		}
-		// else { Do nothing! Because of the bad results }
-	}
+//		// else { Do nothing! Because of the bad results }
+//	}
 
-	MCU_RF_ContinueInterruptStateBeforePause(bCurrentRfInterruptState);
+	g_RobotIdentity.IsSampling = false;
+
+//	MCU_RF_ContinueInterruptStateBeforePause(bCurrentRfInterruptState);
 }
 
 void updateLocationResponseHanlder(uint8_t* pui8MessageData, uint32_t ui32DataSize)

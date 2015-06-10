@@ -35,6 +35,7 @@ typedef struct tagRobotIdentity {
 	bool ValidLocation;
 	e_Locomotion Locomotion;
 	bool IsMoving;
+	bool IsSampling;
 } RobotIdentity_t;
 
 #endif /* ROBOTIDENTITY_H_ */

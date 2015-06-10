@@ -643,9 +643,6 @@ void applyWheelSpeedsToRotate(float vel_l, float vel_r, uint8_t *pui8LeftSpeed, 
 
 void rotateClockwiseWithAngle(float fAngleInRadian)
 {
-	bool bCurrentInterruptStage;
-	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
-
 	fAngleInRadian = atan2f(sinf(fAngleInRadian), cosf(fAngleInRadian));
 
 	if (fAngleInRadian > 0)
@@ -661,15 +658,10 @@ void rotateClockwiseWithAngle(float fAngleInRadian)
 	delay_ms((uint32_t)((g_fPeriodMotorOffset * fAngleInRadian / MATH_PI_DIV_2) + 0.5));
 
 	Motors_stop();
-
-	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
 void runForwardWithDistance(float fDistanceInCm)
 {
-	bool bCurrentInterruptStage;
-	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
-
 	if (fDistanceInCm > 0)
 	{
 		Robot_move(ROBOT_MOVE_FORWARD);
@@ -684,7 +676,5 @@ void runForwardWithDistance(float fDistanceInCm)
 	delay_ms((uint32_t)((g_fPeriodMotorOffset * fDistanceInCm / 8.0) + 0.5));
 
 	Motors_stop();
-
-	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
 }
 
