@@ -103,7 +103,6 @@ uint8_t* getRequestMessageDataPointer(void);
 void triggerResponseState(e_RobotResponseState eResponse, uint8_t* pui8RequestData, uint32_t ui32DataSize);
 
 void blockingDelayInRobotState(uint32_t ui32MinPeriodInUs, uint32_t ui32MaxPeriodInUs);
-void handleCommonSubTaskDelayRandomState(void);
 void handleNeighborResponseSamplingCollision(void);
 void broadcastNOPMessageToLocalNeighbors(void);
 #endif
@@ -250,7 +249,7 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp);
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
-#define MAXIMUM_MOVING_STEP_OF_FOUR	5	// 5 * 2cm = ~ 10-14cm
+#define MAXIMUM_MOVING_STEP_OF_FOUR	6	// 6 * 2cm = ~ 10-14cm
 void StateNine_FollowGradientMap(void);
 void StateNine_FollowGradientMap_UpdateGoal();
 void StateNine_FollowGradientMap_ExecuteActuator();

@@ -8,6 +8,7 @@
 #include "librobot/inc/robot_analog.h"
 #include "librobot/inc/robot_motor.h"
 #include "librobot/inc/robot_speaker.h"
+#include "librobot/inc/robot_eeprom.h"
 #include "librobot/inc/robot_communication.h"
 #include "libcustom/inc/custom_led.h"
 #include "interrupt_definition.h"
@@ -20,6 +21,9 @@ static uint8_t g_pui8RandomBuffer[8] =
 { 0 };
 static uint8_t g_ui8RandomNumber = 0;
 static uint32_t g_ui32uDMAErrCount = 0;
+
+static uint8_t g_pui8RandomArray[256];
+static uint8_t g_ui8RandomArrayIndex;
 
 //*****************************************************************************
 // Microphones signal's vairables
@@ -37,7 +41,6 @@ static uint16_t g_pui16ADC1Result[NUMBER_OF_SAMPLE] =
 static bool g_bSendToHost = false;
 static bool g_bNewBattVoltAvailable = false;
 static uint16_t g_ui16BatteryVoltage = 0;
-
 
 //*****************************************************************************
 // IR Proximity Sensor vairables
@@ -296,7 +299,28 @@ void triggerSamplingBatteryVoltage(bool bIsSendToHost)
 	ROM_ADCProcessorTrigger(ADC_BATT_BASE, ADC_BATT_SEQUENCE_TYPE);
 }
 
-uint8_t generateRandomByte(void)
+void initRandomBytesArray(void)
+{
+	g_ui8RandomArrayIndex = generateRandomByteUseADC();
+	getRandomBytesArrayInEEPROM(g_pui8RandomArray);
+}
+
+uint8_t getRandomByte(void)
+{
+	return g_pui8RandomArray[g_ui8RandomArrayIndex++];
+}
+
+float getRandomFloatInRange(float min, float max)
+{
+	if (max <= min)
+		return 0;
+
+	float fResolution = 255.0f / (max - min);
+
+	return ((float) (g_pui8RandomArray[g_ui8RandomArrayIndex++] / fResolution) + min);
+}
+
+uint8_t generateRandomByteUseADC(void)
 {
 	triggerGenerateRandomByte();
 	while (!g_bIsGenerateRandomByteDone)
@@ -305,7 +329,7 @@ uint8_t generateRandomByte(void)
 	return g_ui8RandomNumber;
 }
 
-float generateRandomFloatInRange(float min, float max)
+float generateRandomFloatInRangeUseADC(float min, float max)
 {
 	if (max <= min)
 		return 0;

@@ -159,6 +159,8 @@ void initRobotProcess(void)
 
 	resetRobotIdentity();
 
+	initRandomBytesArray();
+
 	//
 	// Initialize motor parameters
 	//
@@ -307,7 +309,7 @@ void blockingDelayInRobotState(uint32_t ui32MinPeriodInUs, uint32_t ui32MaxPerio
 	uint32_t ui32LifeTimeInUsOfSubTask;
 	do
 	{
-		ui32LifeTimeInUsOfSubTask = generateRandomFloatInRange(ui32MinPeriodInUs, ui32MaxPeriodInUs);
+		ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(ui32MinPeriodInUs, ui32MaxPeriodInUs);
 
 		g_bIsRfFlagAsserted = false;
 		MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
@@ -315,23 +317,6 @@ void blockingDelayInRobotState(uint32_t ui32MinPeriodInUs, uint32_t ui32MaxPerio
 			resetRobotTaskTimer();
 	}
 	while (g_bIsRfFlagAsserted);
-}
-
-void handleCommonSubTaskDelayRandomState(void)
-{
-	uint32_t ui32MessageSize;
-	uint8_t* pui8RxBuffer = 0;
-
-	turnOnLED(LED_RED);
-
-	if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-	{
-		decodeMessage(pui8RxBuffer, ui32MessageSize);
-	}
-
-	Network_deleteBuffer(pui8RxBuffer);
-
-	turnOffLED(LED_RED);
 }
 
 void handleNeighborResponseSamplingCollision(void)
@@ -530,7 +515,7 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 				}
 
 				// random 1->100: delay unit (1ms)
-				uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
+				uint32_t ui32RandomUs = (uint32_t)(getRandomFloatInRange(1, 100) * 1000);
 				delay_us(ui32RandomUs + 2000);
 
 				responseDistanceToNeighbor(ui32RequestRobotID, ui16Distance);
@@ -2306,15 +2291,17 @@ void StateNine_FollowGradientMap(void)
 	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
 		return;
 
-//	if (generateRandomByte() > 38) // 14.84%
-//	{
+	if (getRandomByte() > 38) // 14.84%
+	{
 //		broadcastLocationMessageToLocalNeighbors();
 //		return;
-//	}
-	broadcastNOPMessageToLocalNeighbors();
+		if (!updateLocation())
+			return;
+	}
 
-	if (!updateLocation())
-		return;
+//	broadcastNOPMessageToLocalNeighbors();
+//	if (!updateLocation())
+//		return;
 
 	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
 
@@ -2541,7 +2528,7 @@ void updateLocationResquestHanlder(uint8_t* pui8RequestData)
 				if (g_RobotIdentity.ValidLocation)
 				{
 					// random 1ms ->100ms
-					uint32_t ui32RandomUs = (uint32_t)(generateRandomFloatInRange(1, 100) * 1000);
+					uint32_t ui32RandomUs = (uint32_t)(getRandomFloatInRange(1, 100) * 1000);
 					delay_us(ui32RandomUs + 2000);
 
 					responseDistanceAndLocationToNeighbor(ui32RequestRobotID, ui16Distance);

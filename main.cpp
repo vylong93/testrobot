@@ -34,6 +34,7 @@
 
 extern "C" {
 	void MCU_RF_IRQ_handler(void);
+	void FaultISRHandler(void);
 }
 
 bool g_bIsRfFlagAsserted;
@@ -362,6 +363,12 @@ void MCU_RF_IRQ_handler(void)
 
 	if(getCpuMode() != CPU_MODE_RUN)
 		returnToSleep();
+}
+
+void FaultISRHandler(void)
+{
+	toggleLED(LED_RED | LED_GREEN);
+	ROM_SysCtlDelay(12000000);
 }
 
 #ifdef REGION_COMMENT

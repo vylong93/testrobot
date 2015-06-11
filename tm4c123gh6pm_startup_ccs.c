@@ -55,6 +55,7 @@ extern uint32_t __STACK_TOP;
 //
 //*****************************************************************************
 extern void RobotResponseIntHandler(void);
+extern void FaultISRHandler(void);
 
 //*****************************************************************************
 //
@@ -278,6 +279,7 @@ FaultISR(void)
     //
     while(1)
     {
+    	FaultISRHandler();
     }
 }
 

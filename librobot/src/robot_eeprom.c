@@ -74,6 +74,17 @@ bool getRandomWordInEEPROM(uint32_t* pui32RandomWord)
 	return true;
 }
 
+void getRandomBytesArrayInEEPROM(uint8_t* pui8RandomBytesArray)
+{
+	EEPROMRead((uint32_t*)(pui8RandomBytesArray), EPPROM_RANDOM_TABLE_ADDRESS, 64);
+
+	EEPROMRead((uint32_t*)(pui8RandomBytesArray + 64), EPPROM_RANDOM_TABLE_ADDRESS + 64, 64);
+
+	EEPROMRead((uint32_t*)(pui8RandomBytesArray + 128), EPPROM_RANDOM_TABLE_ADDRESS + 128, 64);
+
+	EEPROMRead((uint32_t*)(pui8RandomBytesArray + 192), EPPROM_RANDOM_TABLE_ADDRESS + 192, 64);
+}
+
 bool writeWordToEEPROM(uint32_t ui32WordIndex, uint32_t ui32Data)
 {
 	ui32WordIndex <<= 2;

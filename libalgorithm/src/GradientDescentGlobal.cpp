@@ -35,7 +35,7 @@ void GradientDescent_updateGradient(uint32_t ui32SelfId, Vector2<float> vectSelf
 
 		if (bEnableRandomCalculation)
 		{
-			ui8RandomValue = generateRandomByte();
+			ui8RandomValue = getRandomByte();
 			if (ui8RandomValue < 0x80) // ~50%
 				continue;
 		}

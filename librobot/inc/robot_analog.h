@@ -106,8 +106,11 @@ bool isNewBattVoltAvailable(void);
 uint16_t getBatteryVoltage(void);
 void triggerSamplingBatteryVoltage(bool bIsSendToHost);
 
-uint8_t generateRandomByte(void);
-float generateRandomFloatInRange(float min, float max);
+void initRandomBytesArray(void);
+uint8_t getRandomByte(void);
+float getRandomFloatInRange(float min, float max);
+uint8_t generateRandomByteUseADC(void);
+float generateRandomFloatInRangeUseADC(float min, float max);
 void triggerGenerateRandomByte(void);
 
 bool isNewProxRawAvailable(void);
