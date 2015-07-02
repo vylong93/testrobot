@@ -333,7 +333,8 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 				else
 				{
 					// Is ACK packet received?
-					if(RfTryToGetRxPacket(ACK_TIMEOUT_USEC, Network_isAckPacket, &header) == true)
+					if(RfTryToGetAckPacket(ACK_TIMEOUT_USEC, Network_isAckPacket, &header))
+					//if(RfTryToGetRxPacket(ACK_TIMEOUT_USEC, Network_isAckPacket, &header) == true)
 					{
 						bIsTxSuccess = true;	// Packet transmit success
 						break;
@@ -416,11 +417,12 @@ bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 //			true	: Recieved ACK
 //			false 	: Non-ACK packet received
 //-----------------------------------------------------------------------------
-bool Network_isAckPacket(uint8_t* pRxBuff, va_list argp)
+//bool Network_isAckPacket(uint8_t* pRxBuff, va_list argp)
+bool Network_isAckPacket(uint8_t* pRxBuff, Header* pTxHeader)
 {
-	// Get the input arguments
-	Header* pTxHeader;
-	pTxHeader = va_arg(argp, Header*);
+//	// Get the input arguments
+//	Header* pTxHeader;
+//	pTxHeader = va_arg(argp, Header*);
 
 	// Rewap received packet
 	Header* pRxHeader;
@@ -530,7 +532,8 @@ bool Network_receivedMessage(uint8_t** ppui8MessBuffer, uint32_t* pui32MessSize)
 					//--loop here
 					do
 					{
-						if(RfTryToGetRxPacket(MULTIPACKET_TIMEOUT_USEC, Network_isNextPacket, Network_getLastRxPID(), pui8RxBuffer, &ui8RxMessSize) == true)
+						if(RfTryToGetNextPacket(MULTIPACKET_TIMEOUT_USEC, Network_isNextPacket, Network_getLastRxPID(), pui8RxBuffer, &ui8RxMessSize))
+						//if(RfTryToGetRxPacket(MULTIPACKET_TIMEOUT_USEC, Network_isNextPacket, Network_getLastRxPID(), pui8RxBuffer, &ui8RxMessSize) == true)
 						{
 							// Fill message
 							for(i = 0; i < ui8RxMessSize; i++)
@@ -661,15 +664,17 @@ e_HandShakeReturn Network_isHandShakeProcessSuccess(Header** ppRxHeader, uint8_t
 //			true	: Success recieved next packet
 //			false 	: Retry for another packet
 //-----------------------------------------------------------------------------
-bool Network_isNextPacket(uint8_t* pRxBuff, va_list argp)
+//bool Network_isNextPacket(uint8_t* pRxBuff, va_list argp)
+bool Network_isNextPacket(uint8_t* pRxBuff,
+		uint8_t ui8PreviousPID, uint8_t* pui8RxBuffer, uint8_t* pui8RxMessSize)
 {
-	// Get the input arguments
-	uint8_t ui8PreviousPID;
-	uint8_t* pui8RxBuffer;
-	uint8_t* pui8RxMessSize;
-	ui8PreviousPID = va_arg(argp, uint8_t);
-	pui8RxBuffer = va_arg(argp, uint8_t*);
-	pui8RxMessSize = va_arg(argp, uint8_t*);
+//	// Get the input arguments
+//	uint8_t ui8PreviousPID;
+//	uint8_t* pui8RxBuffer;
+//	uint8_t* pui8RxMessSize;
+//	ui8PreviousPID = va_arg(argp, uint8_t);
+//	pui8RxBuffer = va_arg(argp, uint8_t*);
+//	pui8RxMessSize = va_arg(argp, uint8_t*);
 
 	// Local vairables
 	uint8_t i;

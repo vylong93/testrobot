@@ -462,9 +462,9 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 	if (g_RobotIdentity.IsMoving || g_RobotIdentity.IsSampling)
 		return;
 
-//	bool bIsSkipTheRest = false;
-//	uint8_t* pui8RxBuffer = 0;
-//	uint32_t ui32MessageSize;
+	bool bIsSkipTheRest = false;
+	uint8_t* pui8RxBuffer = 0;
+	uint32_t ui32MessageSize;
 
 	uint32_t ui32RequestRobotID = construct4Byte(pui8RequestData);
 	float fPeakA, fMaxA;
@@ -476,27 +476,27 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 	triggerSamplingMicSignalsWithPreDelay(0);
 	g_RobotIdentity.IsSampling = true;
 	while(!isSamplingCompleted());
-//	{
-//		if (MCU_RF_IsInterruptPinAsserted())
-//		{
-//			MCU_RF_ClearIntFlag();
-//
-//			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
-//			{
-//				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
-//						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_SAMPLING_MICS)
-//				{
-//					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
-//					bIsSkipTheRest = true;
-//				}
-//				// else { Do nothing! Because other command is not collision with the sampling process }
-//			}
-//			Network_deleteBuffer(pui8RxBuffer);
-//		}
-//	}
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
 
-//	if(!bIsSkipTheRest)
-//	{
+			if (Network_receivedMessage(&pui8RxBuffer, &ui32MessageSize))
+			{
+				if(((MessageHeader*)pui8RxBuffer)->eMessageType == MESSAGE_TYPE_ROBOT_REQUEST &&
+						((MessageHeader*)pui8RxBuffer)->ui8Cmd == ROBOT_REQUEST_SAMPLING_MICS)
+				{
+					reponseCommandToNeighbor(ui32RequestRobotID, ROBOT_RESPONSE_SAMPLING_COLLISION);
+					bIsSkipTheRest = true;
+				}
+				// else { Do nothing! Because other command is not collision with the sampling process }
+			}
+			Network_deleteBuffer(pui8RxBuffer);
+		}
+	}
+
+	if(!bIsSkipTheRest)
+	{
 		TDOA_process(getMicrophone0BufferPointer(), &fPeakA, &fMaxA);
 		TDOA_process(getMicrophone1BufferPointer(), &fPeakB, &fMaxB);
 
@@ -515,15 +515,15 @@ void StateOne_MeasureDistance_SamplingMicsHandler(uint8_t* pui8RequestData)
 				}
 
 				// random 1->100: delay unit (1ms)
-				uint32_t ui32RandomUs = (uint32_t)(getRandomFloatInRange(1, 100) * 1000);
-				delay_us(ui32RandomUs + 2000);
+				uint32_t ui32RandomUs = (uint32_t)(getRandomFloatInRange(5, 100) * 1000);
+				delay_us(ui32RandomUs + 3000);
 
 				responseDistanceToNeighbor(ui32RequestRobotID, ui16Distance);
 			}
 			// else { Do nothing! Because the neigbor too far }
 		}
-//		// else { Do nothing! Because of the bad results }
-//	}
+		// else { Do nothing! Because of the bad results }
+	}
 
 	g_RobotIdentity.IsSampling = false;
 
@@ -2269,8 +2269,7 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
-	turnOffLED(LED_ALL);
-	turnOnLED(LED_RED);
+	turnOnLED(LED_GREEN);
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
@@ -2293,7 +2292,7 @@ void StateNine_FollowGradientMap(void)
 
 	if (getRandomByte() > 38) // 14.84%
 	{
-//		broadcastLocationMessageToLocalNeighbors();
+//		broadcastLocationMessageToLocalNeighbors(); - neu 3 thang hang thi b o
 //		return;
 		if (!updateLocation())
 			return;
@@ -2326,7 +2325,7 @@ void StateNine_FollowGradientMap(void)
 		}
 	}
 
-	turnOffLED(LED_RED);
+	turnOffLED(LED_GREEN);
 }
 
 void StateNine_FollowGradientMap_UpdateGoal()

@@ -49,7 +49,7 @@ bool RfSendPacket(uint8_t *txBuffer)
 
 	while (GPIOPinRead(RF24_INT_PORT, RF24_INT_Pin) != 0);
 
-	while(!RF24_getIrqFlag(RF24_IRQ_TX));
+	//while(!RF24_getIrqFlag(RF24_IRQ_TX));
 
 	RF24_clearIrqFlag(RF24_IRQ_MASK);
 
@@ -94,7 +94,8 @@ e_RxStatus RfReceivePacket(uint8_t *rxBuffer)
 			ui32Checksum += rxBuffer[i];
 		}
 
-		RF24_clearIrqFlag(RF24_IRQ_RX);
+		//RF24_clearIrqFlag(RF24_IRQ_RX);
+		RF24_clearIrqFlag(RF24_IRQ_MASK);
 
 		if(ui32Checksum == 0)
 			return RX_STATUS_SUCCESS;
@@ -290,6 +291,100 @@ bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 
 	return bReturn;
 }
+
+bool RfTryToGetNextPacket(uint64_t ui64PeriodInUs,
+		bool (*pfnDecodePacket)(uint8_t* pRxBuff, uint8_t ui8PreviousPID, uint8_t* pui8RxBuffer, uint8_t* pui8RxMessSize),
+		uint8_t ui8PrePID, uint8_t* pui8RxBuff, uint8_t* pui8RxSize)
+{
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+
+	bool bReturn = false;
+
+//	va_list argp;
+//	va_start(argp, pfnDecodePacket);	// Start the varargs processing.
+
+	uint8_t pui8RxBuffer[TXBUFFERSIZE] =
+	{ 0 };
+
+	MCU_RF_ConfigureRfTimer(ui64PeriodInUs);
+
+	while(true)
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
+
+			if (RfReceivePacket(pui8RxBuffer) == RX_STATUS_SUCCESS)
+			{   // Fetch packet from CCxxxx
+				// Call packet decoder
+//				if ((*pfnDecodePacket)(pui8RxBuffer, argp))
+				if ((*pfnDecodePacket)(pui8RxBuffer, ui8PrePID, pui8RxBuff, pui8RxSize))
+				{
+					// if decode success then terminal this process
+					bReturn = true;
+					break;
+				}
+			}
+		}
+
+		if(MCU_RF_IsRfTimerExpired())
+			break;
+	}
+
+//	va_end(argp);	// We're finished with the varargs now.
+
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
+
+	return bReturn;
+}
+
+
+bool RfTryToGetAckPacket(uint64_t ui64PeriodInUs,
+		bool (*pfnDecodePacket)(uint8_t* pRxBuff, Header* pHead), Header* pHead)
+{
+	bool bCurrentInterruptStage;
+	MCU_RF_PauseInterruptState(&bCurrentInterruptStage);
+
+	bool bReturn = false;
+
+//	va_list argp;
+//	va_start(argp, pfnDecodePacket);	// Start the varargs processing.
+
+	uint8_t pui8RxBuffer[TXBUFFERSIZE] =
+	{ 0 };
+
+	MCU_RF_ConfigureRfTimer(ui64PeriodInUs);
+
+	while(true)
+	{
+		if (MCU_RF_IsInterruptPinAsserted())
+		{
+			MCU_RF_ClearIntFlag();
+
+			if (RfReceivePacket(pui8RxBuffer) == RX_STATUS_SUCCESS)
+			{   // Fetch packet from CCxxxx
+				// Call packet decoder
+				if ((*pfnDecodePacket)(pui8RxBuffer, pHead))
+				{
+					// if decode success then terminal this process
+					bReturn = true;
+					break;
+				}
+			}
+		}
+
+		if(MCU_RF_IsRfTimerExpired())
+			break;
+	}
+
+//	va_end(argp);	// We're finished with the varargs now.
+
+	MCU_RF_ContinueInterruptStateBeforePause(bCurrentInterruptStage);
+
+	return bReturn;
+}
+
 //----------------------- nRF24L01 library -----------------------------
 
 void RF24_init(const RF24_InitTypeDef* InitRf24)

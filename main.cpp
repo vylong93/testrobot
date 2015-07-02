@@ -367,8 +367,8 @@ void MCU_RF_IRQ_handler(void)
 
 void FaultISRHandler(void)
 {
-	toggleLED(LED_RED | LED_GREEN);
-	ROM_SysCtlDelay(12000000);
+	turnOnLED(LED_RED | LED_GREEN | LED_BLUE);
+	ROM_SysCtlDelay(12500000);
 }
 
 #ifdef REGION_COMMENT

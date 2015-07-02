@@ -33,72 +33,41 @@ bool DASHController::isHaveClearshotToTheGoal(Vector2<float>* pPointCurrent, Vec
 	   Height = 2 * Robot's radius (5.0cm) + Moving Margin (2.5cm)
 	   Width = distance between current and goal  +  Robot's radius (5.0cm) + Moving Margin (2.5cm)
 	 */
-	// 0/ Find the rectangle
-	Vector2<float> point[4];
 
-	Vector2<float> n(pPointGoal->x - pPointCurrent->x, pPointGoal->y - pPointCurrent->y);
-	LineEquation_t lineCurrent;
-	lineCurrent.a = n.x;
-	lineCurrent.b = n.y;
-	lineCurrent.c = -(lineCurrent.a * pPointCurrent->x + lineCurrent.b * pPointCurrent->y);
-	CircleEquation_t circleCurrent;
-	circleCurrent.x0 = pPointCurrent->x;
-	circleCurrent.y0 = pPointCurrent->y;
-	circleCurrent.R = 2 * R_CENTER + MOVE_MARRGIN;
-	if (!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineCurrent, circleCurrent, &point[0], &point[1]))
-		return false;
+	float marginCurrent = 2 * R_CENTER + MOVE_MARRGIN;
+	Vector2<float> vectorToGoal(pPointGoal->x - pPointCurrent->x,
+							    pPointGoal->y - pPointCurrent->y);
 
-	float distance = n.getMagnitude() + R_CENTER + MOVE_MARRGIN;
-	n.normalize();
-	n = n * distance;
-	n.x = n.x + pPointCurrent->x;
-	n.y = n.y + pPointCurrent->y;
+	float lengthOfVectorToGoal = sqrtf(vectorToGoal.x * vectorToGoal.x
+			 	 	 	 	 	 	   + vectorToGoal.y * vectorToGoal.y);
 
-	LineEquation_t lineGoal;
-	lineGoal.a = lineCurrent.a;
-	lineGoal.b = lineCurrent.b;
-	lineGoal.c = -(lineGoal.a * n.x + lineGoal.b * n.y);
-	CircleEquation_t circleGoal;
-	circleGoal.x0 = n.x;
-	circleGoal.y0 = n.y ;
-	circleGoal.R = 2 * R_CENTER + MOVE_MARRGIN;
-	if (!Tri_calculateTwoCrossPointBetweenLineAndCircle(lineGoal, circleGoal, &point[2], &point[3]))
-		return false;
+	Vector2<float> vectorNormalizeToGoal(vectorToGoal.x / lengthOfVectorToGoal,
+										 vectorToGoal.y / lengthOfVectorToGoal);
 
-	// 1/ Find point arrangement
-	Vector2<float> vect01(point[1].x - point[0].x, point[1].y - point[0].y);
-	Vector2<float> vect02(point[2].x - point[0].x, point[2].y - point[0].y);
-	Vector2<float> vect03(point[3].x - point[0].x, point[3].y - point[0].y);
-	Vector2<float>* pPointA;
-	Vector2<float>* pPointB;
-	Vector2<float>* pPointD;
-	if (fabsf(vect01.DotProduct(vect02)) < 0.02)
-	{
-		pPointA = &point[0];
-		pPointB = &point[1];
-		pPointD = &point[2];
-	}
-	else if (fabsf(vect01.DotProduct(vect03)) < 0.02)
-	{
-		pPointA = &point[0];
-		pPointB = &point[1];
-		pPointD = &point[3];
-	}
-	else if (fabsf(vect02.DotProduct(vect03)) < 0.02)
-	{
-		pPointA = &point[0];
-		pPointB = &point[2];
-		pPointD = &point[3];
-	}
-	else
-		return false;
+	Vector2<float> vectorMarginCurrent(marginCurrent * vectorNormalizeToGoal.x,
+									   marginCurrent * vectorNormalizeToGoal.y);
+
+	// rotate vectorMarginToGoal 90 and add pointCurrent
+	Vector2<float> PointA(-vectorMarginCurrent.y + pPointCurrent->x,
+						  vectorMarginCurrent.x + pPointCurrent->y);
+
+	// rotate vectorMarginToGoal -90 and add pointCurrent
+	Vector2<float> PointB(vectorMarginCurrent.y + pPointCurrent->x,
+						  -vectorMarginCurrent.x + pPointCurrent->y);
+
+	float marginGoal = marginCurrent + lengthOfVectorToGoal;
+	Vector2<float> vectorMarginGoal(marginGoal * vectorNormalizeToGoal.x,
+								    marginGoal * vectorNormalizeToGoal.y);
+
+	Vector2<float> PointD(PointA.x + vectorMarginGoal.x,
+						  PointA.y + vectorMarginGoal.y);
 
 	// 2/ Check for collision: M(x,y) is inside if (0 < AM.AB < AB.AB) ^ (0 < AM.AD < AD.AD)
 	Vector2<float> vectorAM;
 	Vector2<float> vectorBM;
 	Vector2<float> vectorDM;
-	Vector2<float> vectorAB(pPointB->x - pPointA->x, pPointB->y - pPointA->y);
-	Vector2<float> vectorAD(pPointD->x - pPointA->x, pPointD->y - pPointA->y);
+	Vector2<float> vectorAB(PointB.x - PointA.x, PointB.y - PointA.y);
+	Vector2<float> vectorAD(PointD.x - PointA.x, PointD.y - PointA.y);
 
 	int i;
 	int iNumberOfNeighbors = RobotLocationsTable_getSize();
@@ -111,8 +80,8 @@ bool DASHController::isHaveClearshotToTheGoal(Vector2<float>* pPointCurrent, Vec
 		RobotLocationsTable_getLocationAtIndex(i, &neighborLocation.x, &neighborLocation.y);
 
 		// AB.AM tu continue
-		vectorAM.x = neighborLocation.x - pPointA->x;
-		vectorAM.y = neighborLocation.y - pPointA->y;
+		vectorAM.x = neighborLocation.x - PointA.x;
+		vectorAM.y = neighborLocation.y - PointA.y;
 		if (vectorAB.DotProduct(vectorAM) < 0)
 			continue;
 
@@ -121,14 +90,14 @@ bool DASHController::isHaveClearshotToTheGoal(Vector2<float>* pPointCurrent, Vec
 			continue;
 
 		// AB.BM nhon continue
-		vectorBM.x = neighborLocation.x - pPointB->x;
-		vectorBM.y = neighborLocation.y - pPointB->y;
+		vectorBM.x = neighborLocation.x - PointB.x;
+		vectorBM.y = neighborLocation.y - PointB.y;
 		if (vectorAB.DotProduct(vectorBM) > 0)
 			continue;
 
 		// AD.DM nhon continue
-		vectorDM.x = neighborLocation.x - pPointD->x;
-		vectorDM.y = neighborLocation.y - pPointD->y;
+		vectorDM.x = neighborLocation.x - PointD.x;
+		vectorDM.y = neighborLocation.y - PointD.y;
 		if (vectorAD.DotProduct(vectorDM) > 0)
 			continue;
 
@@ -192,32 +161,15 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 	bool bIsTargetUpdate = false;
 
 	GradientUnit guGoal;
-
 	int i;
-	e_SegmentType segmentType = pGradientMap->getSegmentType(pointCenter);
-	if (segmentType == SEGMENT_SHAPE)
-	{
-		for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
-		{
-			if(pGu[i].Value > 0 && pGu[i].Value > guRobot.Value)
-			{
-				guGoal.setContent(pGu[i].pPosition, pGu[i].Value);
+//	e_SegmentType segmentType = pGradientMap->getSegmentType(pointCenter);
+//	if(segmentType == SEGMENT_TRAPPED && guRobot.Value == START_PIXEL_VALUE_OF_NON_SHAPE_SEGMENT)
+//	{
+		//TODO: implement
+//	}
+//	else
+//	{
 
-				if(isHaveClearshotToTheGoal(&pointCurrent, guGoal.pPosition))
-				{
-					bIsTargetUpdate = true;
-					break;
-				}
-			}
-		}
-	}
-//		else if (segmentType == SEGMENT_TRAPPED
-//				&& gmCurrentValue == START_PIXEL_VALUE_OF_NON_SHAPE_SEGMENT)
-//		{
-//			//TODO: implement
-//		}
-	else // External Segment & Trapped Segment
-	{
 		for(i = 0; i < GRADIENT_UNIT_BUFFER_LENGTH; i++)
 		{
 			if(pGu[i].Value > guRobot.Value)
@@ -229,122 +181,28 @@ void DASHController::calculateTheNextGoal(Vector2<float>* pPointNextGoal)
 					bIsTargetUpdate = true;
 					break;
 				}
-#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
-				else
-				{
-					if(pGu[i].Value >= 0) // at outside of the bolder of shape segment
-						break;
-				}
-#endif
 			}
 		}
-	}
+//	}
 
 	if (bIsTargetUpdate)
 	{
 		pPointNextGoal->x = guGoal.pPosition->x;
 		pPointNextGoal->y = guGoal.pPosition->y;
+		return;
 	}
 	else
 	{
-#ifdef SLIDING_SHAPE_EDGE_BEHAVIOUR
-	// Target cannot update, calculate the sliding goal
-	if(guRobot.Value < 0 && guGoal.Value >= 0) // at outside of the bolder of shape segment
-	{
-		Vector2<float> vectorToGoal(guGoal.pPosition->x - pointCurrent.x, guGoal.pPosition->y - pointCurrent.y);
-		vectorToGoal.normalize();
-
-		Vector2<float> vectorToSlidingGoal = vectorToGoal.getRotate(MATH_PI_DIV_2);
-		vectorToSlidingGoal.x *= PIXEL_SIZE_IN_CM;
-		vectorToSlidingGoal.y *= PIXEL_SIZE_IN_CM;
-
-		vectorToSlidingGoal.x += pointCurrent.x;
-		vectorToSlidingGoal.y += pointCurrent.y;
-
-		bool bIsSlidingGoalStuck = false;
-
-		bool bIsLeftPositive = (pGu[0].Value >= 0);
-		bool bIsRightPositive = (pGu[1].Value >= 0);
-		bool bIsUpPositive = (pGu[2].Value >= 0);
-		bool bIsDownPositive = (pGu[3].Value >= 0);
-
-		bool bLeftClear = true;
-		bool bRightClear = true;
-		bool bUpClear = true;
-		bool bDownClear = true;
-
-		Vector2<float> neighborLocation;
-		for(i = 0; i < RobotLocationsTable_getSize(); i++)
-		{
-			RobotLocationsTable_getLocationAtIndex(i, &neighborLocation.x, &neighborLocation.y));
-			if (isTwoPositionOverlay(&vectorToSlidingGoal, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-			{
-				pGradientMap->coordinateOfTheCenterGradientPixelOfRobotLocation(neighborLocation, *(guGoal.pPosition));
-				guGoal.Value = pGradientMap->valueOf((*guGoal.pPosition));
-				bIsSlidingGoalStuck = true;
-			}
-
-			if(isTwoPositionOverlay(pointLeft, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-				bLeftClear = false;
-
-			if(isTwoPositionOverlay(pointRight, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-				bRightClear = false;
-
-			if(isTwoPositionOverlay(pointUp, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM)
-				bUpClear = false;
-
-			if(isTwoPositionOverlay(pointDown, &neighborLocation, CONTROLLER_POSITION_MOVE_MARRGIN_CM))
-				bDownClear = false;
-		}
-
-		if(bLeftClear && bIsLeftPositive)
-		{
-			pPointNextGoal->x = pointLeft.x;
-			pPointNextGoal->y = pointLeft.y;
-			return;
-		}
-
-		if(bRightClear && bIsRightPositive)
-		{
-			pPointNextGoal->x = pointRight.x;
-			pPointNextGoal->y = pointRight.y;
-			return;
-		}
-
-		if(bUpClear && bIsUpPositive)
-		{
-			pPointNextGoal->x = pointUp.x;
-			pPointNextGoal->y = pointUp.y;
-			return;
-		}
-
-		if(bDownClear && bIsDownPositive)
-		{
-			pPointNextGoal->x = pointDown.x;
-			pPointNextGoal->y = pointDown.y;
-			return;
-		}
-
-		if (!bIsSlidingGoalStuck)
-		{
-			pPointNextGoal->x = vectorToSlidingGoal->x;
-			pPointNextGoal->y = vectorToSlidingGoal->y;
-			return;
-		}
-	}
-#endif
-
-		pPointNextGoal->x = pRobotIdentity->x;
-		pPointNextGoal->y = pRobotIdentity->y;
-	}
-
-	if (pPointNextGoal->x == pRobotIdentity->x && pPointNextGoal->y == pRobotIdentity->y
-			&& !isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM)
+		if (!isTwoPositionOverlay(&pointCurrent, &pointCenter, CONTROLLER_POSITION_ERROR_CM)
 				&& isHaveClearshotToTheGoal(&pointCurrent, &pointCenter))
-	{
-		pPointNextGoal->x = pointCenter.x;
-		pPointNextGoal->y = pointCenter.y;
+		{
+			pPointNextGoal->x = pointCenter.x;
+			pPointNextGoal->y = pointCenter.y;
+			return;
+		}
 	}
+	pPointNextGoal->x = pointCurrent.x;
+	pPointNextGoal->y = pointCurrent.y;
 }
 
 void DASHController::selectionSortGradientUnitArray(GradientUnit pGu[], int Length)

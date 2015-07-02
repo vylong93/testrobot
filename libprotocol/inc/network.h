@@ -15,6 +15,7 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "libprotocol/inc/RfPacketDefinition.h"
 
 #ifdef RF_USE_CC2500
 #include "libcc2500/inc/cc2500.h"
@@ -110,51 +111,50 @@ typedef enum tag_NetworkState
 	STATE_IDLE,
 	STATE_WAIT_FOR_DATA,
 	STATE_DATA_AVAILABLE
-}e_NetworkState;
+} e_NetworkState;
 
-typedef enum tag_HandShake
-{
-	HANDSHAKE_ACK = 0,
-	HANDSHAKE_NOACK = 1
-} e_HandShake;
-
-typedef enum tag_Packet
-{
-	PACKET_HELLO = 0,
-	PACKET_ACK = 1,
-	PACKET_NACK = 2,
-	PACKET_SINGLE = 3,
-	PACKET_FIRST = 4,
-	PACKET_MIDDLE = 5,
-	PACKET_LAST = 6
-} e_Packet;
-
-typedef enum tag_HandShakeReturn
-{
-	HANDSHAKERETURN_INVALID,
-	HANDSHAKERETURN_DUPLICATED,
-	HANDSHAKERETURN_SUCCESS,
-	HANDSHAKERETURN_HELLO
-} e_HandShakeReturn;
-
-typedef struct tag_Status {
-	// WARNING!!! Do not change this order unless you know what you are doing!
-	// Changing this order due to wrong RF_PID_MASK definition at top file
-	unsigned char ui4Pid : 4;
-	e_Packet	ePacketType : 3;
-	e_HandShake eHandShakeType : 1;
-} Status;
-
-typedef struct tag_Header {
-	// WARNING!!! Do not change this order unless you know what you are doing!
-	// Changing this order due to wrong RF_HEADER_ definition at top file
-	uint8_t  ui8Length;
-	Status   status;
-	uint16_t ui16Checksum;
-	uint32_t ui32SourceAddress;
-	uint32_t ui32DestinationAddress;
-} Header;
-
+//typedef enum tag_HandShake
+//{
+//	HANDSHAKE_ACK = 0,
+//	HANDSHAKE_NOACK = 1
+//} e_HandShake;
+//
+//typedef enum tag_Packet
+//{
+//	PACKET_HELLO = 0,
+//	PACKET_ACK = 1,
+//	PACKET_NACK = 2,
+//	PACKET_SINGLE = 3,
+//	PACKET_FIRST = 4,
+//	PACKET_MIDDLE = 5,
+//	PACKET_LAST = 6
+//} e_Packet;
+//
+//typedef enum tag_HandShakeReturn
+//{
+//	HANDSHAKERETURN_INVALID,
+//	HANDSHAKERETURN_DUPLICATED,
+//	HANDSHAKERETURN_SUCCESS,
+//	HANDSHAKERETURN_HELLO
+//} e_HandShakeReturn;
+//
+//typedef struct tag_Status {
+//	// WARNING!!! Do not change this order unless you know what you are doing!
+//	// Changing this order due to wrong RF_PID_MASK definition at top file
+//	unsigned char ui4Pid : 4;
+//	e_Packet	ePacketType : 3;
+//	e_HandShake eHandShakeType : 1;
+//} Status;
+//
+//typedef struct tag_Header {
+//	// WARNING!!! Do not change this order unless you know what you are doing!
+//	// Changing this order due to wrong RF_HEADER_ definition at top file
+//	uint8_t  ui8Length;
+//	Status   status;
+//	uint16_t ui16Checksum;
+//	uint32_t ui32SourceAddress;
+//	uint32_t ui32DestinationAddress;
+//} Header;
 
 void Network_changeState(e_NetworkState state);
 e_NetworkState Network_getState();
@@ -174,10 +174,13 @@ uint16_t Network_getLastRxChecksum();
 
 bool Network_sendMessage(uint32_t ui32DestAddr, uint8_t *pui8Message,
 		uint32_t ui32MessSize, bool bIsAckRequire);
-bool Network_isAckPacket(uint8_t* pRxBuff, va_list argp);
+//bool Network_isAckPacket(uint8_t* pRxBuff, va_list argp);
+bool Network_isAckPacket(uint8_t* pRxBuff, Header* pTxHeader);
 bool Network_receivedMessage(uint8_t** ppui8MessBuffer, uint32_t* pui32MessSize);
 e_HandShakeReturn Network_isHandShakeProcessSuccess(Header** ppRxHeader, uint8_t* pui8RxBuffer);
-bool Network_isNextPacket(uint8_t* pRxBuff, va_list argp);
+//bool Network_isNextPacket(uint8_t* pRxBuff, va_list argp);
+bool Network_isNextPacket(uint8_t* pRxBuff,
+		uint8_t ui8PreviousPID, uint8_t* pui8RxBuffer, uint8_t* pui8RxMessSize);
 
 void Network_sendACK(Header RxHeader);
 

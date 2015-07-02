@@ -12,7 +12,7 @@
 #include "libstorage/inc/RobotIdentity.h"
 #include "libdynamic/inc/UnicycleModel.h"
 
-#define MOVE_MARRGIN	5.0f
+#define MOVE_MARRGIN	3.0f
 #define R_CENTER 5.0f		// Wheel base line divived by two
 
 #define CONTROLLER_ANGLE_ERROR_DEG				2.0f

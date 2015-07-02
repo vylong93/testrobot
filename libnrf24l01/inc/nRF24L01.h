@@ -43,6 +43,7 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include "libprotocol/inc/RfPacketDefinition.h"
 
 typedef struct tag_rf24_iniTypeDef
 {
@@ -329,6 +330,14 @@ bool RfTryToGetRxPacket(uint64_t ui64PeriodInUs,
 
 bool RfTryToCaptureRfSignal(uint64_t ui64PeriodInUs,
 			bool (*pfnHandler)(va_list argp), ...);
+
+bool RfTryToGetNextPacket(uint64_t ui64PeriodInUs,
+		bool (*pfnDecodePacket)(uint8_t* pRxBuff, uint8_t ui8PreviousPID, uint8_t* pui8RxBuffer, uint8_t* pui8RxMessSize),
+		uint8_t ui8PrePID, uint8_t* pui8RxBuff, uint8_t* pui8RxSize);
+
+bool RfTryToGetAckPacket(uint64_t ui64PeriodInUs,
+		bool (*pfnDecodePacket)(uint8_t* pRxBuff, Header* pHead),
+		Header* pHead);
 
 //-----------------------FUNCTIONS----------------------------//
 // Initialization and configuration

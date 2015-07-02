@@ -86,7 +86,7 @@ void MCU_RF_ConfigIRQPin(bool bEnable)
   if(bEnable)
   {
 	  // Set the type of interrupt
-	  ROM_GPIOIntTypeSet(RF24_INT_PORT, RF24_INT_Pin, GPIO_FALLING_EDGE );
+	  ROM_GPIOIntTypeSet(RF24_INT_PORT, RF24_INT_Pin, GPIO_FALLING_EDGE);
 
 	  // Set the interrupt priorities.
 	  ROM_IntPrioritySet(RF24_INT, 0x00);
