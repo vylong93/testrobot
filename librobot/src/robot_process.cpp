@@ -2285,6 +2285,8 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
+//#define ONLY_ONE_ROBOT_MOVE	// comment this if allow multi robot moving
+
 	turnOnLED(LED_GREEN);
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
@@ -2299,24 +2301,26 @@ void StateNine_FollowGradientMap(void)
 		return;
 	}
 
+#ifdef ONLY_ONE_ROBOT_MOVE
 	// Valid commands in this state: many
-//	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+#endif
 
 	// Now, robot timer delay random is expired
 	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
 		return;
-//
-//	if (getRandomByte() > 38) // 14.84%
-//	{
-////		broadcastLocationMessageToLocalNeighbors(); - neu 3 thang hang thi b o
-////		return;
-//		if (!updateLocation())
-//			return;
-//	}
 
-//	broadcastNOPMessageToLocalNeighbors();
-//	if (!updateLocation())
-//		return;
+#ifdef ONLY_ONE_ROBOT_MOVE
+	if (getRandomByte() > 38) // 14.84%
+	{
+		if (!updateLocation())
+			return;
+	}
+
+	//	broadcastNOPMessageToLocalNeighbors();
+	//	if (!updateLocation())
+	//		return;
+#endif
 
 	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
 
@@ -2327,19 +2331,27 @@ void StateNine_FollowGradientMap(void)
 		// 1/ cal the head angle -> rotate
 		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+#ifdef ONLY_ONE_ROBOT_MOVE
+		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), true))
+		{
+			if (updateLocation())
+			{
+				// 2/ cal the distance step -> forward
+				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
+				i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
+				moveStep(FORWARD, i8MoveStep, true);
+			}
+		}
+#else
 		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), false))
 		{
-//			if (updateLocation())
-//			{
-				// 2/ cal the distance step -> forward
-//				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
-//				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
-				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
-				//i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
-				i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
-				moveStep(FORWARD, i8MoveStep, false);
-//			}
+			int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
+			i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
+			moveStep(FORWARD, i8MoveStep, false);
 		}
+#endif
 	}
 
 	turnOffLED(LED_GREEN);
