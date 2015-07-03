@@ -242,6 +242,22 @@ void resetRobotIdentity(void)
 	g_RobotIdentity.IsSampling = false;
 }
 
+void setRobotIdentity(void)
+{
+	g_RobotIdentity.Self_ID = Network_getSelfAddress();
+	g_RobotIdentity.Origin_ID = g_RobotIdentity.Self_ID;
+
+	g_RobotIdentity.x = -17.0f;
+	g_RobotIdentity.y = 0;
+	g_RobotIdentity.ValidLocation = true;
+
+	g_RobotIdentity.theta = MATH_PI_DIV_2;
+	g_RobotIdentity.ValidOrientation = true;
+
+	//g_RobotIdentity.Locomotion = LOCOMOTION_DIFFERENT;
+	g_RobotIdentity.Locomotion = LOCOMOTION_SAME;
+}
+
 void setRobotState(e_RobotState eState)
 {
 	Motors_stop();
@@ -2111,7 +2127,7 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 	pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 
 	Vector2<float> pPoint[3];
-	if (moveStep(FORWARD, 2)) // Blocking-call
+	if (moveStep(FORWARD, 2, true)) // Blocking-call
 	{
 		if (getSavePointCounter() < 2)
 			return false; // Continues this TASK
@@ -2119,7 +2135,7 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 		getLastPoint(0, &pPoint[1]);
 		getLastPoint(-1, &pPoint[0]);
 
-		moveStep(REVERSE, 2);
+		moveStep(REVERSE, 2, true);
 	}
 	else
 	{
@@ -2132,16 +2148,16 @@ bool StateSeven_Locomotion_MainTask(va_list argp)
 
 	g_RobotIdentity.ValidOrientation = false;
 
-	rotateAngleInDeg(90); // Blocking-call
+	rotateAngleInDeg(90, true); // Blocking-call
 
-	if (moveStep(FORWARD, 2)) // Blocking-call
+	if (moveStep(FORWARD, 2, true)) // Blocking-call
 	{
 		if (getSavePointCounter() < 3)
 			return false; // Continues this TASK
 
 		getLastPoint(0, &pPoint[2]);
 
-		moveStep(REVERSE, 2);
+		moveStep(REVERSE, 2, true);
 	}
 	else
 	{
@@ -2254,8 +2270,8 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 
 	broadcastNOPMessageToLocalNeighbors();
 
-	if (moveStep(FORWARD, 3))
-		moveStep(REVERSE, 3);
+	if (moveStep(FORWARD, 3, true))
+		moveStep(REVERSE, 3, true);
 
 	if (g_RobotIdentity.ValidOrientation)
 		return true; // Ternimate this TASK
@@ -2284,19 +2300,19 @@ void StateNine_FollowGradientMap(void)
 	}
 
 	// Valid commands in this state: many
-	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+//	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 
 	// Now, robot timer delay random is expired
 	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
 		return;
-
-	if (getRandomByte() > 38) // 14.84%
-	{
-//		broadcastLocationMessageToLocalNeighbors(); - neu 3 thang hang thi b o
-//		return;
-		if (!updateLocation())
-			return;
-	}
+//
+//	if (getRandomByte() > 38) // 14.84%
+//	{
+////		broadcastLocationMessageToLocalNeighbors(); - neu 3 thang hang thi b o
+////		return;
+//		if (!updateLocation())
+//			return;
+//	}
 
 //	broadcastNOPMessageToLocalNeighbors();
 //	if (!updateLocation())
@@ -2311,17 +2327,18 @@ void StateNine_FollowGradientMap(void)
 		// 1/ cal the head angle -> rotate
 		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
-		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
+		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), false))
 		{
-			if (updateLocation())
-			{
+//			if (updateLocation())
+//			{
 				// 2/ cal the distance step -> forward
-				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
-				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+//				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+//				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
 				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
-				i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
-				moveStep(FORWARD, i8MoveStep);
-			}
+				//i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
+				i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
+				moveStep(FORWARD, i8MoveStep, false);
+//			}
 		}
 	}
 
@@ -2331,8 +2348,8 @@ void StateNine_FollowGradientMap(void)
 void StateNine_FollowGradientMap_UpdateGoal()
 {
 	// Now, robot timer delay random is expired
-	if (!updateLocation())
-		return;
+//	if (!updateLocation())
+//		return;
 
 	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
 
@@ -2344,14 +2361,16 @@ void StateNine_FollowGradientMap_ExecuteActuator()
 	if (g_pointNextGoal.x != g_RobotIdentity.x || g_pointNextGoal.y != g_RobotIdentity.y)
 	{
 		Vector2<float> vectorGO;
-		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
-		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
 
 		// 1/ cal the head angle -> rotate
-		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x)))
+		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
+		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
+		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), false))
 		{
-			// 2/ cal the distance step -> forward
-			moveStep(FORWARD, (int8_t)(vectorGO.getMagnitude() / 2.0f));
+			int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
+			//i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
+			//i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
+			moveStep(FORWARD, i8MoveStep, false);
 		}
 	}
 
@@ -3868,7 +3887,7 @@ int8_t g_i8StepForwardRotateReverse;
 //      int8_t i8StepOfFour
 //          The number of moving step Of 4, 1 step Of 4 equal 2cm
 //-----------------------------------------------------------------------------
-bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
+bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour, bool bBroadcastRF)
 {
 	bool bIsMoveCompleted = false;
 
@@ -3895,12 +3914,12 @@ bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour)
 
 	g_eMovementDirection = eDirection;
 
-	while(!moveActivate(&bIsMoveCompleted, i8StepRotateLastCount, eDirection));
+	while(!moveActivate(&bIsMoveCompleted, i8StepRotateLastCount, eDirection, bBroadcastRF));
 
 	return bIsMoveCompleted;
 }
 
-bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection)
+bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection, bool bBroadcastRF)
 {
 	g_RobotIdentity.IsMoving = true;
 
@@ -3937,7 +3956,15 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 		}
 
 		MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
-		if (updateLocation())
+
+		if(bBroadcastRF)
+		{
+			if (updateLocation())
+			{
+				pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+			}
+		}
+		else
 		{
 			pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 		}
@@ -3961,7 +3988,22 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 			else
 			{
 				MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
-				if (updateLocation())
+				if(bBroadcastRF)
+				{
+					if (updateLocation())
+					{
+						pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+						if (!g_RobotIdentity.ValidOrientation)
+						{
+							if (calculateLastForwardOrientation(&theta))
+							{
+								g_RobotIdentity.ValidOrientation = true;
+								g_RobotIdentity.theta = theta;
+							}
+						}
+					}
+				}
+				else
 				{
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 					if (!g_RobotIdentity.ValidOrientation)
@@ -3995,15 +4037,33 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 			else
 			{
 				MovementTimer_delay_ms(DELAY_BEFORE_UPDATE_LOCATION_IN_MS);
-				if (updateLocation())
+				if(bBroadcastRF)
 				{
-					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-					if (!g_RobotIdentity.ValidOrientation)
+					if (updateLocation())
 					{
-						if (calculateLastBackwardOrientation(&theta))
+						pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+						if (!g_RobotIdentity.ValidOrientation)
 						{
-							g_RobotIdentity.ValidOrientation = true;
-							g_RobotIdentity.theta = theta;
+							if (calculateLastBackwardOrientation(&theta))
+							{
+								g_RobotIdentity.ValidOrientation = true;
+								g_RobotIdentity.theta = theta;
+							}
+						}
+					}
+				}
+				else
+				{
+					if (updateLocation())
+					{
+						pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+						if (!g_RobotIdentity.ValidOrientation)
+						{
+							if (calculateLastBackwardOrientation(&theta))
+							{
+								g_RobotIdentity.ValidOrientation = true;
+								g_RobotIdentity.theta = theta;
+							}
 						}
 					}
 				}
@@ -4069,18 +4129,21 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 float g_fLastIMUTheta;
 bool g_bRotateToEndTheta;
 
-bool rotateToAngleInRad(float fAngleInRad)
+bool rotateToAngleInRad(float fAngleInRad, bool bBroadcastRF)
 {
 	if (g_RobotIdentity.ValidOrientation)
 	{
 		float fPhi = g_RobotIdentity.theta - fAngleInRad;
 		fPhi = atan2f(sinf(fPhi), cosf(fPhi));
-		return rotateAngleInRad(fPhi);
+		if(fabsf(fPhi) > (CONTROLLER_ANGLE_ERROR_DEG * MATH_DEG2RAD))
+			return rotateAngleInRad(fPhi, bBroadcastRF);
+		else
+			return true;
 	}
 	return false;
 }
 
-bool rotateAngleInDeg(float fAngleInDeg)
+bool rotateAngleInDeg(float fAngleInDeg, bool bBroadcastRF)
 {
 	bool bIsRotateCompleted = false;
 
@@ -4101,12 +4164,12 @@ bool rotateAngleInDeg(float fAngleInDeg)
 
 	g_bRotateToEndTheta = true;
 
-	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
+	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle, bBroadcastRF));
 
 	return bIsRotateCompleted;
 }
 
-bool rotateAngleInRad(float fAngleInRad)
+bool rotateAngleInRad(float fAngleInRad, bool bBroadcastRF)
 {
 	bool bIsRotateCompleted = false;
 
@@ -4127,12 +4190,12 @@ bool rotateAngleInRad(float fAngleInRad)
 
 	g_bRotateToEndTheta = true;
 
-	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle));
+	while(!rotateActivate(&bIsRotateCompleted, fEndThetaAngle, bBroadcastRF));
 
 	return bIsRotateCompleted;
 }
 
-bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
+bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle, bool bBroadcastRF)
 {
 	g_RobotIdentity.IsMoving = true;
 
@@ -4215,11 +4278,13 @@ bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 		theta = atan2f(sinf(theta), cosf(theta));
 		g_RobotIdentity.theta += theta;
 
-		broadcastLocationMessageToLocalNeighbors();
+		if(bBroadcastRF)
+			broadcastLocationMessageToLocalNeighbors();
 	}
 	else
 	{
-		broadcastNOPMessageToLocalNeighbors();
+		if(bBroadcastRF)
+			broadcastNOPMessageToLocalNeighbors();
 	}
 	
 	return false;
@@ -4228,41 +4293,24 @@ bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle)
 void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t mRight)
 {
 	float phi;
+	float r_center;
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_DIFFERENT)
+	{
 		phi = theta_old - IMU_getYawAngle();
+		r_center = (mRight.ui8Speed - mLeft.ui8Speed > 0) ? (-R_CENTER) : (R_CENTER);
+	}
 	else
+	{
 		phi = IMU_getYawAngle() - theta_old;
-
-	phi = atan2f(sinf(phi), cosf(phi));
-
-	int sign;
-	e_MotorDirection direction;
-	if(mRight.ui8Speed - mLeft.ui8Speed > 0)
-	{
-		sign = 1;
-		direction = mRight.eDirection;
-	}
-	else
-	{
-		sign = -1;
-		direction = mLeft.eDirection;
+		r_center = (mRight.ui8Speed - mLeft.ui8Speed > 0) ? (R_CENTER) : (-R_CENTER);
 	}
 
-	float to;
-	if (direction == FORWARD)
-		to = g_RobotIdentity.theta;
-	else
-		to = g_RobotIdentity.theta + phi;
+	float theta_new = g_RobotIdentity.theta + phi;
+	theta_new = atan2f(sinf(theta_new), cosf(theta_new));
 
-	float factor = sign * R_CENTER;
-	float sinTo = sinf(to);
-	float cosTo = cosf(to);
-	float sinPhi = sinf(phi);
-	float one_minus_cosPhi = 1 - cosf(phi);
-
-	g_RobotIdentity.x = g_RobotIdentity.x + factor * (sinPhi * cosTo - sinTo * one_minus_cosPhi);
-	g_RobotIdentity.y = g_RobotIdentity.y + factor * (cosTo * one_minus_cosPhi + sinTo * sinPhi);
-	g_RobotIdentity.theta += phi;
+	g_RobotIdentity.x = g_RobotIdentity.x - r_center * (sinf(g_RobotIdentity.theta) - sinf(theta_new));
+	g_RobotIdentity.y = g_RobotIdentity.y + r_center * (cosf(g_RobotIdentity.theta) - cosf(theta_new));
+	g_RobotIdentity.theta = theta_new;
 }
 
 #endif

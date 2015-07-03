@@ -91,6 +91,7 @@ int readChipRev(void);
 
 void initRobotProcess(void);
 void resetRobotIdentity(void);
+void setRobotIdentity(void);
 
 void setRobotState(e_RobotState eState);
 e_RobotState getRobotState(void);
@@ -329,14 +330,14 @@ void GradientMapUpdater_sendNACKToHost(void);
 #endif
 
 #ifdef REGION_MOVING_CONTOLLER
-bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour);
-bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection);
+bool moveStep(e_MotorDirection eDirection, int8_t i8StepOfFour, bool bBroadcastRF);
+bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorDirection eDirection, bool bBroadcastRF);
 
-bool rotateToAngleInRad(float fAngleInRad);
+bool rotateToAngleInRad(float fAngleInRad, bool bBroadcastRF);
 
-bool rotateAngleInDeg(float fAngleInDeg);
-bool rotateAngleInRad(float fAngleInRad);
-bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle);
+bool rotateAngleInDeg(float fAngleInDeg, bool bBroadcastRF);
+bool rotateAngleInRad(float fAngleInRad, bool bBroadcastRF);
+bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle, bool bBroadcastRF);
 
 void calculateNewRobotStateAfterRotated(float theta_old, Motor_t mLeft, Motor_t mRight);
 #endif

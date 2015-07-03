@@ -81,6 +81,8 @@ int main(void)
 //	DEBUG_PRINT("IMU DMP: Ready\n");
 #endif
 
+//	setRobotIdentity();
+
 #ifdef REGION_COMMENT
 //	// System Variables
 //	Motor_t m1_Left;
