@@ -2281,11 +2281,14 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
-
+int8_t g_i8RfClearCounter = 0;
 Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
+
 //#define ONLY_ONE_ROBOT_MOVE	// comment this if allow multi robot moving
+
+//#define LOCALIZATION_WHEN_MOVE // comment this disable updateLocation when robot moving
 
 	turnOnLED(LED_GREEN);
 
@@ -2301,25 +2304,38 @@ void StateNine_FollowGradientMap(void)
 		return;
 	}
 
-#ifdef ONLY_ONE_ROBOT_MOVE
-	// Valid commands in this state: many
-	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
-#endif
-
-	// Now, robot timer delay random is expired
 	if(getRobotState() != ROBOT_STATE_FOLLOW_GRADIENT_MAP)
 		return;
 
 #ifdef ONLY_ONE_ROBOT_MOVE
-	if (getRandomByte() > 38) // 14.84%
+	// Valid commands in this state: many
+	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+#else
+	uint32_t ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(0, 200000); // 0 -> 200ms
+	g_bIsRfFlagAsserted = false;
+	MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
+	if (g_bIsRfFlagAsserted)
+		g_i8RfClearCounter = 0;
+	else
+	{
+		g_i8RfClearCounter++;
+		if (g_i8RfClearCounter > 10)
+		{
+			ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(200000, 800000); // 200ms -> 800ms
+			MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
+			updateLocation();
+			g_i8RfClearCounter = 0;
+		}
+	}
+#endif
+
+#ifdef LOCALIZATION_WHEN_MOVE
+	// Now, robot timer delay random is expired
+	if (getRandomByte() < 80) // 31.25%
 	{
 		if (!updateLocation())
 			return;
 	}
-
-	//	broadcastNOPMessageToLocalNeighbors();
-	//	if (!updateLocation())
-	//		return;
 #endif
 
 	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
@@ -2331,7 +2347,7 @@ void StateNine_FollowGradientMap(void)
 		// 1/ cal the head angle -> rotate
 		vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 		vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
-#ifdef ONLY_ONE_ROBOT_MOVE
+#ifdef LOCALIZATION_WHEN_MOVE
 		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), true))
 		{
 			if (updateLocation())
@@ -2340,7 +2356,9 @@ void StateNine_FollowGradientMap(void)
 				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
 				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
+#ifndef ONLY_ONE_ROBOT_MOVE
 				i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
+#endif
 				moveStep(FORWARD, i8MoveStep, true);
 			}
 		}
@@ -2348,7 +2366,7 @@ void StateNine_FollowGradientMap(void)
 		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), false))
 		{
 			int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
-			i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
+			i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
 			moveStep(FORWARD, i8MoveStep, false);
 		}
 #endif
@@ -2380,8 +2398,7 @@ void StateNine_FollowGradientMap_ExecuteActuator()
 		if (rotateToAngleInRad(atan2f(vectorGO.y, vectorGO.x), false))
 		{
 			int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
-			//i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
-			//i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
+			i8MoveStep = (i8MoveStep > 2) ? (2) : (i8MoveStep);
 			moveStep(FORWARD, i8MoveStep, false);
 		}
 	}
@@ -3978,6 +3995,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 		}
 		else
 		{
+			broadcastLocationMessageToLocalNeighbors();
 			pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 		}
 
@@ -4017,6 +4035,7 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 				}
 				else
 				{
+					broadcastLocationMessageToLocalNeighbors();
 					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
 					if (!g_RobotIdentity.ValidOrientation)
 					{
@@ -4066,16 +4085,14 @@ bool moveActivate(bool *bIsMoveCompleted, int8_t i8StepRotateLastCount, e_MotorD
 				}
 				else
 				{
-					if (updateLocation())
+					broadcastLocationMessageToLocalNeighbors();
+					pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
+					if (!g_RobotIdentity.ValidOrientation)
 					{
-						pushNewPoint(g_RobotIdentity.x, g_RobotIdentity.y);
-						if (!g_RobotIdentity.ValidOrientation)
+						if (calculateLastBackwardOrientation(&theta))
 						{
-							if (calculateLastBackwardOrientation(&theta))
-							{
-								g_RobotIdentity.ValidOrientation = true;
-								g_RobotIdentity.theta = theta;
-							}
+							g_RobotIdentity.ValidOrientation = true;
+							g_RobotIdentity.theta = theta;
 						}
 					}
 				}
@@ -4287,8 +4304,8 @@ bool rotateActivate(bool *bIsRotateCompleted, float fEndThetaAngle, bool bBroadc
 			theta = theta - IMU_getYawAngle();
 		else
 			theta = IMU_getYawAngle() - theta;
-		theta = atan2f(sinf(theta), cosf(theta));
 		g_RobotIdentity.theta += theta;
+		g_RobotIdentity.theta = atan2f(sinf(g_RobotIdentity.theta), cosf(g_RobotIdentity.theta));
 
 		if(bBroadcastRF)
 			broadcastLocationMessageToLocalNeighbors();

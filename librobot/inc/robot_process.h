@@ -116,8 +116,8 @@ void broadcastNOPMessageToLocalNeighbors(void);
 #define MEASURE_DISTANCE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	1200000		// 1.2s
 
 #define EXCHANGE_TABLE_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
-#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
-#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	800000		// 800ms
+#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	200000		// 200ms
+#define EXCHANGE_TABLE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	500000		// 500ms
 
 #define VOTE_THE_OGIRIN_STATE_MAINTASK_LIFE_TIME_IN_MS		2000	// 2s
 #define VOTE_THE_OGIRIN_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	100000		// 100ms
@@ -250,7 +250,7 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp);
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
-#define MAXIMUM_MOVING_STEP_OF_FOUR	6	// 6 * 2cm = ~ 10-14cm
+#define MAXIMUM_MOVING_STEP_OF_FOUR	2	// 2 * 2cm = ~ 3-5cm
 void StateNine_FollowGradientMap(void);
 void StateNine_FollowGradientMap_UpdateGoal();
 void StateNine_FollowGradientMap_ExecuteActuator();
