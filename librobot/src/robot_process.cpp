@@ -2428,6 +2428,7 @@ void checkLocation(void)
 	g_bCheckLocationCompleted = false;
 	g_pointLastLocation.x = g_RobotIdentity.x;
 	g_pointLastLocation.y = g_RobotIdentity.y;
+	g_RobotIdentity.ValidOrientation = false;
 
 	//
 	// Synchornous delay for previous state
@@ -2460,7 +2461,6 @@ bool checkLocationMainTask(va_list argp)
 	if(!g_bCheckLocationCompleted)
 	{
 		resetRobotTaskTimer();
-
 		if (updateLocation())
 		{
 			g_bCheckLocationCompleted = true;
@@ -2471,7 +2471,10 @@ bool checkLocationMainTask(va_list argp)
 			vectorError.x = g_RobotIdentity.x - g_pointLastLocation.x;
 			vectorError.y = g_RobotIdentity.y - g_pointLastLocation.y;
 			if(vectorError.getMagnitude() < CONTROLLER_POSITION_ERROR_CM)
+			{
 				turnOnLED(LED_GREEN);
+				g_RobotIdentity.ValidOrientation = true;
+			}
 			else
 			{
 				turnOnLED(LED_RED);
