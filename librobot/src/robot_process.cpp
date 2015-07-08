@@ -2281,15 +2281,13 @@ bool StateEight_UpdateOrientation_MainTask(va_list argp)
 #endif
 
 #ifdef REGION_STATE_NINE_FOLLOW_GRADIENT_MAP
-int8_t g_i8RfClearCounter = 0;
+uint32_t g_ui32RfClearCounter = 0;
+int8_t g_i8GoalStuckCounter = 0;
 Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
-
 //#define ONLY_ONE_ROBOT_MOVE	// comment this if allow multi robot moving
-
 //#define LOCALIZATION_WHEN_MOVE // comment this disable updateLocation when robot moving
-
 	turnOnLED(LED_GREEN);
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
@@ -2311,20 +2309,19 @@ void StateNine_FollowGradientMap(void)
 	// Valid commands in this state: many
 	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 #else
-	uint32_t ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(0, 200000); // 0 -> 200ms
+	uint32_t ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 	g_bIsRfFlagAsserted = false;
 	MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
 	if (g_bIsRfFlagAsserted)
-		g_i8RfClearCounter = 0;
+		g_ui32RfClearCounter = 0;
 	else
 	{
-		g_i8RfClearCounter++;
-		if (g_i8RfClearCounter > 10)
+		g_ui32RfClearCounter++;
+		if (g_ui32RfClearCounter > MAXIMUM_RF_CLEAR_COUNT)
 		{
-			ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(200000, 800000); // 200ms -> 800ms
-			MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
-			updateLocation();
-			g_i8RfClearCounter = 0;
+			g_ui32RfClearCounter = 0;
+			setRobotState(ROBOT_STATE_CHECK_LOCATION);
+			return;
 		}
 	}
 #endif
@@ -2367,7 +2364,20 @@ void StateNine_FollowGradientMap(void)
 		{
 			int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
 			i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
-			moveStep(FORWARD, i8MoveStep, false);
+			if(moveStep(FORWARD, i8MoveStep, false))
+			{
+				g_i8GoalStuckCounter = 0;
+			}
+			else
+			{
+				g_i8GoalStuckCounter++;
+				if(g_i8GoalStuckCounter >= MAXIMUM_GOAL_STUCK_COUNT)
+				{
+					g_i8GoalStuckCounter = 0;
+					setRobotState(ROBOT_STATE_CHECK_LOCATION);
+					return;
+				}
+			}
 		}
 #endif
 	}
@@ -2404,6 +2414,75 @@ void StateNine_FollowGradientMap_ExecuteActuator()
 	}
 
 	setRobotState(ROBOT_STATE_IDLE);
+}
+#endif
+
+#ifdef REGION_STATE_CHECKLOCATION
+bool g_bCheckLocationCompleted;
+Vector2<float> g_pointLastLocation;
+void checkLocation(void)
+{
+	turnOffLED(LED_ALL);
+	turnOnLED(LED_BLUE);
+
+	g_bCheckLocationCompleted = false;
+	g_pointLastLocation.x = g_RobotIdentity.x;
+	g_pointLastLocation.y = g_RobotIdentity.y;
+
+	//
+	// Synchornous delay for previous state
+	//
+	delay_us(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX + SYNCHRONOUS_STATE_MARGIN_DELAY_PERIOD_IN_US);
+
+	do
+	{
+		activeRobotTask(CHECK_LOCATION_STATE_MAINTASK_LIFE_TIME_IN_MS, checkLocationMainTask);
+	}
+	while(!g_bCheckLocationCompleted);
+
+	switchBackToPreviousState();
+}
+
+bool checkLocationMainTask(va_list argp)
+{
+	// NOTE: This task must be call by activeRobotTask() because the content below call to resetRobotTaskTimer()
+
+	//  ARGUMENTS:
+	//		va_list argp
+	//			This list containt no argument.
+
+	blockingDelayInRobotState(CHECK_LOCATION_STATE_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, CHECK_LOCATION_STATE_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+
+	// In here, robot timer delay is expired
+	if (getRobotState() != ROBOT_STATE_CHECK_LOCATION)
+		return true;
+
+	if(!g_bCheckLocationCompleted)
+	{
+		resetRobotTaskTimer();
+
+		if (updateLocation())
+		{
+			g_bCheckLocationCompleted = true;
+			broadcastLocationMessageToLocalNeighbors();
+			turnOffLED(LED_BLUE);
+
+			Vector2<float> vectorError;
+			vectorError.x = g_RobotIdentity.x - g_pointLastLocation.x;
+			vectorError.y = g_RobotIdentity.y - g_pointLastLocation.y;
+			if(vectorError.getMagnitude() < CONTROLLER_POSITION_ERROR_CM)
+				turnOnLED(LED_GREEN);
+			else
+			{
+				turnOnLED(LED_RED);
+				g_RobotIdentity.ValidOrientation = false;
+			}
+			return true; // Terminate the main TASK
+		}
+	}
+	// else { Nothing to do! Already update location successed! }
+
+	return false; // continue the main TASK
 }
 #endif
 

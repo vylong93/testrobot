@@ -266,6 +266,10 @@ int main(void)
 					setRobotState(ROBOT_STATE_IDLE);
 				break;
 
+			case ROBOT_STATE_CHECK_LOCATION:
+				checkLocation();
+				break;
+
 			default: // ROBOT_STATE_IDLE
 				toggleLED(LED_RED);
 				ROM_SysCtlDelay(12500000);

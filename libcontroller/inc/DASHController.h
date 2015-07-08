@@ -22,7 +22,6 @@ private:
 	RobotIdentity_t* pRobotIdentity;
 
 	//TODO: define this function in custom_math
-	bool isTwoPositionOverlay(Vector2<float>* pPointA, Vector2<float>* pPointB, float errorInCm);
 	bool isHaveClearshotToTheGoal(Vector2<float>* pPointCurrent, Vector2<float>* pPointGoal);
 
 	void selectionSortGradientUnitArray(GradientUnit pGu[], int Length);
@@ -34,6 +33,7 @@ public:
 	~DASHController();
 
 	void calculateTheNextGoal(Vector2<float>* pPointNextGoal);
+	bool isTwoPositionOverlay(Vector2<float>* pPointA, Vector2<float>* pPointB, float errorInCm);
 };
 
 
