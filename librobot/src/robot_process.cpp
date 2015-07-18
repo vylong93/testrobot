@@ -2286,9 +2286,23 @@ int8_t g_i8GoalStuckCounter = 0;
 Vector2<float> g_pointNextGoal;
 void StateNine_FollowGradientMap(void)
 {
-//#define ONLY_ONE_ROBOT_MOVE	// comment this if allow multi robot moving
-//#define LOCALIZATION_WHEN_MOVE // comment this disable updateLocation when robot moving
+#define ONLY_ONE_ROBOT_MOVE	// comment this if allow multi robot moving
+#define LOCALIZATION_WHEN_MOVE // comment this disable updateLocation when robot moving
 	turnOnLED(LED_GREEN);
+
+#ifdef ONLY_ONE_ROBOT_MOVE
+	#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	1500000		// 1.5s
+	#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	2500000		// 2.5s
+#else
+	#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN	50000		// 50ms
+	#define FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX	250000		// 250ms
+#endif
+
+#ifndef ONLY_ONE_ROBOT_MOVE
+#define MAXIMUM_MOVING_STEP_OF_FOUR	2	// 2 * 2cm = ~ 3-5cm
+#else
+#define MAXIMUM_MOVING_STEP_OF_FOUR	6	// 6 * 2cm = ~ 10-14cm
+#endif
 
 	if (g_RobotIdentity.Locomotion == LOCOMOTION_INVALID)
 	{
@@ -2308,31 +2322,21 @@ void StateNine_FollowGradientMap(void)
 #ifdef ONLY_ONE_ROBOT_MOVE
 	// Valid commands in this state: many
 	blockingDelayInRobotState(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
+	broadcastNOPMessageToLocalNeighbors();
 #else
 	uint32_t ui32LifeTimeInUsOfSubTask = getRandomFloatInRange(FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MIN, FOLLOW_GRADIENT_MAP_STATE_SUBTASK_LIFE_TIME_IN_US_MAX);
 	g_bIsRfFlagAsserted = false;
 	MCU_RF_TimerDelayUs(ui32LifeTimeInUsOfSubTask);
-	if (g_bIsRfFlagAsserted)
-		g_ui32RfClearCounter = 0;
-	else
-	{
-		g_ui32RfClearCounter++;
-		if (g_ui32RfClearCounter > MAXIMUM_RF_CLEAR_COUNT)
-		{
-			g_ui32RfClearCounter = 0;
-			setRobotState(ROBOT_STATE_CHECK_LOCATION);
-			return;
-		}
-	}
+
 #endif
 
 #ifdef LOCALIZATION_WHEN_MOVE
 	// Now, robot timer delay random is expired
-	if (getRandomByte() < 80) // 31.25%
-	{
-		if (!updateLocation())
-			return;
-	}
+//	if (getRandomByte() < 80) // 31.25%
+//	{
+//		if (!updateLocation())
+//			return;
+//	}
 #endif
 
 	g_pDASHController->calculateTheNextGoal(&g_pointNextGoal);
@@ -2353,9 +2357,7 @@ void StateNine_FollowGradientMap(void)
 				vectorGO.y = g_pointNextGoal.y - g_RobotIdentity.y;
 				vectorGO.x = g_pointNextGoal.x - g_RobotIdentity.x;
 				int8_t i8MoveStep = (int8_t)(vectorGO.getMagnitude() / 2.0f);
-#ifndef ONLY_ONE_ROBOT_MOVE
 				i8MoveStep = (i8MoveStep > MAXIMUM_MOVING_STEP_OF_FOUR) ? (MAXIMUM_MOVING_STEP_OF_FOUR) : (i8MoveStep);
-#endif
 				moveStep(FORWARD, i8MoveStep, true);
 			}
 		}
@@ -2379,6 +2381,19 @@ void StateNine_FollowGradientMap(void)
 				}
 			}
 		}
+
+//		if (g_bIsRfFlagAsserted)
+//			g_ui32RfClearCounter = 0;
+//		else
+//		{
+//			g_ui32RfClearCounter++;
+//			if (g_ui32RfClearCounter > MAXIMUM_RF_CLEAR_COUNT)
+//			{
+//				g_ui32RfClearCounter = 0;
+//				setRobotState(ROBOT_STATE_CHECK_LOCATION);
+//				return;
+//			}
+//		}
 #endif
 	}
 

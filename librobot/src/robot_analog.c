@@ -317,7 +317,11 @@ float getRandomFloatInRange(float min, float max)
 
 	float fResolution = 255.0f / (max - min);
 
-	return ((float) (g_pui8RandomArray[g_ui8RandomArrayIndex++] / fResolution) + min);
+	uint8_t random = g_pui8RandomArray[g_ui8RandomArrayIndex++];
+	random += 10;
+	random &= 0x7F;
+
+	return ((float) (random / fResolution) + min);
 }
 
 uint8_t generateRandomByteUseADC(void)
